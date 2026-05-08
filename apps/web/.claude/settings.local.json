@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf /c/Github/ReeL-Trip/.gradle)",
+      "Bash(rm /c/Github/ReeL-Trip/.idea/gradle.xml)",
+      "Bash(rm /c/Github/ReeL-Trip/.idea/back-end.iml)",
+      "Bash(rm /c/Github/ReeL-Trip/.idea/misc.xml)",
+      "Read(//c/Github/ReeL-Trip/**)",
+      "Bash(cat .gitignore)",
+      "Bash(find . -name \".gitignore\" -maxdepth 4)",
+      "Bash(ls:*)",
+      "Bash(git -C /c/Github/ReeL-Trip ls-files --others --ignored --exclude-standard apps/web/)"
+    ]
+  }
+}

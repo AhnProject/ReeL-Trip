@@ -1,18 +1,30 @@
+import { Injectable } from "@nestjs/common";
 import { DocumentRepository } from "./document.repository";
 import { AiService } from "../ai/ai.service";
 import { DocumentError } from "../common/errors/app.error";
-import type { CreateDocumentDto, UpdateDocumentDto, SearchDocumentDto } from "./dto/document.dto";
+import type {
+  CreateDocumentDto,
+  UpdateDocumentDto,
+  SearchDocumentDto,
+} from "./dto/document.dto";
 
+@Injectable()
 export class DocumentService {
-  private readonly documentRepository = new DocumentRepository();
-  private readonly aiService = new AiService();
+  constructor(
+    private readonly documentRepository: DocumentRepository,
+    private readonly aiService: AiService
+  ) {}
 
   async create(dto: CreateDocumentDto) {
     const embedding =
       dto.embedding && dto.embedding.length > 0
         ? dto.embedding
         : await this.aiService.createEmbedding(`${dto.title} ${dto.content}`);
-    const id = await this.documentRepository.create({ title: dto.title, content: dto.content, embedding });
+    const id = await this.documentRepository.create({
+      title: dto.title,
+      content: dto.content,
+      embedding,
+    });
     return { id: id.toString() };
   }
 

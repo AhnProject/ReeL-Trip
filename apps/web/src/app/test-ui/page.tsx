@@ -4,11 +4,13 @@ import { useState } from "react";
 import type { AuthResponse, DocumentRecord, RecommendOutput } from "@reel-trip/types";
 import type { ApiResponse } from "@reel-trip/types";
 
+const API_BASE = "";
+
 async function call<T>(path: string, init?: RequestInit, token?: string): Promise<ApiResponse<T>> {
   const headers = new Headers(init?.headers);
   if (!headers.has("Content-Type") && init?.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   return res.json();
 }
 
@@ -78,7 +80,7 @@ export default function TestUiPage() {
       <section style={styles.hero}>
         <p style={styles.kicker}>ReeL-Trip</p>
         <h1 style={styles.title}>API Test UI</h1>
-        <a href="/docs" style={styles.docsLink}>API Docs →</a>
+        <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>{API_BASE}</p>
       </section>
 
       <section style={styles.grid}>
@@ -133,7 +135,6 @@ const styles: Record<string, React.CSSProperties> = {
   hero: { maxWidth: 1100, margin: "0 auto 24px" },
   kicker: { margin: 0, letterSpacing: "0.2em", textTransform: "uppercase", color: "#9a3412", fontSize: 12 },
   title: { margin: "8px 0", fontSize: 52, lineHeight: 1 },
-  docsLink: { color: "#ea580c", fontSize: 14, textDecoration: "none" },
   grid: { maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 },
   card: { background: "rgba(255,255,255,0.8)", border: "1px solid rgba(148,163,184,0.35)", borderRadius: 24, padding: 20, backdropFilter: "blur(12px)" },
   logCard: { maxWidth: 1100, margin: "16px auto 0", background: "#0f172a", borderRadius: 24, padding: 20 },
