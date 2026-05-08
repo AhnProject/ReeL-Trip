@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { AppExceptionFilter } from "./common/filters/app-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { apiReference } from "@scalar/express-api-reference";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,6 +31,17 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new AppExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
+
+  app.use(
+    "/docs",
+    apiReference({
+      url: "/api/docs/spec",
+      theme: "kepler",
+      darkMode: true,
+      defaultOpenAllTags: true,
+      pageTitle: "ReeL-Trip API Docs",
+    })
+  );
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
