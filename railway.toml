@@ -1,9 +1,9 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd ../.. && npm install && npx turbo run build --filter=@reel-trip/api..."
+buildCommand = "npm install && npm run build --workspace=@reel-trip/api"
 
 [deploy]
-startCommand = "node dist/main.js"
+startCommand = "node apps/api/dist/main.js"
 healthcheckPath = "/api/documents/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"
