@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { AuthResponse, DocumentRecord, RecommendOutput } from "@reel-trip/types";
 import type { ApiResponse } from "@reel-trip/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE = "";
 
 async function call<T>(path: string, init?: RequestInit, token?: string): Promise<ApiResponse<T>> {
   const headers = new Headers(init?.headers);
