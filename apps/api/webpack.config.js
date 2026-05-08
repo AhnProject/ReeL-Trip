@@ -17,8 +17,13 @@ module.exports = function (options) {
       },
     },
     externals: [
+      // 루트 node_modules의 패키지(prisma 등)도 외부로 처리
       nodeExternals({
-        // @reel-trip/* 워크스페이스 패키지는 번들에 포함 (TS 소스 직접 참조)
+        modulesDir: path.resolve(__dirname, "../../node_modules"),
+        allowlist: [/@reel-trip\/.*/],
+      }),
+      // 로컬 node_modules 패키지 외부 처리
+      nodeExternals({
         allowlist: [/@reel-trip\/.*/],
       }),
     ],
