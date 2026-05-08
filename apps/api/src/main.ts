@@ -8,6 +8,25 @@ import { apiReference } from "@scalar/express-api-reference";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // NestJS 라우터보다 먼저 등록해야 동작함
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use((req: any, res: any, next: any) => {
+    if (req.url === "/" || req.url === "") return res.redirect(302, "/docs");
+    if (req.url === "/favicon.ico") return res.status(204).end();
+    next();
+  });
+
+  app.use(
+    "/docs",
+    apiReference({
+      url: "/api/docs/spec",
+      theme: "kepler",
+      darkMode: true,
+      defaultOpenAllTags: true,
+      pageTitle: "ReeL-Trip API Docs",
+    })
+  );
+
   const allowedOrigins =
     process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) ?? [
       "http://localhost:3000",
@@ -31,17 +50,6 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new AppExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
-
-  app.use(
-    "/docs",
-    apiReference({
-      url: "/api/docs/spec",
-      theme: "kepler",
-      darkMode: true,
-      defaultOpenAllTags: true,
-      pageTitle: "ReeL-Trip API Docs",
-    })
-  );
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
