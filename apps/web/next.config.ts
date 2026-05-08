@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "https://reel-trip-api.vercel.app";
+  process.env.NEXT_PUBLIC_API_URL ?? "https://reel-tripapi-production.up.railway.app";
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
