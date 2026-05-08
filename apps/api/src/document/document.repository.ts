@@ -1,4 +1,5 @@
-import { prisma } from "../prisma/prisma";
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
 import { vectorToString, adjustVectorDimension, VECTOR_DIM } from "@reel-trip/utils";
 
 type DocumentRow = {
@@ -26,10 +27,19 @@ function mapRow(row: DocumentRow) {
   };
 }
 
+@Injectable()
 export class DocumentRepository {
-  async create(data: { title: string; content: string; embedding: number[] | null }) {
-    const vector = vectorToString(adjustVectorDimension(data.embedding, VECTOR_DIM));
-    const result = (await prisma.$queryRawUnsafe(
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(data: {
+    title: string;
+    content: string;
+    embedding: number[] | null;
+  }) {
+    const vector = vectorToString(
+      adjustVectorDimension(data.embedding, VECTOR_DIM)
+    );
+    const result = (await this.prisma.$queryRawUnsafe(
       `INSERT INTO documents (title, content, embedding, created_at)
        VALUES ($1, $2, $3::vector, now()) RETURNING id`,
       data.title,
@@ -40,7 +50,7 @@ export class DocumentRepository {
   }
 
   async findById(id: bigint) {
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = (await this.prisma.$queryRawUnsafe(
       `SELECT id, title, content, embedding::text, created_at, updated_at
        FROM documents WHERE id = $1`,
       id
@@ -49,16 +59,21 @@ export class DocumentRepository {
   }
 
   async findAll() {
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = (await this.prisma.$queryRawUnsafe(
       `SELECT id, title, content, embedding::text, created_at, updated_at
        FROM documents ORDER BY created_at DESC`
     )) as DocumentRow[];
     return rows.map(mapRow);
   }
 
-  async update(id: bigint, data: { title: string; content: string; embedding: number[] | null }) {
-    const vector = vectorToString(adjustVectorDimension(data.embedding, VECTOR_DIM));
-    return prisma.$executeRawUnsafe(
+  async update(
+    id: bigint,
+    data: { title: string; content: string; embedding: number[] | null }
+  ) {
+    const vector = vectorToString(
+      adjustVectorDimension(data.embedding, VECTOR_DIM)
+    );
+    return this.prisma.$executeRawUnsafe(
       `UPDATE documents SET title=$1, content=$2, embedding=$3::vector, updated_at=now() WHERE id=$4`,
       data.title,
       data.content,
@@ -68,11 +83,20 @@ export class DocumentRepository {
   }
 
   async delete(id: bigint) {
-    return prisma.$executeRawUnsafe(`DELETE FROM documents WHERE id=$1`, id);
+    return this.prisma.$executeRawUnsafe(
+      `DELETE FROM documents WHERE id=$1`,
+      id
+    );
   }
 
-  async searchByVector(embedding: number[], limit: number, threshold?: number) {
-    const vector = vectorToString(adjustVectorDimension(embedding, VECTOR_DIM));
+  async searchByVector(
+    embedding: number[],
+    limit: number,
+    threshold?: number
+  ) {
+    const vector = vectorToString(
+      adjustVectorDimension(embedding, VECTOR_DIM)
+    );
     const query =
       threshold !== undefined
         ? `SELECT id, title, content, embedding::text, created_at, updated_at,
@@ -87,8 +111,17 @@ export class DocumentRepository {
 
     const rows =
       threshold !== undefined
-        ? ((await prisma.$queryRawUnsafe(query, vector, threshold, limit)) as SearchDocumentRow[])
-        : ((await prisma.$queryRawUnsafe(query, vector, limit)) as SearchDocumentRow[]);
+        ? ((await this.prisma.$queryRawUnsafe(
+            query,
+            vector,
+            threshold,
+            limit
+          )) as SearchDocumentRow[])
+        : ((await this.prisma.$queryRawUnsafe(
+            query,
+            vector,
+            limit
+          )) as SearchDocumentRow[]);
 
     return rows.map((row) => ({
       ...mapRow(row),
