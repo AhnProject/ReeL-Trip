@@ -1,4 +1,5 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Res } from "@nestjs/common";
+import type { Response } from "express";
 
 const apiResponse = (dataSchema: object) => ({
   "application/json": {
@@ -44,9 +45,9 @@ const documentSchema = {
 @Controller("docs")
 export class DocsController {
   @Get("spec")
-  spec() {
+  spec(@Res() res: Response) {
     const baseUrl = process.env.API_BASE_URL ?? "http://localhost:4000";
-    return {
+    const spec = {
       openapi: "3.1.0",
       info: {
         title: "ReeL-Trip API",
@@ -388,5 +389,6 @@ export class DocsController {
         },
       },
     };
+    res.json(spec);
   }
 }
