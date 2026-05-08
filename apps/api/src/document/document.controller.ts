@@ -17,7 +17,7 @@ import {
   type UpdateDocumentDto,
   type SearchDocumentDto,
 } from "./dto/document.dto";
-import { JwtAuthGuard } from "../common/guards/jwt-auth.guard";
+import { JwtAuthGuard, Public } from "../common/guards/jwt-auth.guard";
 import { ZodValidationPipe } from "../common/pipes/zod-validation.pipe";
 
 @Controller("documents")
@@ -26,6 +26,7 @@ export class DocumentController {
   constructor(private readonly documentService: DocumentService) {}
 
   @Get("health")
+  @Public()
   health() {
     return { status: "ok" };
   }
