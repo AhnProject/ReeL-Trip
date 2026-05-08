@@ -1,11 +1,18 @@
+import { Injectable } from "@nestjs/common";
 import OpenAI from "openai";
 import { AppError } from "../common/errors/app.error";
 import { VECTOR_DIM } from "@reel-trip/utils";
 
+@Injectable()
 export class AiService {
   private getClient(): OpenAI {
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) throw new AppError("OPENAI_API_KEY is required", "OPENAI_API_KEY_MISSING", 500);
+    if (!apiKey)
+      throw new AppError(
+        "OPENAI_API_KEY is required",
+        "OPENAI_API_KEY_MISSING",
+        500
+      );
     return new OpenAI({ apiKey });
   }
 
@@ -40,7 +47,11 @@ export class AiService {
     try {
       parsed = JSON.parse(rawJson);
     } catch {
-      throw new AppError("Failed to parse OpenAI response JSON", "AI_RESPONSE_PARSE_ERROR", 502);
+      throw new AppError(
+        "Failed to parse OpenAI response JSON",
+        "AI_RESPONSE_PARSE_ERROR",
+        502
+      );
     }
 
     const refinedQuery = parsed.refinedQuery?.trim() || userInput;
