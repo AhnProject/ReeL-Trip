@@ -16,10 +16,11 @@ async function bootstrap() {
     next();
   });
 
+  const baseUrl = process.env.API_BASE_URL ?? "https://reel-tripapi-production.up.railway.app";
   app.use(
     "/docs",
     apiReference({
-      url: "/api/docs/spec",
+      url: `${baseUrl}/api/docs/spec`,
       theme: "kepler",
       darkMode: true,
       defaultOpenAllTags: true,
