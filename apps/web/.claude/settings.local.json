@@ -7,7 +7,8 @@
       "Bash(rm /c/Github/ReeL-Trip/.idea/misc.xml)",
       "Read(//c/Github/ReeL-Trip/**)",
       "Bash(cat .gitignore)",
-      "Bash(find . -name \".gitignore\" -maxdepth 4)"
+      "Bash(find . -name \".gitignore\" -maxdepth 4)",
+      "Bash(ls:*)"
     ]
   }
 }
