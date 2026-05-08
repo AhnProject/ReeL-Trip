@@ -29,15 +29,16 @@ async function bootstrap() {
   );
 
   const allowedOrigins =
-    process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) ?? [
-      "http://localhost:3000",
-    ];
+    process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) ?? [];
   const allowedSuffixes =
     process.env.ALLOWED_ORIGIN_SUFFIXES?.split(",").map((s) => s.trim()) ?? [];
+
+  const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      if (localhostPattern.test(origin)) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (allowedSuffixes.some((suffix) => origin.endsWith(suffix)))
         return callback(null, true);
