@@ -39,6 +39,7 @@ async function bootstrap() {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       if (localhostPattern.test(origin)) return callback(null, true);
+      if (origin === baseUrl) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (allowedSuffixes.some((suffix) => origin.endsWith(suffix)))
         return callback(null, true);
