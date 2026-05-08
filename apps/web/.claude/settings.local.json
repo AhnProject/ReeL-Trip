@@ -8,7 +8,8 @@
       "Read(//c/Github/ReeL-Trip/**)",
       "Bash(cat .gitignore)",
       "Bash(find . -name \".gitignore\" -maxdepth 4)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git -C /c/Github/ReeL-Trip ls-files --others --ignored --exclude-standard apps/web/)"
     ]
   }
 }
