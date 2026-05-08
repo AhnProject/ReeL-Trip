@@ -19,6 +19,8 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "paths": {
+      "rxjs": ["../../node_modules/rxjs"],
+      "rxjs/*": ["../../node_modules/rxjs/*"],
       "@reel-trip/types": ["../../packages/types/src"],
       "@reel-trip/utils": ["../../packages/utils/src"]
     }
