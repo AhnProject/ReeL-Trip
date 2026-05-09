@@ -1,6 +1,6 @@
 # ReeL-Trip
 
-AI 기반 여행지 추천 서비스 — Turborepo 모노레포
+AI 기반 여행지 추천 서비스 — Turborepo 모노레포.
 
 ## 기술 스택
 
