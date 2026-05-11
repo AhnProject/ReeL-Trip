@@ -12,7 +12,8 @@
       "Bash(xargs du:*)",
       "Bash(find:*)",
       "Bash(rm C:/Github/ReeL-Trip/.dockerignore)",
-      "Bash(rm C:/Github/ReeL-Trip/Structure.md)"
+      "Bash(rm C:/Github/ReeL-Trip/Structure.md)",
+      "Skill(claude-api)"
     ]
   }
 }

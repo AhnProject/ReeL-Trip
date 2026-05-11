@@ -3,13 +3,14 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "prisma generate && nest start --watch",
     "build": "prisma generate && nest build",
     "start": "node dist/main",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
@@ -22,6 +23,7 @@
     "openai": "^4.98.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "youtube-transcript": "^1.3.1",
     "zod": "^3.24.4"
   },
   "devDependencies": {

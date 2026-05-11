@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
+    "build": "turbo run build --filter=!./apps/mobile",
+    "dev": "turbo run dev --filter=!./apps/mobile",
+    "lint": "turbo run lint --filter=!./apps/mobile",
+    "type-check": "turbo run type-check --filter=!./apps/mobile",
     "clean": "turbo run clean"
   },
   "devDependencies": {
