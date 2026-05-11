@@ -24,6 +24,23 @@ export const AuthError = {
   accessDenied: () => new AppError("Access denied", "ACCESS_DENIED", 403),
 };
 
+export const ParseError = {
+  unsupportedUrl: () =>
+    new AppError(
+      "YouTube Shorts 또는 Instagram Reels URL만 지원합니다",
+      "UNSUPPORTED_URL",
+      400
+    ),
+  privateContent: () =>
+    new AppError("콘텐츠가 비공개이거나 접근할 수 없습니다", "PRIVATE_CONTENT", 422),
+  extractionFailed: () =>
+    new AppError("여행/관광 관련 정보를 찾을 수 없습니다", "EXTRACTION_FAILED", 422),
+  apifyError: (msg: string) =>
+    new AppError(`Apify 오류: ${msg}`, "APIFY_ERROR", 502),
+  apifyNotConfigured: () =>
+    new AppError("APIFY_API_TOKEN이 설정되지 않았습니다", "APIFY_NOT_CONFIGURED", 500),
+};
+
 export const DocumentError = {
   notFound: (id: string | number) =>
     new AppError(`Document not found. ID: ${id}`, "DOCUMENT_NOT_FOUND", 404),
