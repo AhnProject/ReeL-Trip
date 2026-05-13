@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ReeL-Trip",
+  title: "ReeL Trip",
   description: "AI 기반 여행지 추천 서비스",
 };
 
