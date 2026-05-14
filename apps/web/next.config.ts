@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://reel-tripapi-production.up.railway.app";
 const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:5173";
 
 const nextConfig: NextConfig = {
   async rewrites() {
@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [
-        "localhost:3000",
+        "localhost:5173",
         APP_URL.replace(/^https?:\/\//, ""),
       ],
     },
