@@ -34,7 +34,7 @@ export default function DashboardPage() {
     const token = localStorage.getItem("token");
     const name = localStorage.getItem("username");
     if (!token) {
-      router.replace("/auth/login");
+      router.replace("/");
       return;
     }
     setUsername(name ?? "");
@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
-    router.replace("/auth/login");
+    router.replace("/");
   };
 
   const handleAddItem = (result: ParsedResult) => {
