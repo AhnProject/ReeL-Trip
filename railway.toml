@@ -1,19 +1,14 @@
-# 1. 빌드 대상이 되는 하위 폴더 경로를 명시합니다.
 root = "apps/api-spring"
 
 [build]
 builder = "nixpacks"
+buildCommand = "mvn clean package -DskipTests --no-transfer-progress"
 
-# 2. Nixpacks 설정을 가독성 좋고 명확하게 분리합니다.
 [build.nixpacksPlan]
-providers = ["node", "java"]
+providers = ["java"]
 
 [build.nixpacksPlan.setup]
-pkgs = ["openjdk17", "maven", "nodejs_24", "npm-9_x"]
-
-[build.nixpacksPlan.build]
-# npm run build 단계를 무시하고, 여기서 바로 메이븐 빌드를 수행하도록 강제합니다.
-cmds = ["mvn clean package -DskipTests --no-transfer-progress"]
+pkgs = ["openjdk17", "maven"]
 
 
 [deploy]
