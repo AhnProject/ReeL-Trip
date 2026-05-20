@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: reel-trip-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false   # LocalDateTime → "2024-01-01T00:00:00" (ISO 8601)
+    deserialization:
+      fail-on-unknown-properties: false
+
+server:
+  port: ${PORT:4000}
+  servlet:
+    context-path: /api
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-32-chars}
+  expires-in: ${JWT_EXPIRES_IN:86400000}
+
+openai:
+  api-key: ${OPENAI_API_KEY:}          # 비어있으면 OPENAI_API_KEY_MISSING 에러 반환
+  embedding-model: text-embedding-3-small
+  vector-dim: 1536
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}       # 비어있으면 ANTHROPIC_API_KEY_MISSING 에러 반환
+  model: claude-opus-4-6
+
+apify:
+  api-token: ${APIFY_API_TOKEN:}
+  actor-id: ${APIFY_ACTOR_ID:apify~instagram-reel-scraper}
+
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+  allowed-origin-suffixes: ${ALLOWED_ORIGIN_SUFFIXES:}
+
+api:
+  base-url: ${API_BASE_URL:http://localhost:4000}
