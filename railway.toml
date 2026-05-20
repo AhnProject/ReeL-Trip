@@ -2,7 +2,7 @@
 
 [build]
 builder = "nixpacks"
-nixpacksPlan = '{ "providers": ["node", "java"], "setup": { "pkgs": ["jdk17", "maven"] } }'
+nixpacksPlan = { providers = ["node", "java"], setup = { pkgs = ["jdk17", "maven"] } }
 buildCommand = "mvn clean package -DskipTests --no-transfer-progress"
 
 [deploy]
