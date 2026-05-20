@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "dotenv -e .env -- java -jar target/api-0.0.1-SNAPSHOT.jar",
-    "build": "./mvnw clean package -DskipTests --no-transfer-progress",
+    "build": "mvnw.cmd clean package -DskipTests --no-transfer-progress",
     "start": "dotenv -e .env -- java -jar target/api-0.0.1-SNAPSHOT.jar",
     "type-check": "echo skipped",
-    "clean": "./mvnw clean -q"
+    "clean": "mvnw.cmd clean -q"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0"
