@@ -1,20 +1,14 @@
 root = "apps/api-spring"
 
 [build]
-builder = "nixpacks"
-buildCommand = "mvn clean package -DskipTests --no-transfer-progress"
-
-[build.nixpacksPlan]
-providers = ["java"]
-
-[build.nixpacksPlan.setup]
-pkgs = ["openjdk17", "maven"]
+builder = "dockerfile"
+dockerfilePath = "apps/api-spring/Dockerfile"
 
 
 [deploy]
 # 빌드가 완료되면 생성된 jar 파일을 실행합니다.
 # root가 지정되어 있으므로 경로는 apps/api-spring/target/... 기준으로 잡힙니다.
-startCommand = "java -jar target/api-0.0.1-SNAPSHOT.jar"
+startCommand = "java -jar app.jar"
 healthcheckPath = "/api/documents/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
