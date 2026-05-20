@@ -1,10 +1,13 @@
+# Spring Boot API (apps/api-spring)
+# Railway 대시보드에서 Root Directory를 "apps/api-spring"으로 설정하면
+# 아래 buildCommand/startCommand 경로가 해당 디렉토리 기준으로 실행됩니다.
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npm run build --workspace=@reel-trip/api"
+buildCommand = "mvn clean package -DskipTests --no-transfer-progress"
 
 [deploy]
-startCommand = "node apps/api/dist/main.js"
+startCommand = "java -jar target/api-0.0.1-SNAPSHOT.jar"
 healthcheckPath = "/api/documents/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
