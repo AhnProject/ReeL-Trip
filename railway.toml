@@ -1,15 +1,7 @@
-root = "apps/api-spring"
-
 [build]
 builder = "dockerfile"
 dockerfilePath = "apps/api-spring/Dockerfile"
 
-
 [deploy]
-# 빌드가 완료되면 생성된 jar 파일을 실행합니다.
-# root가 지정되어 있으므로 경로는 apps/api-spring/target/... 기준으로 잡힙니다.
-startCommand = "java -jar app.jar"
-healthcheckPath = "/api/documents/health"
-healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
