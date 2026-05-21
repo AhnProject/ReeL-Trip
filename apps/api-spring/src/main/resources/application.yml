@@ -16,8 +16,6 @@ spring:
 
 server:
   port: ${PORT:4000}
-  servlet:
-    context-path: /api
 
 jwt:
   secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-32-chars}
