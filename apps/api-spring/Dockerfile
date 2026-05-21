@@ -1,7 +1,7 @@
 FROM maven:3.9-amazoncorretto-17 AS build
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
+COPY apps/api-spring/pom.xml .
+COPY apps/api-spring/src ./src
 RUN mvn clean package -DskipTests --no-transfer-progress
 
 FROM amazoncorretto:17-alpine
