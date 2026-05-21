@@ -15,10 +15,21 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// 항상 mobile app의 React 인스턴스 하나만 사용하도록 강제 (hooks 오류 방지)
+// react-native는 workspace root에만 존재하므로 그쪽에서 resolve
 config.resolver.extraNodeModules = {
-  'react': path.resolve(projectRoot, 'node_modules/react'),
-  'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
+  'react-native': path.resolve(workspaceRoot, 'node_modules/react-native'),
+};
+
+// react는 react-native 내부 require 포함 모든 경로에서 mobile local(19.0.0)로 고정
+// → 단일 React 인스턴스 보장 (hooks 오류 방지)
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'react') {
+    return {
+      filePath: path.resolve(projectRoot, 'node_modules/react/index.js'),
+      type: 'sourceFile',
+    };
+  }
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = config;
