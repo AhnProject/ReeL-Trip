@@ -1,11 +1,6 @@
 spring:
   application:
     name: reel-trip-api
-  datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -21,17 +16,15 @@ spring:
 
 server:
   port: ${PORT:4000}
-  servlet:
-    context-path: /api
 
 jwt:
   secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-32-chars}
-  expires-in: ${JWT_EXPIRES_IN:86400000}
+  expires-in: ${JWT_EXPIRATION:86400000}
 
 openai:
   api-key: ${OPENAI_API_KEY:}          # 비어있으면 OPENAI_API_KEY_MISSING 에러 반환
   embedding-model: text-embedding-3-small
-  vector-dim: 1536
+  vector-dim: ${VECTOR_DIMENSION:1536}
 
 anthropic:
   api-key: ${ANTHROPIC_API_KEY:}       # 비어있으면 ANTHROPIC_API_KEY_MISSING 에러 반환
@@ -47,3 +40,10 @@ cors:
 
 api:
   base-url: ${API_BASE_URL:http://localhost:4000}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
+  default-produces-media-type: application/json

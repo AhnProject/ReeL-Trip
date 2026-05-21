@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  password  String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(100)
+  role      String   @default("USER") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+/// embedding 컬럼은 pgvector vector(1536) 타입으로 Prisma Unsupported 처리.
+/// CRUD 및 벡터 검색은 Spring Boot에서 네이티브 SQL로 수행.
+model Document {
+  id        Int                      @id @default(autoincrement())
+  title     String                   @db.VarChar(255)
+  content   String                   @db.Text
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime                 @default(now()) @map("created_at")
+  updatedAt DateTime                 @updatedAt @map("updated_at")
+
+  @@map("documents")
+}

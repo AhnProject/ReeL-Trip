@@ -42,11 +42,13 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // 루트 및 문서
+                .requestMatchers("/", "/doc", "/docs", "/docs/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/v3/api-docs").permitAll()
                 // 인증 불필요 엔드포인트
-                .requestMatchers("/auth/signup", "/auth/login").permitAll()
-                .requestMatchers("/documents/health").permitAll()
-                .requestMatchers("/recommend", "/recommend/**").permitAll()  // GET(health) + POST 모두 허용
-                .requestMatchers("/docs/**").permitAll()
+                .requestMatchers("/api/auth/signup", "/api/auth/login").permitAll()
+                .requestMatchers("/api/documents/health").permitAll()
+                .requestMatchers("/api/recommend", "/api/recommend/**").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
