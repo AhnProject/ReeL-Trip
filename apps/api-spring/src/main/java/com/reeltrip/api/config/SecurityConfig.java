@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .requestMatchers("/documents/health").permitAll()
                 .requestMatchers("/recommend", "/recommend/**").permitAll()  // GET(health) + POST 모두 허용
                 .requestMatchers("/docs/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/v3/api-docs").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex

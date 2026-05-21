@@ -1,11 +1,6 @@
 spring:
   application:
     name: reel-trip-api
-  datasource:
-    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
-    username: ${PGUSER}
-    password: ${PGPASSWORD}
-    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -47,3 +42,10 @@ cors:
 
 api:
   base-url: ${API_BASE_URL:http://localhost:4000}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
+  default-produces-media-type: application/json
