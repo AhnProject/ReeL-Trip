@@ -19,7 +19,7 @@ import java.util.Map;
 @Tag(name = "URL Parser", description = "Instagram Reels / YouTube Shorts URL 콘텐츠 수집")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/url-parser")
+@RequestMapping("/api/url-parser")
 @RequiredArgsConstructor
 public class UrlParserController {
 
