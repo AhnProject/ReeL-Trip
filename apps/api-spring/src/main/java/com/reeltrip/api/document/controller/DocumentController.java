@@ -27,7 +27,7 @@ import java.util.Map;
 @Tag(name = "Documents", description = "여행 문서 CRUD 및 벡터 유사도 검색")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/documents")
+@RequestMapping("/api/documents")
 @RequiredArgsConstructor
 public class DocumentController {
 

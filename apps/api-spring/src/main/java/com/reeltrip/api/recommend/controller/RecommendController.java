@@ -19,7 +19,7 @@ import java.util.Map;
 
 @Tag(name = "Recommend", description = "AI 기반 여행지 추천")
 @RestController
-@RequestMapping("/recommend")
+@RequestMapping("/api/recommend")
 @RequiredArgsConstructor
 public class RecommendController {
 
