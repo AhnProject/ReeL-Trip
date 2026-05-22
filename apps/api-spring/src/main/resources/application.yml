@@ -1,6 +1,12 @@
 spring:
   application:
     name: reel-trip-api
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
   jackson:
     serialization:
       write-dates-as-timestamps: false   # LocalDateTime → "2024-01-01T00:00:00" (ISO 8601)
