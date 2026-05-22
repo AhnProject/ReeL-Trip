@@ -3,8 +3,8 @@ package com.reeltrip.api.auth.service;
 import com.reeltrip.api.auth.dto.AuthResponse;
 import com.reeltrip.api.auth.dto.LoginRequest;
 import com.reeltrip.api.auth.dto.SignupRequest;
+import com.reeltrip.api.auth.mapper.UserMapper;
 import com.reeltrip.api.auth.model.User;
-import com.reeltrip.api.auth.repository.UserRepository;
 import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
 import com.reeltrip.api.common.security.JwtUtil;
@@ -16,16 +16,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     @Override
     public AuthResponse signup(SignupRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userMapper.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userMapper.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -36,21 +36,21 @@ public class AuthServiceImpl implements AuthService {
                 .role("USER")
                 .build();
 
-        User saved = userRepository.save(user);
-        String token = jwtUtil.generateToken(saved.getUsername(), saved.getRole());
+        userMapper.insert(user); // useGeneratedKeys 로 user.id 자동 세팅
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
         return AuthResponse.builder()
                 .accessToken(token)
                 .tokenType("Bearer")
-                .username(saved.getUsername())
-                .email(saved.getEmail())
-                .role(saved.getRole())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
                 .build();
     }
 
     @Override
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userMapper.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
