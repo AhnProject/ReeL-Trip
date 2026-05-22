@@ -6,10 +6,10 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: "#5B6FED",
-          primaryHover: "#4A5DDB",
-          panelFrom: "#5178EF",
-          panelTo: "#BCD4FA",
+          primary: "#4A6CF7",
+          primaryHover: "#3A5CE0",
+          panelFrom: "#4A6CF7",
+          panelTo: "#7B68EE",
         },
         oauth: {
           naver: "#03C75A",

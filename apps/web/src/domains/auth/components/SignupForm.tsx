@@ -22,7 +22,7 @@ export function SignupForm() {
       const result = await signup(form);
       if (result.success && result.data) {
         persistSession(result.data);
-        router.push("/dashboard");
+        router.push("/dashboard/home");
       } else {
         setError(result.message ?? "회원가입 실패");
       }
