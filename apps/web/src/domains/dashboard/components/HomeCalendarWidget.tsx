@@ -4,7 +4,8 @@ import type { TeamSpace } from "@/domains/teamspace/types";
 const DAYS_SHORT = ["일", "월", "화", "수", "목", "금", "토"];
 const DAYS_FULL  = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 
-const SCHEDULES = [
+// [Test] API 미구현 — 추후 /api/calendar/today 으로 대체 예정
+const TEST_SCHEDULES = [
   { id: 1, title: "성수 재즈 페스티벌", time: "19:00", price: "₩35,000", confirmed: true  },
   { id: 2, title: "북촌 한옥 투어",     time: "10:00", price: "₩15,000", confirmed: false },
 ];
@@ -25,9 +26,10 @@ interface Props {
   spaces: TeamSpace[];
   onEnterSpace: (space: TeamSpace) => void;
   onMoreClick: () => void;
+  onScheduleActionClick: () => void;
 }
 
-export function HomeCalendarWidget({ spaces, onEnterSpace, onMoreClick }: Props) {
+export function HomeCalendarWidget({ spaces, onEnterSpace, onMoreClick, onScheduleActionClick }: Props) {
   const today = new Date();
   const week  = getWeekDates(today);
 
@@ -90,7 +92,7 @@ export function HomeCalendarWidget({ spaces, onEnterSpace, onMoreClick }: Props)
       <p className="mb-2.5 text-[13px] font-bold tracking-[0.02em] text-slate-600">
         오늘의 일정
       </p>
-      {SCHEDULES.map((sc) => (
+      {TEST_SCHEDULES.map((sc) => (
         <div
           key={sc.id}
           className="mb-2 flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3"
@@ -104,6 +106,7 @@ export function HomeCalendarWidget({ spaces, onEnterSpace, onMoreClick }: Props)
             <p className="text-[11px] text-slate-400">🕐 {sc.time} · {sc.price}</p>
           </div>
           <button
+            onClick={onScheduleActionClick}
             className={cn(
               "flex-shrink-0 cursor-pointer rounded-lg border-none px-3 py-[5px] text-xs font-bold",
               sc.confirmed ? "bg-brand-primary text-white" : "bg-slate-100 text-slate-400",

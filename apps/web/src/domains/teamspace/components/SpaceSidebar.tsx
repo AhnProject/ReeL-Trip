@@ -20,9 +20,10 @@ interface Props {
   space: TeamSpace;
   activeNav: NavItem;
   onNavChange: (nav: NavItem) => void;
+  onInviteClick: () => void;
 }
 
-export function SpaceSidebar({ space, activeNav, onNavChange }: Props) {
+export function SpaceSidebar({ space, activeNav, onNavChange, onInviteClick }: Props) {
   const owner = space.members.find((m) => m.role === "owner");
 
   return (
@@ -35,7 +36,10 @@ export function SpaceSidebar({ space, activeNav, onNavChange }: Props) {
             {space.name}
           </span>
         </div>
-        <button className="w-full cursor-pointer rounded-lg border border-brand-primary/40 bg-brand-primary/10 py-[7px] text-xs font-bold text-[#93B4FF]">
+        <button
+          onClick={onInviteClick}
+          className="w-full cursor-pointer rounded-lg border border-brand-primary/40 bg-brand-primary/10 py-[7px] text-xs font-bold text-[#93B4FF]"
+        >
           + 초대
         </button>
       </div>

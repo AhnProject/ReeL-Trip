@@ -8,7 +8,7 @@ export function LandingAuthRedirect() {
 
   useEffect(() => {
     if (localStorage.getItem("token")) {
-      router.replace("/dashboard");
+      router.replace("/dashboard/home");
     }
   }, [router]);
 
