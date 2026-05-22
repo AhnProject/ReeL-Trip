@@ -13,9 +13,12 @@
   "dependencies": {
     "@reel-trip/types": "*",
     "@scalar/nextjs-api-reference": "^0.10.12",
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
     "next": "15.3.9",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

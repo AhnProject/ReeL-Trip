@@ -8,6 +8,7 @@ import { SpaceSidebar } from "@/domains/teamspace/components/SpaceSidebar";
 import { TravelCalendar } from "@/domains/teamspace/components/TravelCalendar";
 import { UrlParserModal } from "@/app/dashboard/url-parser-modal";
 import type { NavItem, TeamSpace } from "@/domains/teamspace/types";
+import { Toast, useToast } from "@/components/Toast";
 
 interface ParsedResult {
   name: string | null;
@@ -33,6 +34,7 @@ function DashboardInner() {
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>(initialId);
   const [activeNav, setActiveNav]       = useState<NavItem>("calendar");
   const [showUrlModal, setShowUrlModal] = useState(false);
+  const { visible, showToast } = useToast();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -65,12 +67,15 @@ function DashboardInner() {
         username={username}
         onSelect={handleSpaceChange}
         onLogout={handleLogout}
+        onHomeClick={() => router.push("/dashboard/main")}
+        onAddSpaceClick={showToast}
       />
 
       <SpaceSidebar
         space={selectedSpace}
         activeNav={activeNav}
         onNavChange={setActiveNav}
+        onInviteClick={showToast}
       />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-auto bg-slate-50">
@@ -86,6 +91,7 @@ function DashboardInner() {
           onAdd={(_: ParsedResult) => { /* TODO: 팀스페이스 장소 목록에 추가 */ }}
         />
       )}
+      <Toast visible={visible} />
     </div>
   );
 }
