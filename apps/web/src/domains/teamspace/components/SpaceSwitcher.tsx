@@ -9,15 +9,21 @@ interface Props {
   username: string;
   onSelect: (id: string) => void;
   onLogout: () => void;
+  onHomeClick: () => void;
+  onAddSpaceClick: () => void;
 }
 
-export function SpaceSwitcher({ spaces, selectedId, username, onSelect, onLogout }: Props) {
+export function SpaceSwitcher({ spaces, selectedId, username, onSelect, onLogout, onHomeClick, onAddSpaceClick }: Props) {
   return (
     <aside className="flex h-screen w-16 min-w-[64px] flex-col items-center bg-[#1A1424] pb-4 pt-3">
-      {/* 로고 */}
-      <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-primary">
+      {/* 로고 — 클릭 시 메인 대시보드로 이동 */}
+      <button
+        title="메인 대시보드"
+        onClick={onHomeClick}
+        className="mb-2 flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border-none bg-brand-primary transition-opacity hover:opacity-80"
+      >
         <span className="text-sm font-extrabold tracking-wider text-white">RT</span>
-      </div>
+      </button>
 
       <div className="my-2 h-px w-9 bg-white/10" />
 
@@ -47,6 +53,7 @@ export function SpaceSwitcher({ spaces, selectedId, username, onSelect, onLogout
         {/* 스페이스 추가 */}
         <button
           title="새 팀스페이스 만들기"
+          onClick={onAddSpaceClick}
           className="mt-0.5 flex h-11 w-11 cursor-pointer items-center justify-center rounded-[18px] border-2 border-dashed border-white/20 bg-transparent text-xl text-white/40"
         >
           +

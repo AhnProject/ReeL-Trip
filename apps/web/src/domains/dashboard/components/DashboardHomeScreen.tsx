@@ -7,8 +7,10 @@ import { HomeFeatureBanner } from "./HomeFeatureBanner";
 import { HomeSpaceList } from "./HomeSpaceList";
 import { HomeCalendarWidget } from "./HomeCalendarWidget";
 import type { TeamSpace } from "@/domains/teamspace/types";
+import { Toast, useToast } from "@/components/Toast";
 
-const FEATURED = {
+// [Test] API 미구현 — 추후 /api/trips/upcoming 으로 대체 예정
+const TEST_FEATURED = {
   label: "다음 여행",
   title: "서울 문화 투어",
   sub: "5월 3일 · 3개 장소 · 친구 4명",
@@ -17,6 +19,7 @@ const FEATURED = {
 
 export function DashboardHomeScreen() {
   const router = useRouter();
+  const { visible, showToast } = useToast();
   const [username, setUsername] = useState("");
 
   useEffect(() => {
@@ -34,8 +37,8 @@ export function DashboardHomeScreen() {
     router.replace("/");
   };
 
-  const handleEnterSpace = (space: TeamSpace) => {
-    router.push(`/dashboard?space=${space.id}`);
+  const handleEnterSpace = (_space: TeamSpace) => {
+    router.push("/dashboard/main");
   };
 
   return (
@@ -78,8 +81,8 @@ export function DashboardHomeScreen() {
           </div>
 
           <HomeFeatureBanner
-            {...FEATURED}
-            onEnter={() => router.push("/dashboard")}
+            {...TEST_FEATURED}
+            onEnter={() => router.push("/dashboard/main")}
           />
 
           <HomeSpaceList
@@ -93,9 +96,11 @@ export function DashboardHomeScreen() {
         <HomeCalendarWidget
           spaces={MOCK_TEAM_SPACES}
           onEnterSpace={handleEnterSpace}
-          onMoreClick={() => router.push("/dashboard")}
+          onMoreClick={() => router.push("/dashboard/calendar")}
+          onScheduleActionClick={showToast}
         />
       </div>
+      <Toast visible={visible} />
     </div>
   );
 }
