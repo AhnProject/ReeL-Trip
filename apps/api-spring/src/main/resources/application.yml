@@ -1,13 +1,6 @@
 spring:
   application:
     name: reel-trip-api
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: false
   jackson:
     serialization:
       write-dates-as-timestamps: false   # LocalDateTime → "2024-01-01T00:00:00" (ISO 8601)
@@ -40,6 +33,12 @@ cors:
 
 api:
   base-url: ${API_BASE_URL:http://localhost:4000}
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.reeltrip.api
+  configuration:
+    map-underscore-to-camel-case: true
 
 springdoc:
   api-docs:
