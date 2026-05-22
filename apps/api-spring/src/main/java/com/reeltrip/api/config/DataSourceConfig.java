@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class DataSourceConfig {
@@ -23,13 +25,18 @@ public class DataSourceConfig {
 
         String host = uri.getHost();
         int port = uri.getPort() > 0 ? uri.getPort() : 5432;
-        String path = uri.getPath(); // "/dbname"
+        String path = uri.getPath();
 
-        String userInfo = uri.getUserInfo(); // "user:password"
-        String username = userInfo.split(":")[0];
-        String password = userInfo.split(":")[1];
+        // getRawUserInfo() 로 인코딩된 원본을 가져온 뒤 첫 ':' 기준으로만 분리
+        // (비밀번호에 ':' 혹은 특수문자 포함 대응)
+        String rawUserInfo = uri.getRawUserInfo();
+        int colonIdx = rawUserInfo.indexOf(':');
+        String username = URLDecoder.decode(rawUserInfo.substring(0, colonIdx), StandardCharsets.UTF_8);
+        String password = URLDecoder.decode(rawUserInfo.substring(colonIdx + 1), StandardCharsets.UTF_8);
 
-        String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path;
+        String query = uri.getQuery();
+        String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path
+                + (query != null ? "?" + query : "?sslmode=require");
 
         HikariDataSource ds = new HikariDataSource();
         ds.setJdbcUrl(jdbcUrl);
