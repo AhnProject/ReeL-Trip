@@ -2,31 +2,51 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MOCK_TEAM_SPACES } from "@/domains/teamspace/mock";
 import { HomeFeatureBanner } from "./HomeFeatureBanner";
 import { HomeSpaceList } from "./HomeSpaceList";
 import { HomeCalendarWidget } from "./HomeCalendarWidget";
+import { CreateSpaceModal } from "@/domains/teamspace/components/CreateSpaceModal";
 import type { TeamSpace } from "@/domains/teamspace/types";
 import { Toast, useToast } from "@/components/Toast";
+import { listTeamSpaces } from "@/domains/teamspace/api";
+import type { TeamSpaceResponse } from "@/domains/teamspace/api";
 
-// [Test] API 미구현 — 추후 /api/trips/upcoming 으로 대체 예정
-const TEST_FEATURED = {
-  label: "다음 여행",
-  title: "서울 문화 투어",
-  sub: "5월 3일 · 3개 장소 · 친구 4명",
-  memberColors: ["#EF4444", "#F59E0B", "#4A6CF7", "#10B981"],
-};
+function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
+  return {
+    id: String(res.id),
+    name: res.name,
+    emoji: res.emoji ?? "✈️",
+    bgColor: res.bgColor ?? "#4A6CF7",
+    members: res.members.map((m) => ({
+      id: String(m.userId),
+      username: m.username,
+      avatarColor: "#4A6CF7",
+      role: m.role,
+    })),
+    events: [],
+  };
+}
 
 export function DashboardHomeScreen() {
   const router = useRouter();
   const { visible, showToast } = useToast();
   const [username, setUsername] = useState("");
+  const [token, setToken] = useState("");
+  const [spaces, setSpaces] = useState<TeamSpace[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const name  = localStorage.getItem("username");
     if (!token) { router.replace("/"); return; }
+    setToken(token);
     setUsername(name ?? "");
+
+    listTeamSpaces(token).then((res) => {
+      if (res.success && res.data) {
+        setSpaces(res.data.map(toTeamSpace));
+      }
+    }).catch(() => {});
   }, [router]);
 
   if (!username) return null;
@@ -40,6 +60,8 @@ export function DashboardHomeScreen() {
   const handleEnterSpace = (_space: TeamSpace) => {
     router.push("/dashboard/main");
   };
+
+  const featuredSpace = spaces[0];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] to-slate-50 font-sans text-slate-900">
@@ -80,26 +102,55 @@ export function DashboardHomeScreen() {
             <p className="text-sm text-slate-500">오늘도 멋진 여행을 계획해보세요.</p>
           </div>
 
-          <HomeFeatureBanner
-            {...TEST_FEATURED}
-            onEnter={() => router.push("/dashboard/main")}
-          />
+          {featuredSpace ? (
+            <HomeFeatureBanner
+              label="다음 여행"
+              title={featuredSpace.name}
+              sub={`${featuredSpace.members.length}명 참여`}
+              memberColors={featuredSpace.members.slice(0, 4).map((m) => m.avatarColor)}
+              onEnter={() => router.push("/dashboard/main")}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400">
+              <span className="text-[40px]">✈️</span>
+              <p className="text-sm">팀스페이스를 만들어 첫 여행을 시작해보세요</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="cursor-pointer rounded-xl border-none bg-brand-primary px-6 py-2.5 text-[13px] font-bold text-white"
+              >
+                + 팀스페이스 만들기
+              </button>
+            </div>
+          )}
 
           <HomeSpaceList
-            spaces={MOCK_TEAM_SPACES}
+            spaces={spaces}
             onEnter={handleEnterSpace}
             onSeeAll={() => router.push("/dashboard")}
+            onAddSpace={() => setShowCreateModal(true)}
           />
         </section>
 
         {/* 우측 위젯 */}
         <HomeCalendarWidget
-          spaces={MOCK_TEAM_SPACES}
+          spaces={spaces}
           onEnterSpace={handleEnterSpace}
           onMoreClick={() => router.push("/dashboard/calendar")}
           onScheduleActionClick={showToast}
         />
       </div>
+      {showCreateModal && (
+        <CreateSpaceModal
+          token={token}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={(created) => {
+            const newSpace = toTeamSpace(created);
+            setSpaces((prev) => [...prev, newSpace]);
+            setShowCreateModal(false);
+          }}
+        />
+      )}
+
       <Toast visible={visible} />
     </div>
   );

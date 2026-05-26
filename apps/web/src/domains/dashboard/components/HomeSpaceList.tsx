@@ -4,19 +4,30 @@ interface Props {
   spaces: TeamSpace[];
   onEnter: (space: TeamSpace) => void;
   onSeeAll: () => void;
+  onAddSpace?: () => void;
 }
 
-export function HomeSpaceList({ spaces, onEnter, onSeeAll }: Props) {
+export function HomeSpaceList({ spaces, onEnter, onSeeAll, onAddSpace }: Props) {
   return (
     <div>
       <div className="mb-3.5 flex items-center justify-between">
         <span className="text-base font-bold text-slate-900">내 팀스페이스</span>
-        <button
-          onClick={onSeeAll}
-          className="cursor-pointer border-none bg-transparent text-[13px] font-semibold text-brand-primary"
-        >
-          모두 보기 →
-        </button>
+        <div className="flex items-center gap-2">
+          {onAddSpace && (
+            <button
+              onClick={onAddSpace}
+              className="cursor-pointer rounded-lg border border-brand-primary bg-[#EEF2FF] px-3 py-1 text-[12px] font-bold text-brand-primary"
+            >
+              + 만들기
+            </button>
+          )}
+          <button
+            onClick={onSeeAll}
+            className="cursor-pointer border-none bg-transparent text-[13px] font-semibold text-brand-primary"
+          >
+            모두 보기 →
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2.5">

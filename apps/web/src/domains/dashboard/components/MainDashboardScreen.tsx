@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toast, useToast } from "@/components/Toast";
+import { getProfile } from "@/domains/user/api";
+import { listNotifications } from "@/domains/notification/api";
+import type { NotificationResponse } from "@/domains/notification/api";
 
 /* ── 상수 데이터 ── */
 
@@ -20,38 +23,15 @@ const TAG_BADGES = [
   { label: "실시간 협업",   bg: "#DBEAFE", color: "#1D4ED8" },
 ];
 
-// [Test] API 미구현 — 추후 /api/tokens/recent 으로 대체 예정
-const TEST_RECENT_TOKENS = [
-  { title: "성수 재즈 페스티벌",  time: "19:00", price: "₩35,000" },
-  { title: "북촌 한옥 체험",      time: "14:00", price: "₩20,000" },
-  { title: "광장시장 야시장 투어", time: "18:30", price: "₩0"      },
-  { title: "한강 피크닉 패키지",  time: "11:00", price: "₩12,000" },
-  { title: "경복궁 야간 개장",    time: "20:00", price: "₩3,000"  },
-];
-
-// [Test] API 미구현 — 추후 /api/trips/upcoming 으로 대체 예정
-const TEST_SCHEDULE_TAGS = [
-  { color: "#EF4444", label: "공원",     time: "19:00" },
-  { color: "#22C55E", label: "카페",     time: "15:30" },
-  { color: "#F59E0B", label: "레스토랑", time: ""      },
-];
-
-// [Test] API 미구현 — 추후 /api/trips/members 으로 대체 예정
-const TEST_MEMBER_COLORS = ["#EF4444", "#F59E0B", "#4A6CF7", "#10B981"];
-
-// [Test] API 미구현 — 추후 /api/notifications 으로 대체 예정
-const TEST_NOTIFICATIONS = [
-  { text: "안씨전님이 여행에 초대했습니다", time: "3분 전"  },
-  { text: "이씨전님이 여행에 초대했습니다", time: "10분 전" },
-];
-
 /* ── 컴포넌트 ── */
 
 export function MainDashboardScreen() {
   const router   = useRouter();
   const { visible, showToast } = useToast();
   const [username, setUsername]   = useState("");
+  const [planLabel, setPlanLabel] = useState("...");
   const [quickLink, setQuickLink] = useState("");
+  const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
 
   const handleNav = (key: string) => {
     if (key === "travel")   { router.push("/dashboard/travel"); return; }
@@ -65,6 +45,20 @@ export function MainDashboardScreen() {
     const name  = localStorage.getItem("username");
     if (!token) { router.replace("/"); return; }
     setUsername(name ?? "");
+
+    // 사용자 프로필 조회
+    getProfile(token).then((res) => {
+      if (res.success && res.data) {
+        setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
+      }
+    }).catch(() => {});
+
+    // 알림 목록 조회
+    listNotifications(token).then((res) => {
+      if (res.success && res.data) {
+        setNotifications(res.data.slice(0, 5));
+      }
+    }).catch(() => {});
   }, [router]);
 
   if (!username) return null;
@@ -87,7 +81,6 @@ export function MainDashboardScreen() {
           </div>
           <div>
             <div className="text-[15px] font-bold leading-tight text-slate-900">ReelTrip</div>
-            {/* API: localStorage username */}
             <div className="text-[11px] leading-tight text-slate-400">{username}님, 환영합니다</div>
           </div>
         </div>
@@ -158,14 +151,11 @@ export function MainDashboardScreen() {
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
               style={{ background: "#4A6CF7" }}
             >
-              {/* API: localStorage username */}
               {username[0] ?? "?"}
             </div>
             <div className="min-w-0">
-              {/* API: localStorage username */}
               <div className="truncate text-[13px] font-semibold text-slate-800">{username}</div>
-              {/* [Test] API 미구현 — /api/user/profile */}
-              <div className="text-[11px] text-slate-400">Pro 플랜</div>
+              <div className="text-[11px] text-slate-400">{planLabel}</div>
             </div>
           </div>
         </aside>
@@ -189,110 +179,6 @@ export function MainDashboardScreen() {
                   {badge.label}
                 </span>
               ))}
-            </div>
-          </div>
-
-          {/* 최근 수집 토큰 */}
-          <div>
-            <h2 className="mb-3 text-[15px] font-bold text-slate-800">최근 수집 토큰</h2>
-            <div className="flex flex-col gap-2.5">
-              {TEST_RECENT_TOKENS.map((token, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between rounded-xl px-4 py-3"
-                  style={{
-                    background: "#FFFFFF",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <div>
-                    <div className="text-[14px] font-semibold text-slate-800">{token.title}</div>
-                    <div className="mt-0.5 text-[12px] text-slate-400">
-                      🕐 {token.time} · {token.price}
-                    </div>
-                  </div>
-                  <button
-                    onClick={showToast}
-                    className="cursor-pointer rounded-2xl border-none px-4 py-1.5 text-[12px] font-semibold text-white"
-                    style={{ background: "#4A6CF7", borderRadius: "24px" }}
-                  >
-                    확정
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </main>
-
-        {/* ── 우측 패널 ── */}
-        <aside
-          className="flex w-[340px] flex-shrink-0 flex-col gap-4 overflow-y-auto px-5 py-7"
-          style={{ borderLeft: "1px solid #EAEDF3" }}
-        >
-          {/* 여행 카드 */}
-          <div
-            className="rounded-xl p-4"
-            style={{ background: "#FFFFFF", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", borderRadius: "12px" }}
-          >
-            {/* 점선 경로 + 포인트 */}
-            <div className="relative mb-4 flex h-[60px] items-center justify-between px-4">
-              <div
-                className="absolute left-8 right-8 top-1/2 -translate-y-1/2"
-                style={{ borderTop: "2px dashed #D1D5DB" }}
-              />
-              {[
-                { color: TEST_SCHEDULE_TAGS[0].color, zIndex: 3 },
-                { color: TEST_SCHEDULE_TAGS[1].color, zIndex: 2 },
-                { color: TEST_SCHEDULE_TAGS[2].color, zIndex: 1 },
-              ].map((pt, i) => (
-                <div
-                  key={i}
-                  className="relative z-10 h-5 w-5 rounded-full border-2 border-white"
-                  style={{ background: pt.color, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}
-                />
-              ))}
-            </div>
-
-            {/* 일정 태그 3개 */}
-            <div className="mb-4 flex flex-wrap gap-1.5">
-              {TEST_SCHEDULE_TAGS.map((tag, i) => (
-                <span
-                  key={i}
-                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                  style={{ background: tag.color + "1A", color: tag.color }}
-                >
-                  <span
-                    className="inline-block h-1.5 w-1.5 rounded-full"
-                    style={{ background: tag.color }}
-                  />
-                  {tag.label}
-                  {tag.time && <span className="ml-0.5 text-[10px] opacity-70">{tag.time}</span>}
-                </span>
-              ))}
-            </div>
-
-            {/* 여행 정보 */}
-            <div className="flex items-end justify-between">
-              <div>
-                {/* [Test] API 미구현 — /api/trips/upcoming */}
-                <div className="text-[15px] font-bold text-slate-800">서울 문화 투어</div>
-                <div className="mt-0.5 text-[11px] text-slate-400">5월 3일 · 3개 장소 · 친구 4명</div>
-              </div>
-              <div className="flex">
-                {TEST_MEMBER_COLORS.map((color, i) => (
-                  <div
-                    key={i}
-                    className="h-7 w-7 rounded-full border-2 border-white"
-                    style={{
-                      background: color,
-                      marginLeft: i === 0 ? 0 : -8,
-                      zIndex: TEST_MEMBER_COLORS.length - i,
-                      position: "relative",
-                    }}
-                  />
-                ))}
-              </div>
             </div>
           </div>
 
@@ -321,7 +207,13 @@ export function MainDashboardScreen() {
               </button>
             </div>
           </div>
+        </main>
 
+        {/* ── 우측 패널 ── */}
+        <aside
+          className="flex w-[340px] flex-shrink-0 flex-col gap-4 overflow-y-auto px-5 py-7"
+          style={{ borderLeft: "1px solid #EAEDF3" }}
+        >
           {/* 알림 */}
           <div
             className="rounded-xl p-4"
@@ -337,18 +229,26 @@ export function MainDashboardScreen() {
               </button>
             </div>
             <div className="flex flex-col gap-2.5">
-              {TEST_NOTIFICATIONS.map((notif, i) => (
-                <div key={i} className="flex items-center justify-between gap-2">
-                  <div>
-                    <div className="text-[12px] text-slate-700">{notif.text}</div>
-                    <div className="mt-0.5 text-[11px] text-slate-400">{notif.time}</div>
+              {notifications.length === 0 ? (
+                <div className="py-4 text-center text-[12px] text-slate-400">알림이 없습니다</div>
+              ) : (
+                notifications.map((notif) => (
+                  <div key={notif.id} className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-[12px] text-slate-700">{notif.message}</div>
+                      <div className="mt-0.5 text-[11px] text-slate-400">
+                        {new Date(notif.createdAt).toLocaleDateString("ko-KR")}
+                      </div>
+                    </div>
+                    {!notif.isRead && (
+                      <div
+                        className="h-2 w-2 flex-shrink-0 rounded-full"
+                        style={{ background: "#4A6CF7" }}
+                      />
+                    )}
                   </div>
-                  <div
-                    className="h-2 w-2 flex-shrink-0 rounded-full"
-                    style={{ background: "#4A6CF7" }}
-                  />
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </aside>
