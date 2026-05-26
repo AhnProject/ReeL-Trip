@@ -36,6 +36,23 @@ public enum ErrorCode {
     ANTHROPIC_API_KEY_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "Anthropic API key is not configured"),
     AI_RESPONSE_PARSE_ERROR(HttpStatus.BAD_GATEWAY, "Failed to parse AI response"),
 
+    // TeamSpace
+    TEAM_SPACE_NOT_FOUND(HttpStatus.NOT_FOUND, "Team space not found"),
+    TEAM_SPACE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this team space"),
+    ALREADY_MEMBER(HttpStatus.BAD_REQUEST, "User is already a member"),
+    MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "Member not found"),
+
+    // Event
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Event not found"),
+    EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this event"),
+
+    // Place
+    PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "Place not found"),
+    PLACE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this place"),
+
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification not found"),
+
     // Validation
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Validation failed"),
 

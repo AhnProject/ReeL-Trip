@@ -1,0 +1,26 @@
+-- 장소/명소 테이블
+CREATE TABLE IF NOT EXISTS places (
+    id              BIGSERIAL    PRIMARY KEY,
+    space_id        BIGINT       NOT NULL REFERENCES team_spaces(id) ON DELETE CASCADE,
+    name            VARCHAR(255) NOT NULL,
+    category        VARCHAR(50),
+    address         TEXT,
+    region          VARCHAR(100),
+    country         VARCHAR(100),
+    latitude        DECIMAL(10, 8),
+    longitude       DECIMAL(11, 8),
+    price_desc      TEXT,
+    price_min       DECIMAL(10, 2),
+    price_max       DECIMAL(10, 2),
+    currency        VARCHAR(3),
+    hours           TEXT,
+    thumbnail_url   TEXT,
+    source_url      TEXT,
+    source_platform VARCHAR(50),
+    tags            TEXT[],
+    menu            TEXT[],
+    confidence      VARCHAR(10),
+    created_by      BIGINT       NOT NULL REFERENCES users(id),
+    created_at      TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP    NOT NULL DEFAULT NOW()
+);
