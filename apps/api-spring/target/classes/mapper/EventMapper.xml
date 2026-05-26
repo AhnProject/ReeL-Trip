@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reeltrip.api.event.mapper.EventMapper">
+
+    <resultMap id="eventResultMap" type="com.reeltrip.api.event.model.Event">
+        <id     property="id"          column="id"/>
+        <result property="spaceId"     column="space_id"/>
+        <result property="title"       column="title"/>
+        <result property="description" column="description"/>
+        <result property="startDate"   column="start_date"/>
+        <result property="endDate"     column="end_date"/>
+        <result property="location"    column="location"/>
+        <result property="price"       column="price"/>
+        <result property="color"       column="color"/>
+        <result property="status"      column="status"/>
+        <result property="createdBy"   column="created_by"/>
+        <result property="createdAt"   column="created_at"/>
+        <result property="updatedAt"   column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO events (space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at)
+        VALUES (#{spaceId}, #{title}, #{description}, #{startDate}, #{endDate}, #{location}, #{price}, #{color}, #{status}, #{createdBy}, NOW(), NOW())
+    </insert>
+
+    <select id="findById" resultMap="eventResultMap">
+        SELECT id, space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at
+        FROM events
+        WHERE id = #{id}
+    </select>
+
+    <select id="findBySpaceId" resultMap="eventResultMap">
+        SELECT id, space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at
+        FROM events
+        WHERE space_id = #{spaceId}
+        ORDER BY start_date ASC
+    </select>
+
+    <select id="findBySpaceIdAndMonth" resultMap="eventResultMap">
+        <![CDATA[
+        SELECT id, space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at
+        FROM events
+        WHERE space_id = #{spaceId}
+          AND TO_CHAR(start_date, 'YYYY-MM') = #{month}
+        ORDER BY start_date ASC
+        ]]>
+    </select>
+
+    <update id="update">
+        UPDATE events
+        SET title       = #{title},
+            description = #{description},
+            start_date  = #{startDate},
+            end_date    = #{endDate},
+            location    = #{location},
+            price       = #{price},
+            color       = #{color},
+            status      = #{status},
+            updated_at  = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM events WHERE id = #{id}
+    </delete>
+
+</mapper>

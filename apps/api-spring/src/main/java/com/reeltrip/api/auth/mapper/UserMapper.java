@@ -16,4 +16,6 @@ public interface UserMapper {
     boolean existsByUsername(@Param("username") String username);
 
     boolean existsByEmail(@Param("email") String email);
+
+    void updateEmail(@Param("id") Long id, @Param("email") String email);
 }

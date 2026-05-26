@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CalendarEvent } from "../types";
-import { TEST_CALENDAR_EVENTS } from "../mock";
 import { Toast, useToast } from "@/components/Toast";
+import { getProfile } from "@/domains/user/api";
+import { listTeamSpaces } from "@/domains/teamspace/api";
+import { listEvents } from "@/domains/event/api";
 
 /* ─────────────────────────── 상수 ─────────────────────────── */
 
@@ -51,6 +53,7 @@ export function CalendarScreen() {
   /* ── auth ── */
   const [username, setUsername] = useState("");
   const [token, setToken] = useState("");
+  const [planLabel, setPlanLabel] = useState("...");
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -58,6 +61,12 @@ export function CalendarScreen() {
     if (!storedToken) { router.replace("/"); return; }
     setToken(storedToken);
     setUsername(storedName ?? "");
+
+    getProfile(storedToken).then((res) => {
+      if (res.success && res.data) {
+        setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
+      }
+    }).catch(() => {});
   }, [router]);
 
   /* ── 캘린더 상태 ── */
@@ -69,9 +78,34 @@ export function CalendarScreen() {
   );
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
 
-  /* ── 이벤트 데이터 (Test) ── */
-  // [Test] API 미구현 — 추후 apiRequest<CalendarEvent[]>("/api/calendar/events", ..., token) 으로 교체
-  const [events] = useState<CalendarEvent[]>(TEST_CALENDAR_EVENTS);
+  /* ── 이벤트 데이터 ── */
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    const monthStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+
+    // 첫 번째 팀스페이스의 이벤트를 로드
+    listTeamSpaces(token).then((spacesRes) => {
+      if (!spacesRes.success || !spacesRes.data || spacesRes.data.length === 0) return;
+      const spaceId = spacesRes.data[0].id;
+
+      listEvents(spaceId, monthStr, token).then((eventsRes) => {
+        if (eventsRes.success && eventsRes.data) {
+          setEvents(eventsRes.data.map((e) => ({
+            id: String(e.id),
+            title: e.title,
+            date: e.startDate,
+            time: undefined,
+            price: e.price ?? undefined,
+            color: e.color,
+            status: e.status as "confirmed" | "pending",
+            location: e.location ?? undefined,
+          })));
+        }
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [token, viewYear, viewMonth]);
 
   /* ── 파생 데이터 ── */
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
@@ -126,10 +160,8 @@ export function CalendarScreen() {
   /* ── 인증 대기 ── */
   if (!token) return null;
 
-  /* ── username에서 성씨 추출 (API에서 받은 값) ── */
+  /* ── username에서 성씨 추출 ── */
   const familyName = username.length > 0 ? username[0] : "?";
-  // [Test] plan 정보는 API 미구현 — 추후 /api/user/profile 에서 수신 예정
-  const planLabel = "Pro 플랜"; // [Test]
 
   return (
     <div

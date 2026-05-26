@@ -11,6 +11,11 @@ const TravelMapView = dynamic(
   { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-slate-100" /> },
 );
 
+import { listPlaces } from "@/domains/place/api";
+import type { PlaceResponse } from "@/domains/place/api";
+import { listTeamSpaces } from "@/domains/teamspace/api";
+import type { MemberResponse } from "@/domains/teamspace/api";
+
 /* ── 상수 ── */
 
 const NAV_ITEMS = [
@@ -21,29 +26,30 @@ const NAV_ITEMS = [
   { key: "transport",  icon: "🚌", label: "교통",       active: false, hasArrow: false },
 ];
 
-// [Test] API 미구현 — 추후 /api/trips/places 으로 대체 예정
-const TEST_PLACE_LIST = [
-  { title: "성수 재즈 페스티벌",  time: "19:00", price: "₩35,000" },
-  { title: "북촌 한옥 체험",      time: "14:00", price: "₩20,000" },
-  { title: "광장시장 야시장 투어", time: "18:30", price: "₩0"      },
-  { title: "경복궁 야간 개장",    time: "20:00", price: "₩3,000"  },
-];
-
-// [Test] API 미구현 — 추후 /api/trips/members 으로 대체 예정
-const TEST_MEMBER_COLORS = ["#EF4444", "#F59E0B", "#4A6CF7", "#10B981"];
-
 /* ── 컴포넌트 ── */
 
 export function TravelMapScreen() {
   const router = useRouter();
   const { visible, showToast } = useToast();
   const [username, setUsername] = useState("");
+  const [places, setPlaces] = useState<PlaceResponse[]>([]);
+  const [members, setMembers] = useState<MemberResponse[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const name  = localStorage.getItem("username");
     if (!token) { router.replace("/"); return; }
     setUsername(name ?? "");
+
+    listTeamSpaces(token).then((res) => {
+      if (!res.success || !res.data || res.data.length === 0) return;
+      const space = res.data[0];
+      setMembers(space.members);
+
+      listPlaces(space.id, token).then((pRes) => {
+        if (pRes.success && pRes.data) setPlaces(pRes.data);
+      }).catch(() => {});
+    }).catch(() => {});
   }, [router]);
 
   if (!username) return null;
@@ -146,10 +152,8 @@ export function TravelMapScreen() {
               {username[0] ?? "?"}
             </div>
             <div className="min-w-0">
-              {/* API: localStorage username */}
               <div className="truncate text-[13px] font-semibold text-slate-800">{username}</div>
-              {/* [Test] API 미구현 — /api/user/profile */}
-              <div className="text-[11px] text-slate-400">Pro 플랜</div>
+              <div className="text-[11px] text-slate-400">Free 플랜</div>
             </div>
           </div>
         </aside>
@@ -167,31 +171,36 @@ export function TravelMapScreen() {
           {/* 장소 리스트 */}
           <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-5">
             <h3 className="mb-1 text-[14px] font-bold text-slate-800">장소 목록</h3>
-            {TEST_PLACE_LIST.map((place, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-xl px-3.5 py-3"
-                style={{
-                  background: "#F9FAFB",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                  borderRadius: "12px",
-                }}
-              >
-                <div>
-                  <div className="text-[13px] font-semibold text-slate-800">{place.title}</div>
-                  <div className="mt-0.5 text-[11px] text-slate-400">
-                    🕐 {place.time} · {place.price}
-                  </div>
-                </div>
-                <button
-                  onClick={showToast}
-                  className="cursor-pointer rounded-[24px] border-none px-3 py-1.5 text-[11px] font-semibold text-white"
-                  style={{ background: "#4A6CF7" }}
+            {places.length === 0 ? (
+              <div className="py-6 text-center text-[12px] text-slate-400">저장된 장소가 없습니다</div>
+            ) : (
+              places.map((place) => (
+                <div
+                  key={place.id}
+                  className="flex items-center justify-between rounded-xl px-3.5 py-3"
+                  style={{
+                    background: "#F9FAFB",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    borderRadius: "12px",
+                  }}
                 >
-                  확정
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-800">{place.name}</div>
+                    <div className="mt-0.5 text-[11px] text-slate-400">
+                      {place.region && `📍 ${place.region}`}
+                      {place.priceDesc && ` · ${place.priceDesc}`}
+                    </div>
+                  </div>
+                  <button
+                    onClick={showToast}
+                    className="cursor-pointer rounded-[24px] border-none px-3 py-1.5 text-[11px] font-semibold text-white"
+                    style={{ background: "#4A6CF7" }}
+                  >
+                    확정
+                  </button>
+                </div>
+              ))
+            )}
 
             {/* 여행 정보 섹션 */}
             <div
@@ -204,8 +213,7 @@ export function TravelMapScreen() {
                 {/* 기간 */}
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">기간</span>
-                  {/* [Test] API 미구현 — /api/trips/detail */}
-                  <span className="text-[12px] font-medium text-slate-700">5월 15일 ~ 5월 18일</span>
+                    <span className="text-[12px] font-medium text-slate-700">-</span>
                 </div>
 
                 {/* 참여자 */}
@@ -213,29 +221,27 @@ export function TravelMapScreen() {
                   <span className="text-[11px] text-slate-400">참여자</span>
                   <div className="flex items-center gap-1.5">
                     <div className="flex">
-                      {/* [Test] API 미구현 — /api/trips/members */}
-                      {TEST_MEMBER_COLORS.map((color, i) => (
+                      {members.slice(0, 4).map((m, i) => (
                         <div
-                          key={i}
+                          key={m.userId}
                           className="h-5 w-5 rounded-full border-[1.5px] border-white"
                           style={{
-                            background: color,
+                            background: "#4A6CF7",
                             marginLeft: i === 0 ? 0 : -5,
                             position: "relative",
-                            zIndex: TEST_MEMBER_COLORS.length - i,
+                            zIndex: members.length - i,
                           }}
                         />
                       ))}
                     </div>
-                    <span className="text-[11px] text-slate-500">{TEST_MEMBER_COLORS.length}명 (나 포함)</span>
+                    <span className="text-[11px] text-slate-500">{members.length}명 (나 포함)</span>
                   </div>
                 </div>
 
                 {/* 예산 */}
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">예산</span>
-                  {/* [Test] API 미구현 — /api/trips/budget */}
-                  <span className="text-[12px] font-medium text-slate-700">₩450,000 / 인</span>
+                  <span className="text-[12px] font-medium text-slate-700">-</span>
                 </div>
               </div>
             </div>
