@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reeltrip.api.auth.mapper.UserMapper">
+
+    <resultMap id="userResultMap" type="com.reeltrip.api.auth.model.User">
+        <id     property="id"        column="id"/>
+        <result property="username"  column="username"/>
+        <result property="password"  column="password"/>
+        <result property="email"     column="email"/>
+        <result property="role"      column="role"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO users (username, password, email, role, created_at, updated_at)
+        VALUES (#{username}, #{password}, #{email}, #{role}, NOW(), NOW())
+    </insert>
+
+    <select id="findByUsername" resultMap="userResultMap">
+        SELECT id, username, password, email, role, created_at, updated_at
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <select id="existsByUsername" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM users WHERE username = #{username}
+        )
+    </select>
+
+    <select id="existsByEmail" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM users WHERE email = #{email}
+        )
+    </select>
+
+    <update id="updateEmail">
+        UPDATE users
+        SET email = #{email}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

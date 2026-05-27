@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reeltrip.api.teamspace.mapper.TeamSpaceMapper">
+
+    <resultMap id="teamSpaceResultMap" type="com.reeltrip.api.teamspace.model.TeamSpace">
+        <id     property="id"        column="id"/>
+        <result property="name"      column="name"/>
+        <result property="emoji"     column="emoji"/>
+        <result property="bgColor"   column="bg_color"/>
+        <result property="ownerId"   column="owner_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="memberResultMap" type="com.reeltrip.api.teamspace.model.TeamSpaceMember">
+        <id     property="id"       column="id"/>
+        <result property="spaceId"  column="space_id"/>
+        <result property="userId"   column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="role"     column="role"/>
+        <result property="joinedAt" column="joined_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO team_spaces (name, emoji, bg_color, owner_id, created_at, updated_at)
+        VALUES (#{name}, #{emoji}, #{bgColor}, #{ownerId}, NOW(), NOW())
+    </insert>
+
+    <select id="findById" resultMap="teamSpaceResultMap">
+        SELECT id, name, emoji, bg_color, owner_id, created_at, updated_at
+        FROM team_spaces
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByUserId" resultMap="teamSpaceResultMap">
+        SELECT ts.id, ts.name, ts.emoji, ts.bg_color, ts.owner_id, ts.created_at, ts.updated_at
+        FROM team_spaces ts
+        INNER JOIN team_space_members tsm ON ts.id = tsm.space_id
+        WHERE tsm.user_id = #{userId}
+        ORDER BY ts.created_at DESC
+    </select>
+
+    <update id="update">
+        UPDATE team_spaces
+        SET name       = #{name},
+            emoji      = #{emoji},
+            bg_color   = #{bgColor},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM team_spaces WHERE id = #{id}
+    </delete>
+
+    <!-- 멤버 -->
+    <insert id="insertMember" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO team_space_members (space_id, user_id, role, joined_at)
+        VALUES (#{spaceId}, #{userId}, #{role}, NOW())
+    </insert>
+
+    <select id="findMembersBySpaceId" resultMap="memberResultMap">
+        SELECT tsm.id, tsm.space_id, tsm.user_id, u.username, tsm.role, tsm.joined_at
+        FROM team_space_members tsm
+        INNER JOIN users u ON tsm.user_id = u.id
+        WHERE tsm.space_id = #{spaceId}
+        ORDER BY tsm.joined_at ASC
+    </select>
+
+    <select id="findMember" resultMap="memberResultMap">
+        SELECT tsm.id, tsm.space_id, tsm.user_id, u.username, tsm.role, tsm.joined_at
+        FROM team_space_members tsm
+        INNER JOIN users u ON tsm.user_id = u.id
+        WHERE tsm.space_id = #{spaceId} AND tsm.user_id = #{userId}
+    </select>
+
+    <select id="existsMember" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM team_space_members
+            WHERE space_id = #{spaceId} AND user_id = #{userId}
+        )
+    </select>
+
+    <delete id="deleteMember">
+        DELETE FROM team_space_members
+        WHERE space_id = #{spaceId} AND user_id = #{userId}
+    </delete>
+
+</mapper>

@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@reel-trip/types";
 
-const BASE_URL = "";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export async function apiRequest<T>(
   path: string,
