@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reeltrip.api.place.mapper.PlaceMapper">
+
+    <resultMap id="placeResultMap" type="com.reeltrip.api.place.model.Place">
+        <id     property="id"             column="id"/>
+        <result property="spaceId"        column="space_id"/>
+        <result property="name"           column="name"/>
+        <result property="category"       column="category"/>
+        <result property="address"        column="address"/>
+        <result property="region"         column="region"/>
+        <result property="country"        column="country"/>
+        <result property="latitude"       column="latitude"/>
+        <result property="longitude"      column="longitude"/>
+        <result property="priceDesc"      column="price_desc"/>
+        <result property="priceMin"       column="price_min"/>
+        <result property="priceMax"       column="price_max"/>
+        <result property="currency"       column="currency"/>
+        <result property="hours"          column="hours"/>
+        <result property="thumbnailUrl"   column="thumbnail_url"/>
+        <result property="sourceUrl"      column="source_url"/>
+        <result property="sourcePlatform" column="source_platform"/>
+        <result property="tags"           column="tags"
+                typeHandler="org.apache.ibatis.type.ArrayTypeHandler"/>
+        <result property="menu"           column="menu"
+                typeHandler="org.apache.ibatis.type.ArrayTypeHandler"/>
+        <result property="confidence"     column="confidence"/>
+        <result property="createdBy"      column="created_by"/>
+        <result property="createdAt"      column="created_at"/>
+        <result property="updatedAt"      column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO places (
+            space_id, name, category, address, region, country,
+            latitude, longitude, price_desc, price_min, price_max, currency,
+            hours, thumbnail_url, source_url, source_platform,
+            tags, menu, confidence, created_by, created_at, updated_at
+        ) VALUES (
+            #{spaceId}, #{name}, #{category}, #{address}, #{region}, #{country},
+            #{latitude}, #{longitude}, #{priceDesc}, #{priceMin}, #{priceMax}, #{currency},
+            #{hours}, #{thumbnailUrl}, #{sourceUrl}, #{sourcePlatform},
+            #{tags, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},
+            #{menu, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},
+            #{confidence}, #{createdBy}, NOW(), NOW()
+        )
+    </insert>
+
+    <select id="findById" resultMap="placeResultMap">
+        SELECT id, space_id, name, category, address, region, country,
+               latitude, longitude, price_desc, price_min, price_max, currency,
+               hours, thumbnail_url, source_url, source_platform,
+               tags, menu, confidence, created_by, created_at, updated_at
+        FROM places
+        WHERE id = #{id}
+    </select>
+
+    <select id="findBySpaceId" resultMap="placeResultMap">
+        SELECT id, space_id, name, category, address, region, country,
+               latitude, longitude, price_desc, price_min, price_max, currency,
+               hours, thumbnail_url, source_url, source_platform,
+               tags, menu, confidence, created_by, created_at, updated_at
+        FROM places
+        WHERE space_id = #{spaceId}
+        ORDER BY created_at DESC
+    </select>
+
+    <delete id="delete">
+        DELETE FROM places WHERE id = #{id}
+    </delete>
+
+</mapper>

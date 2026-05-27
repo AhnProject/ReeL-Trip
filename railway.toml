@@ -1,10 +1,7 @@
 [build]
-builder = "nixpacks"
-buildCommand = "npm install && npm run build --workspace=@reel-trip/api"
+builder = "dockerfile"
+dockerfilePath = "apps/api-spring/Dockerfile"
 
 [deploy]
-startCommand = "node apps/api/dist/main.js"
-healthcheckPath = "/api/documents/health"
-healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
