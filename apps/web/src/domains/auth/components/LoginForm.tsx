@@ -23,7 +23,7 @@ export function LoginForm() {
       const result = await login({ username, password });
       if (result.success && result.data) {
         persistSession(result.data);
-        router.push("/dashboard");
+        router.push("/dashboard/home");
       } else {
         setError(result.message ?? "로그인 실패");
       }

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reeltrip.api.document.mapper.DocumentMapper">
+
+    <resultMap id="documentResultMap" type="com.reeltrip.api.document.dto.DocumentResponse">
+        <result property="id"        column="id"         javaType="String"/>
+        <result property="title"     column="title"/>
+        <result property="content"   column="content"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="similarity" column="similarity"/>
+    </resultMap>
+
+    <!-- 삽입 (embedding 있을 수도 없을 수도) -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO documents (title, content, embedding, created_at, updated_at)
+        VALUES (
+            #{title},
+            #{content},
+            <choose>
+                <when test="embedding != null">#{embedding}::vector</when>
+                <otherwise>NULL</otherwise>
+            </choose>,
+            NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 단건 조회 -->
+    <select id="findById" resultMap="documentResultMap">
+        SELECT id::text AS id, title, content, created_at, updated_at
+        FROM documents
+        WHERE id = #{id}
+    </select>
+
+    <!-- 전체 조회 -->
+    <select id="findAll" resultMap="documentResultMap">
+        SELECT id::text AS id, title, content, created_at, updated_at
+        FROM documents
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 수정 (embedding 은 null 이면 기존 값 유지) -->
+    <update id="update">
+        UPDATE documents
+        SET
+            title     = #{title},
+            content   = #{content},
+            <if test="embedding != null">
+            embedding = #{embedding}::vector,
+            </if>
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 삭제 -->
+    <delete id="delete">
+        DELETE FROM documents WHERE id = #{id}
+    </delete>
+
+    <!-- 벡터 유사도 검색 (threshold 없음) -->
+    <select id="searchByVector" resultMap="documentResultMap">
+        <![CDATA[
+        SELECT
+            id::text AS id,
+            title,
+            content,
+            created_at,
+            updated_at,
+            ROUND(CAST(1 - (embedding <=> #{embedding}::vector) AS NUMERIC), 4) AS similarity
+        FROM documents
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> #{embedding}::vector
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+    <!-- 벡터 유사도 검색 (threshold 포함) -->
+    <select id="searchByVectorWithThreshold" resultMap="documentResultMap">
+        <![CDATA[
+        SELECT
+            id::text AS id,
+            title,
+            content,
+            created_at,
+            updated_at,
+            ROUND(CAST(1 - (embedding <=> #{embedding}::vector) AS NUMERIC), 4) AS similarity
+        FROM documents
+        WHERE embedding IS NOT NULL
+          AND 1 - (embedding <=> #{embedding}::vector) >= #{threshold}
+        ORDER BY embedding <=> #{embedding}::vector
+        LIMIT #{limit}
+        ]]>
+    </select>
+
+</mapper>
