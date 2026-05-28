@@ -10,7 +10,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     getToken().then(setToken);
-  }, []);
+  }, [segments]);
 
   useEffect(() => {
     if (token === undefined) return;

@@ -6,6 +6,9 @@ import { Toast, useToast } from "@/components/Toast";
 import { getProfile } from "@/domains/user/api";
 import { listNotifications } from "@/domains/notification/api";
 import type { NotificationResponse } from "@/domains/notification/api";
+import { listTeamSpaces } from "@/domains/teamspace/api";
+import { addPlace } from "@/domains/place/api";
+import { UrlParserModal } from "@/app/dashboard/url-parser-modal";
 
 /* ── 상수 데이터 ── */
 
@@ -23,15 +26,33 @@ const TAG_BADGES = [
   { label: "실시간 협업",   bg: "#DBEAFE", color: "#1D4ED8" },
 ];
 
+interface ParsedResult {
+  name: string | null;
+  category: string | null;
+  location: { address: string | null; region: string | null; country: string | null };
+  price: { description: string | null; min: number | null; max: number | null; currency: string | null };
+  hours: string | null;
+  menu: string[];
+  tags: string[];
+  description: string | null;
+  sourceUrl: string;
+  sourcePlatform: "youtube_shorts" | "instagram_reels";
+  thumbnailUrl: string | null;
+  confidence: "high" | "medium" | "low";
+}
+
 /* ── 컴포넌트 ── */
 
 export function MainDashboardScreen() {
   const router   = useRouter();
   const { visible, showToast } = useToast();
   const [username, setUsername]   = useState("");
+  const [token, setToken]         = useState("");
   const [planLabel, setPlanLabel] = useState("...");
   const [quickLink, setQuickLink] = useState("");
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
+  const [spaceId, setSpaceId]     = useState<number | null>(null);
+  const [showUrlModal, setShowUrlModal] = useState(false);
 
   const handleNav = (key: string) => {
     if (key === "travel")   { router.push("/dashboard/travel"); return; }
@@ -41,25 +62,60 @@ export function MainDashboardScreen() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const name  = localStorage.getItem("username");
-    if (!token) { router.replace("/"); return; }
+    const storedToken = localStorage.getItem("token");
+    const name        = localStorage.getItem("username");
+    if (!storedToken) { router.replace("/"); return; }
+    setToken(storedToken);
     setUsername(name ?? "");
 
-    // 사용자 프로필 조회
-    getProfile(token).then((res) => {
+    getProfile(storedToken).then((res) => {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
       }
     }).catch(() => {});
 
-    // 알림 목록 조회
-    listNotifications(token).then((res) => {
+    listNotifications(storedToken).then((res) => {
       if (res.success && res.data) {
         setNotifications(res.data.slice(0, 5));
       }
     }).catch(() => {});
+
+    listTeamSpaces(storedToken).then((res) => {
+      if (res.success && res.data && res.data.length > 0) {
+        setSpaceId(res.data[0].id);
+      }
+    }).catch(() => {});
   }, [router]);
+
+  const handleAnalyze = () => {
+    if (!spaceId) { showToast(); return; }
+    setShowUrlModal(true);
+  };
+
+  const handleAddPlace = async (parsed: ParsedResult) => {
+    if (!spaceId || !token) return;
+    await addPlace({
+      spaceId,
+      name: parsed.name ?? "이름 없음",
+      category: parsed.category ?? undefined,
+      address: parsed.location.address ?? undefined,
+      region: parsed.location.region ?? undefined,
+      country: parsed.location.country ?? undefined,
+      priceDesc: parsed.price.description ?? undefined,
+      priceMin: parsed.price.min ?? undefined,
+      priceMax: parsed.price.max ?? undefined,
+      currency: parsed.price.currency ?? undefined,
+      hours: parsed.hours ?? undefined,
+      thumbnailUrl: parsed.thumbnailUrl ?? undefined,
+      sourceUrl: parsed.sourceUrl,
+      sourcePlatform: parsed.sourcePlatform,
+      tags: parsed.tags,
+      menu: parsed.menu,
+      confidence: parsed.confidence,
+    }, token);
+    setShowUrlModal(false);
+    setQuickLink("");
+  };
 
   if (!username) return null;
 
@@ -197,9 +253,10 @@ export function MainDashboardScreen() {
                 placeholder="https://"
                 className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-[12px] text-slate-700 outline-none placeholder:text-slate-300 focus:border-[#4A6CF7]"
                 style={{ borderColor: "#E2E6F0", background: "#F9FAFB" }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleAnalyze(); }}
               />
               <button
-                onClick={showToast}
+                onClick={handleAnalyze}
                 className="cursor-pointer rounded-xl border-none px-4 py-2 text-[12px] font-semibold text-white"
                 style={{ background: "#4A6CF7", borderRadius: "24px" }}
               >
@@ -222,7 +279,7 @@ export function MainDashboardScreen() {
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[13px] font-bold text-slate-800">알림</span>
               <button
-                onClick={showToast}
+                onClick={() => router.push("/dashboard/calendar")}
                 className="cursor-pointer border-none bg-transparent text-[11px] text-slate-400"
               >
                 더보기 &gt;
@@ -255,6 +312,13 @@ export function MainDashboardScreen() {
       </div>
 
       <Toast visible={visible} />
+
+      {showUrlModal && spaceId && (
+        <UrlParserModal
+          onClose={() => setShowUrlModal(false)}
+          onAdd={handleAddPlace}
+        />
+      )}
     </div>
   );
 }
