@@ -4,6 +4,12 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Toast, useToast } from "@/components/Toast";
+import { listPlaces, updatePlace, addPlace } from "@/domains/place/api";
+import type { PlaceResponse } from "@/domains/place/api";
+import { listTeamSpaces } from "@/domains/teamspace/api";
+import type { MemberResponse } from "@/domains/teamspace/api";
+import { UrlParserModal } from "@/app/dashboard/url-parser-modal";
+import { CreateEventModal } from "@/domains/event/components/CreateEventModal";
 
 /* Leaflet은 SSR 불가 → dynamic import */
 const TravelMapView = dynamic(
@@ -11,10 +17,21 @@ const TravelMapView = dynamic(
   { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-slate-100" /> },
 );
 
-import { listPlaces } from "@/domains/place/api";
-import type { PlaceResponse } from "@/domains/place/api";
-import { listTeamSpaces } from "@/domains/teamspace/api";
-import type { MemberResponse } from "@/domains/teamspace/api";
+/* ── ParsedResult 타입 ── */
+interface ParsedResult {
+  name: string | null;
+  category: string | null;
+  location: { address: string | null; region: string | null; country: string | null };
+  price: { description: string | null; min: number | null; max: number | null; currency: string | null };
+  hours: string | null;
+  menu: string[];
+  tags: string[];
+  description: string | null;
+  sourceUrl: string;
+  sourcePlatform: "youtube_shorts" | "instagram_reels";
+  thumbnailUrl: string | null;
+  confidence: "high" | "medium" | "low";
+}
 
 /* ── 상수 ── */
 
@@ -26,27 +43,40 @@ const NAV_ITEMS = [
   { key: "transport",  icon: "🚌", label: "교통",       active: false, hasArrow: false },
 ];
 
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /* ── 컴포넌트 ── */
 
 export function TravelMapScreen() {
   const router = useRouter();
   const { visible, showToast } = useToast();
-  const [username, setUsername] = useState("");
-  const [places, setPlaces] = useState<PlaceResponse[]>([]);
-  const [members, setMembers] = useState<MemberResponse[]>([]);
+
+  const [username, setUsername]       = useState("");
+  const [token, setToken]             = useState("");
+  const [spaceId, setSpaceId]         = useState<number | null>(null);
+  const [places, setPlaces]           = useState<PlaceResponse[]>([]);
+  const [members, setMembers]         = useState<MemberResponse[]>([]);
+  const [confirmedIds, setConfirmedIds] = useState<Set<number>>(new Set());
+  const [showUrlModal, setShowUrlModal]     = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const name  = localStorage.getItem("username");
-    if (!token) { router.replace("/"); return; }
+    const storedToken = localStorage.getItem("token");
+    const name        = localStorage.getItem("username");
+    if (!storedToken) { router.replace("/"); return; }
+    setToken(storedToken);
     setUsername(name ?? "");
 
-    listTeamSpaces(token).then((res) => {
+    listTeamSpaces(storedToken).then((res) => {
       if (!res.success || !res.data || res.data.length === 0) return;
       const space = res.data[0];
+      setSpaceId(space.id);
       setMembers(space.members);
 
-      listPlaces(space.id, token).then((pRes) => {
+      listPlaces(space.id, storedToken).then((pRes) => {
         if (pRes.success && pRes.data) setPlaces(pRes.data);
       }).catch(() => {});
     }).catch(() => {});
@@ -58,6 +88,47 @@ export function TravelMapScreen() {
     if (key === "dashboard") router.push("/dashboard/main");
     if (key === "calendar")  router.push("/dashboard/calendar");
     if (key === "checklist" || key === "transport") showToast();
+  };
+
+  /* ── 장소 확정 토글 ── */
+  const handleToggleConfirm = (placeId: number) => {
+    setConfirmedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(placeId)) next.delete(placeId);
+      else next.add(placeId);
+      return next;
+    });
+    if (token) {
+      updatePlace(placeId, {}, token).catch(() => {});
+    }
+  };
+
+  /* ── URL 파싱 후 장소 추가 ── */
+  const handleAddPlace = async (parsed: ParsedResult) => {
+    if (!spaceId || !token) return;
+    const res = await addPlace({
+      spaceId,
+      name: parsed.name ?? "이름 없음",
+      category: parsed.category ?? undefined,
+      address: parsed.location.address ?? undefined,
+      region: parsed.location.region ?? undefined,
+      country: parsed.location.country ?? undefined,
+      priceDesc: parsed.price.description ?? undefined,
+      priceMin: parsed.price.min ?? undefined,
+      priceMax: parsed.price.max ?? undefined,
+      currency: parsed.price.currency ?? undefined,
+      hours: parsed.hours ?? undefined,
+      thumbnailUrl: parsed.thumbnailUrl ?? undefined,
+      sourceUrl: parsed.sourceUrl,
+      sourcePlatform: parsed.sourcePlatform,
+      tags: parsed.tags,
+      menu: parsed.menu,
+      confidence: parsed.confidence,
+    }, token);
+    if (res.success && res.data) {
+      setPlaces((prev) => [...prev, res.data!]);
+    }
+    setShowUrlModal(false);
   };
 
   return (
@@ -78,7 +149,6 @@ export function TravelMapScreen() {
           </div>
           <div>
             <div className="text-[15px] font-bold leading-tight text-slate-900">ReelTrip</div>
-            {/* API: localStorage username */}
             <div className="text-[11px] leading-tight text-slate-400">{username}님, 환영합니다</div>
           </div>
         </div>
@@ -148,7 +218,6 @@ export function TravelMapScreen() {
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
               style={{ background: "#4A6CF7" }}
             >
-              {/* API: localStorage username */}
               {username[0] ?? "?"}
             </div>
             <div className="min-w-0">
@@ -160,7 +229,7 @@ export function TravelMapScreen() {
 
         {/* ── 중앙 지도 ── */}
         <main className="relative flex-1 overflow-hidden">
-          <TravelMapView />
+          <TravelMapView onAddToSchedule={() => setShowCreateModal(true)} />
         </main>
 
         {/* ── 우측 패널 ── */}
@@ -174,32 +243,35 @@ export function TravelMapScreen() {
             {places.length === 0 ? (
               <div className="py-6 text-center text-[12px] text-slate-400">저장된 장소가 없습니다</div>
             ) : (
-              places.map((place) => (
-                <div
-                  key={place.id}
-                  className="flex items-center justify-between rounded-xl px-3.5 py-3"
-                  style={{
-                    background: "#F9FAFB",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <div>
-                    <div className="text-[13px] font-semibold text-slate-800">{place.name}</div>
-                    <div className="mt-0.5 text-[11px] text-slate-400">
-                      {place.region && `📍 ${place.region}`}
-                      {place.priceDesc && ` · ${place.priceDesc}`}
-                    </div>
-                  </div>
-                  <button
-                    onClick={showToast}
-                    className="cursor-pointer rounded-[24px] border-none px-3 py-1.5 text-[11px] font-semibold text-white"
-                    style={{ background: "#4A6CF7" }}
+              places.map((place) => {
+                const isConfirmed = confirmedIds.has(place.id);
+                return (
+                  <div
+                    key={place.id}
+                    className="flex items-center justify-between rounded-xl px-3.5 py-3"
+                    style={{
+                      background: "#F9FAFB",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                      borderRadius: "12px",
+                    }}
                   >
-                    확정
-                  </button>
-                </div>
-              ))
+                    <div>
+                      <div className="text-[13px] font-semibold text-slate-800">{place.name}</div>
+                      <div className="mt-0.5 text-[11px] text-slate-400">
+                        {place.region && `📍 ${place.region}`}
+                        {place.priceDesc && ` · ${place.priceDesc}`}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleToggleConfirm(place.id)}
+                      className="cursor-pointer rounded-[24px] border-none px-3 py-1.5 text-[11px] font-semibold text-white"
+                      style={{ background: isConfirmed ? "#16A34A" : "#4A6CF7" }}
+                    >
+                      {isConfirmed ? "확정됨" : "확정"}
+                    </button>
+                  </div>
+                );
+              })
             )}
 
             {/* 여행 정보 섹션 */}
@@ -213,7 +285,7 @@ export function TravelMapScreen() {
                 {/* 기간 */}
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">기간</span>
-                    <span className="text-[12px] font-medium text-slate-700">-</span>
+                  <span className="text-[12px] font-medium text-slate-700">-</span>
                 </div>
 
                 {/* 참여자 */}
@@ -250,7 +322,7 @@ export function TravelMapScreen() {
           {/* 장소 추가 버튼 고정 하단 */}
           <div className="px-4 pb-5">
             <button
-              onClick={showToast}
+              onClick={() => setShowUrlModal(true)}
               className="w-full cursor-pointer rounded-[24px] border-none py-3 text-[13px] font-bold text-white"
               style={{ background: "#4A6CF7" }}
             >
@@ -261,6 +333,23 @@ export function TravelMapScreen() {
       </div>
 
       <Toast visible={visible} />
+
+      {showUrlModal && (
+        <UrlParserModal
+          onClose={() => setShowUrlModal(false)}
+          onAdd={handleAddPlace}
+        />
+      )}
+
+      {showCreateModal && spaceId && (
+        <CreateEventModal
+          spaceId={spaceId}
+          token={token}
+          defaultDate={todayStr()}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={() => setShowCreateModal(false)}
+        />
+      )}
     </div>
   );
 }

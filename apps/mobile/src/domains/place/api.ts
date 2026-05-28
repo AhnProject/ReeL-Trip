@@ -52,10 +52,6 @@ export function listPlaces(spaceId: number, token: string) {
   return apiRequest<PlaceResponse[]>(`/api/places?spaceId=${spaceId}`, {}, token);
 }
 
-export function getPlace(id: number, token: string) {
-  return apiRequest<PlaceResponse>(`/api/places/${id}`, {}, token);
-}
-
 export function addPlace(payload: AddPlacePayload, token: string) {
   return apiRequest<PlaceResponse>("/api/places", {
     method: "POST",

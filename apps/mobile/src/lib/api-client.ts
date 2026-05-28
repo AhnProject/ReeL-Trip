@@ -18,8 +18,12 @@ const BASE_URL = getBaseUrl();
 export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
-  token?: string
+  token?: string,
+  timeoutMs = 10000,
 ): Promise<ApiResponse<T>> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   const headers = new Headers(init?.headers);
 
   if (!headers.has("Content-Type") && init?.body) {
@@ -29,6 +33,19 @@ export async function apiRequest<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...init, headers });
-  return response.json() as Promise<ApiResponse<T>>;
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+    return response.json() as Promise<ApiResponse<T>>;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
