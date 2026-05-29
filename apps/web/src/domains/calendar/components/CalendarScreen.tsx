@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import type { CalendarEvent } from "../types";
 import { Toast, useToast } from "@/components/Toast";
 import { getProfile } from "@/domains/user/api";
@@ -91,13 +92,13 @@ export function CalendarScreen() {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[CalendarScreen]", err));
 
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
         setSpaceId(res.data[0].id);
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[CalendarScreen]", err));
   }, [router]);
 
   /* ── 캘린더 상태 ── */
@@ -117,7 +118,7 @@ export function CalendarScreen() {
       if (eventsRes.success && eventsRes.data) {
         setRawEvents(eventsRes.data);
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[CalendarScreen]", err));
   }, [token, spaceId, viewYear, viewMonth]);
 
   /* ── raw → CalendarEvent 변환 ── */
@@ -204,7 +205,7 @@ export function CalendarScreen() {
   };
 
   /* ── 인증 대기 ── */
-  if (!token) return null;
+  if (!token) return <LoadingScreen />;
 
   /* ── username에서 성씨 추출 ── */
   const familyName = username.length > 0 ? username[0] : "?";

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Toast, useToast } from "@/components/Toast";
 import { getProfile } from "@/domains/user/api";
 import { listNotifications } from "@/domains/notification/api";
@@ -61,6 +62,12 @@ export function MainDashboardScreen() {
     showToast();
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    router.replace("/");
+  };
+
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
@@ -72,19 +79,19 @@ export function MainDashboardScreen() {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[MainDashboardScreen]", err));
 
     listNotifications(storedToken).then((res) => {
       if (res.success && res.data) {
         setNotifications(res.data.slice(0, 5));
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[MainDashboardScreen]", err));
 
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
         setSpaceId(res.data[0].id);
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[MainDashboardScreen]", err));
   }, [router]);
 
   const handleAnalyze = () => {
@@ -117,7 +124,7 @@ export function MainDashboardScreen() {
     setQuickLink("");
   };
 
-  if (!username) return null;
+  if (!username) return <LoadingScreen />;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden font-sans" style={{ background: "#F5F6FA" }}>
@@ -200,19 +207,27 @@ export function MainDashboardScreen() {
 
           {/* 하단 프로필 */}
           <div
-            className="flex items-center gap-2.5 px-4 py-4"
+            className="flex flex-col gap-2 px-3 py-3"
             style={{ borderTop: "1px solid #EAEDF3" }}
           >
-            <div
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-              style={{ background: "#4A6CF7" }}
+            <div className="flex items-center gap-2.5 px-1">
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+                style={{ background: "#4A6CF7" }}
+              >
+                {username[0] ?? "?"}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-semibold text-slate-800">{username}</div>
+                <div className="text-[11px] text-slate-400">{planLabel}</div>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full cursor-pointer rounded-xl border border-slate-200 bg-transparent py-1.5 text-[12px] text-slate-500 hover:bg-slate-50"
             >
-              {username[0] ?? "?"}
-            </div>
-            <div className="min-w-0">
-              <div className="truncate text-[13px] font-semibold text-slate-800">{username}</div>
-              <div className="text-[11px] text-slate-400">{planLabel}</div>
-            </div>
+              로그아웃
+            </button>
           </div>
         </aside>
 

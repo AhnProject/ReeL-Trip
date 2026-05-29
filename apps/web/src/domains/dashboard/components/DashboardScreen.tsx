@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { SpaceSwitcher } from "@/domains/teamspace/components/SpaceSwitcher";
 import { SpaceSidebar } from "@/domains/teamspace/components/SpaceSidebar";
 import { TravelCalendar } from "@/domains/teamspace/components/TravelCalendar";
@@ -75,10 +76,10 @@ function DashboardInner() {
         const found = converted.find((s) => s.id === paramId);
         setSelectedSpaceId(found ? found.id : converted[0].id);
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[DashboardScreen]", err));
   }, [router, searchParams]);
 
-  if (!username) return null;
+  if (!username) return <LoadingScreen />;
 
   const selectedSpace: TeamSpace | undefined = spaces.find((sp) => sp.id === selectedSpaceId) ?? spaces[0];
 
@@ -183,7 +184,7 @@ function DashboardInner() {
                 const converted = res.data.map(toTeamSpace);
                 setSpaces(converted);
               }
-            }).catch(() => {});
+            }).catch((err) => console.error("[DashboardScreen]", err));
           }}
         />
       )}
