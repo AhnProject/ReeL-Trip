@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Toast, useToast } from "@/components/Toast";
 import { listPlaces, updatePlace, addPlace } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
@@ -78,11 +79,11 @@ export function TravelMapScreen() {
 
       listPlaces(space.id, storedToken).then((pRes) => {
         if (pRes.success && pRes.data) setPlaces(pRes.data);
-      }).catch(() => {});
-    }).catch(() => {});
+      }).catch((err) => console.error("[TravelMapScreen]", err));
+    }).catch((err) => console.error("[TravelMapScreen]", err));
   }, [router]);
 
-  if (!username) return null;
+  if (!username) return <LoadingScreen />;
 
   const handleNav = (key: string) => {
     if (key === "dashboard") router.push("/dashboard/main");

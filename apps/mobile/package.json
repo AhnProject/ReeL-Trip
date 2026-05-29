@@ -15,6 +15,7 @@
     "@react-navigation/native": "^7.0.14",
     "@reel-trip/types": "*",
     "expo": "~54.0.0",
+    "expo-share-intent": "~5.1.1",
     "expo-constants": "~18.0.13",
     "expo-linking": "~8.0.12",
     "expo-router": "~5.1.11",

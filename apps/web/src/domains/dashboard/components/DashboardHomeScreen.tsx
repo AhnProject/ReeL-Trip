@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { HomeFeatureBanner } from "./HomeFeatureBanner";
 import { HomeSpaceList } from "./HomeSpaceList";
 import { HomeCalendarWidget } from "./HomeCalendarWidget";
@@ -64,13 +65,13 @@ export function DashboardHomeScreen() {
               });
               setTodayRawEvents(todayEvts);
             }
-          }).catch(() => {});
+          }).catch((err) => console.error("[DashboardHomeScreen] listEvents", err));
         }
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[DashboardHomeScreen] listTeamSpaces", err));
   }, [router]);
 
-  if (!username) return null;
+  if (!username) return <LoadingScreen />;
 
   const handleLogout = () => {
     localStorage.removeItem("token");
