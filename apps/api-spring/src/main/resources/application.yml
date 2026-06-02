@@ -50,6 +50,7 @@ api:
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.reeltrip.api
+  type-handlers-package: com.reeltrip.api.common.typehandler
   configuration:
     map-underscore-to-camel-case: true
 
