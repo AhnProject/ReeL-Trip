@@ -50,11 +50,16 @@ export function UrlParserModal({ visible, spaceId, onClose }: UrlParserModalProp
   const handleParse = async () => {
     if (!url.trim() || !token) return;
     setStatus("loading"); setResult(null); setErrMsg("");
-    const res = await apiRequest<ParsedResult>("/api/url-parser/parse", { method: "POST", body: JSON.stringify({ url: url.trim() }) }, token);
-    if (res.success && res.data) { setResult(res.data); setStatus("success"); }
-    else {
-      const code = (res as { errorCode?: string }).errorCode ?? "";
-      setErrMsg(ERROR_MSGS[code] ?? "파싱 중 오류가 발생했습니다.");
+    try {
+      const res = await apiRequest<ParsedResult>("/api/url-parser/parse", { method: "POST", body: JSON.stringify({ url: url.trim() }) }, token, 40000);
+      if (res.success && res.data) { setResult(res.data); setStatus("success"); }
+      else {
+        const code = (res as { errorCode?: string }).errorCode ?? "";
+        setErrMsg(ERROR_MSGS[code] ?? "파싱 중 오류가 발생했습니다.");
+        setStatus("error");
+      }
+    } catch {
+      setErrMsg("요청 중 오류가 발생했습니다. 다시 시도해 주세요.");
       setStatus("error");
     }
   };
@@ -62,23 +67,30 @@ export function UrlParserModal({ visible, spaceId, onClose }: UrlParserModalProp
   const handleAdd = async () => {
     if (!result || !token) return;
     setAdding(true);
-    const res = await addPlace({
-      spaceId, name: result.name ?? "이름 없음",
-      category: result.category ?? undefined, address: result.location.address ?? undefined,
-      region: result.location.region ?? undefined, country: result.location.country ?? undefined,
-      priceDesc: result.price.description ?? undefined, priceMin: result.price.min ?? undefined,
-      priceMax: result.price.max ?? undefined, currency: result.price.currency ?? undefined,
-      hours: result.hours ?? undefined, thumbnailUrl: result.thumbnailUrl ?? undefined,
-      sourceUrl: result.sourceUrl, sourcePlatform: result.sourcePlatform,
-      tags: result.tags, menu: result.menu, confidence: result.confidence,
-    }, token);
-    if (res.success) {
-      toast.success(`"${result.name ?? "장소"}" 추가됨`);
-      invalidatePlaces(spaceId);
-      setUrl(""); setStatus("idle"); setResult(null);
-      onClose();
+    try {
+      const res = await addPlace({
+        spaceId, name: result.name ?? "이름 없음",
+        category: result.category ?? undefined, address: result.location.address ?? undefined,
+        region: result.location.region ?? undefined, country: result.location.country ?? undefined,
+        priceDesc: result.price.description ?? undefined, priceMin: result.price.min ?? undefined,
+        priceMax: result.price.max ?? undefined, currency: result.price.currency ?? undefined,
+        hours: result.hours ?? undefined, thumbnailUrl: result.thumbnailUrl ?? undefined,
+        sourceUrl: result.sourceUrl, sourcePlatform: result.sourcePlatform,
+        tags: result.tags, menu: result.menu, confidence: result.confidence,
+      }, token);
+      if (res.success) {
+        toast.success(`"${result.name ?? "장소"}" 추가됨`);
+        invalidatePlaces(spaceId);
+        setUrl(""); setStatus("idle"); setResult(null);
+        onClose();
+      } else {
+        toast.error("저장에 실패했습니다. 다시 시도해 주세요.");
+      }
+    } catch {
+      toast.error("저장 중 오류가 발생했습니다.");
+    } finally {
+      setAdding(false);
     }
-    setAdding(false);
   };
 
   const reset = () => { setUrl(""); setStatus("idle"); setResult(null); setErrMsg(""); };
