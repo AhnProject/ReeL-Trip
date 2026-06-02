@@ -20,5 +20,6 @@ export function parseUrl(url: string, token: string) {
     "/api/url-parser/parse",
     { method: "POST", body: JSON.stringify({ url: url.trim() }) },
     token,
+    30000,
   );
 }
