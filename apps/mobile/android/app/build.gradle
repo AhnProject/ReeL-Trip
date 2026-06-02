@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.reeltrip.app'
+    namespace 'com.reeltrip.app.dev'
     defaultConfig {
-        applicationId 'com.reeltrip.app'
+        applicationId 'com.reeltrip.app.dev'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

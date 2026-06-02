@@ -1,4 +1,4 @@
-package com.reeltrip.app
+package com.reeltrip.app.dev
 
 import android.os.Build
 import android.os.Bundle
