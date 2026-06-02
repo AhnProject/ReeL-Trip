@@ -32,9 +32,9 @@ openai:
   embedding-model: text-embedding-3-small
   vector-dim: ${VECTOR_DIMENSION:1536}
 
-anthropic:
-  api-key: ${ANTHROPIC_API_KEY:}       # 비어있으면 ANTHROPIC_API_KEY_MISSING 에러 반환
-  model: claude-opus-4-6
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: gemini-1.5-flash
 
 apify:
   api-token: ${APIFY_API_TOKEN:}

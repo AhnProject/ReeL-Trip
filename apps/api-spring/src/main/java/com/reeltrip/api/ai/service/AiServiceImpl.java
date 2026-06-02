@@ -34,11 +34,11 @@ public class AiServiceImpl implements AiService {
     @Value("${openai.vector-dim:1536}")
     private int vectorDim;
 
-    @Value("${anthropic.api-key}")
-    private String anthropicApiKey;
+    @Value("${gemini.api-key:}")
+    private String geminiApiKey;
 
-    @Value("${anthropic.model:claude-opus-4-6}")
-    private String anthropicModel;
+    @Value("${gemini.model:gemini-1.5-flash}")
+    private String geminiModel;
 
     // -------------------------------------------------------------------------
     // OpenAI Embeddings
@@ -130,16 +130,17 @@ public class AiServiceImpl implements AiService {
     }
 
     // -------------------------------------------------------------------------
-    // Anthropic Claude — travel info extraction
+    // Gemini — travel info extraction
     // -------------------------------------------------------------------------
 
     @Override
     public Map<String, Object> extractTravelInfo(Map<String, Object> rawContent) {
-        if (anthropicApiKey == null || anthropicApiKey.isBlank()) {
-            throw new AppException(ErrorCode.ANTHROPIC_API_KEY_MISSING);
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+            throw new AppException(ErrorCode.ANTHROPIC_API_KEY_MISSING,
+                    "GEMINI_API_KEY is not configured.");
         }
 
-        String systemPrompt = """
+        String prompt = """
                 당신은 여행 정보 추출 전문가입니다. 주어진 소셜 미디어 콘텐츠에서 여행/관광 정보를 추출하세요.
                 반드시 아래 JSON 형식으로만 응답하세요:
                 {
@@ -162,32 +163,39 @@ public class AiServiceImpl implements AiService {
                   "description": "한 줄 요약 (없으면 null)",
                   "confidence": "high|medium|low"
                 }
-                """;
 
-        String userContent = "다음 콘텐츠에서 여행 정보를 추출하세요:\n" + formatRawContent(rawContent);
+                다음 콘텐츠에서 여행 정보를 추출하세요:
+                """ + formatRawContent(rawContent);
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", anthropicModel);
-        body.put("max_tokens", 1024);
-        body.put("system", systemPrompt);
-        body.put("messages", List.of(Map.of("role", "user", "content", userContent)));
+        Map<String, Object> body = Map.of(
+                "contents", List.of(
+                        Map.of("parts", List.of(Map.of("text", prompt)))
+                ),
+                "generationConfig", Map.of("responseMimeType", "application/json")
+        );
 
         try {
-            String response = anthropicClient().post()
-                    .uri("/v1/messages")
+            String response = RestClient.builder()
+                    .baseUrl("https://generativelanguage.googleapis.com")
+                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .build()
+                    .post()
+                    .uri("/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey)
                     .body(body)
                     .retrieve()
                     .body(String.class);
 
             JsonNode root = objectMapper.readTree(response);
-            String text = root.path("content").get(0).path("text").asText();
-            String jsonStr = extractJson(text);
+            String text = root.path("candidates").get(0)
+                    .path("content").path("parts").get(0)
+                    .path("text").asText();
 
+            String jsonStr = extractJson(text);
             return objectMapper.readValue(jsonStr, Map.class);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Anthropic extraction error", e);
+            log.error("Gemini extraction error", e);
             throw new AppException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
                     "Failed to extract travel info: " + e.getMessage());
         }
@@ -201,15 +209,6 @@ public class AiServiceImpl implements AiService {
         return RestClient.builder()
                 .baseUrl("https://api.openai.com")
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openaiApiKey)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-    }
-
-    private RestClient anthropicClient() {
-        return RestClient.builder()
-                .baseUrl("https://api.anthropic.com")
-                .defaultHeader("x-api-key", anthropicApiKey)
-                .defaultHeader("anthropic-version", "2023-06-01")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -230,15 +229,14 @@ public class AiServiceImpl implements AiService {
         }
     }
 
-    /** 마크다운 코드블록이 있을 경우 JSON 부분만 추출합니다. */
     private String extractJson(String text) {
         if (text.contains("```json")) {
             int start = text.indexOf("```json") + 7;
-            int end = text.indexOf("```", start);
+            int end   = text.indexOf("```", start);
             return text.substring(start, end).trim();
         } else if (text.contains("```")) {
             int start = text.indexOf("```") + 3;
-            int end = text.indexOf("```", start);
+            int end   = text.indexOf("```", start);
             return text.substring(start, end).trim();
         }
         return text.trim();
