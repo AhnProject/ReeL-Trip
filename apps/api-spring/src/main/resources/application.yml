@@ -2,6 +2,13 @@ spring:
   application:
     name: reel-trip-api
 
+  datasource:
+    hikari:
+      maximum-pool-size: 3
+      max-lifetime: 60000        # 1분 (Neon 5분 타임아웃보다 짧게)
+      keepalive-time: 30000      # 30초마다 커넥션 유지
+      connection-timeout: 20000
+
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -31,7 +38,7 @@ anthropic:
 
 apify:
   api-token: ${APIFY_API_TOKEN:}
-  actor-id: ${APIFY_ACTOR_ID:apify~instagram-reel-scraper}
+  actor-id: ${APIFY_ACTOR_ID:xMc5Ga1oCONPmWJIa}
 
 cors:
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
