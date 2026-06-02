@@ -38,7 +38,7 @@ anthropic:
 
 apify:
   api-token: ${APIFY_API_TOKEN:}
-  actor-id: ${APIFY_ACTOR_ID:xMc5Ga1oCONPmWJIa}
+  actor-id: ${APIFY_ACTOR_ID:shu8hvrXbJbY3Eb9W}
 
 cors:
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
