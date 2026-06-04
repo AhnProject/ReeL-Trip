@@ -25,7 +25,8 @@ server:
 
 jwt:
   secret: ${JWT_SECRET:local-dev-secret-must-be-at-least-32-chars}
-  expires-in: ${JWT_EXPIRATION:86400000}
+  expires-in: ${JWT_EXPIRATION:1800000}                    # 30분
+  refresh-expires-in: ${JWT_REFRESH_EXPIRATION:2592000000} # 30일
 
 openai:
   api-key: ${OPENAI_API_KEY:}          # 비어있으면 OPENAI_API_KEY_MISSING 에러 반환
