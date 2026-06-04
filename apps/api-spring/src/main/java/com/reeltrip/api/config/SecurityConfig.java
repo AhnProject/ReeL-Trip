@@ -72,7 +72,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/doc", "/docs", "/docs/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/v3/api-docs").permitAll()
                 // 인증 불필요 엔드포인트
-                .requestMatchers("/api/auth/signup", "/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/signup", "/api/auth/login",
+                                 "/api/auth/refresh", "/api/auth/logout").permitAll()
                 .requestMatchers("/api/documents/health").permitAll()
                 .requestMatchers("/api/recommend", "/api/recommend/**").permitAll()
                 // 인증 필요 엔드포인트

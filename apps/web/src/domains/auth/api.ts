@@ -18,3 +18,17 @@ export function signup(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export function refreshAccessToken(refreshToken: string) {
+  return apiRequest<AuthResponse>("/api/auth/refresh", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken }),
+  });
+}
+
+export function logout(refreshToken: string) {
+  return apiRequest<void>("/api/auth/logout", {
+    method: "POST",
+    body: JSON.stringify({ refreshToken }),
+  });
+}

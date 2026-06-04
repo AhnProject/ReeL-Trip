@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTravelData } from "./hooks/useTravelData";
 import { PlaceCard } from "./components/PlaceCard";
@@ -11,6 +12,8 @@ import { AppHeader } from "@/components/ui/AppHeader";
 import { FAB } from "@/components/ui/FAB";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { usePlaceDetailStore } from "@/store/place-detail";
+import type { PlaceResponse } from "@/domains/place/api";
 import { C } from "@/lib/colors";
 
 export function TravelScreen() {
@@ -20,8 +23,16 @@ export function TravelScreen() {
     handleToggleConfirm,
   } = useTravelData();
 
+  const router       = useRouter();
+  const setPlace     = usePlaceDetailStore((s) => s.setPlace);
+
   const [showUrlModal, setShowUrlModal]     = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+
+  const handlePlacePress = (place: PlaceResponse) => {
+    setPlace(place);
+    router.push(`/place/${place.id}`);
+  };
 
   if (loading) return <LoadingScreen />;
 
@@ -57,6 +68,7 @@ export function TravelScreen() {
               place={place}
               isConfirmed={confirmedIds.has(place.id)}
               onToggleConfirm={() => handleToggleConfirm(place.id)}
+              onPress={() => handlePlacePress(place)}
             />
           ))
         )}

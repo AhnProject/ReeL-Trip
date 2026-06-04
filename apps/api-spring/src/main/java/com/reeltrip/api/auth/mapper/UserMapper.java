@@ -11,6 +11,8 @@ public interface UserMapper {
 
     void insert(User user);
 
+    Optional<User> findById(@Param("id") Long id);
+
     Optional<User> findByUsername(@Param("username") String username);
 
     boolean existsByUsername(@Param("username") String username);

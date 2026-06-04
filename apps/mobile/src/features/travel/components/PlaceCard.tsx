@@ -8,11 +8,12 @@ interface PlaceCardProps {
   place:           PlaceResponse;
   isConfirmed:     boolean;
   onToggleConfirm: () => void;
+  onPress?:        () => void;
 }
 
-export function PlaceCard({ place, isConfirmed, onToggleConfirm }: PlaceCardProps) {
+export function PlaceCard({ place, isConfirmed, onToggleConfirm, onPress }: PlaceCardProps) {
   return (
-    <View style={s.card}>
+    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.88} disabled={!onPress}>
       {place.thumbnailUrl ? (
         <Image source={{ uri: place.thumbnailUrl }} style={s.thumb} resizeMode="cover" />
       ) : (
@@ -43,7 +44,7 @@ export function PlaceCard({ place, isConfirmed, onToggleConfirm }: PlaceCardProp
           {isConfirmed ? "확정됨" : "확정"}
         </Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 
