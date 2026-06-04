@@ -19,6 +19,12 @@
         VALUES (#{username}, #{password}, #{email}, #{role}, NOW(), NOW())
     </insert>
 
+    <select id="findById" resultMap="userResultMap">
+        SELECT id, username, password, email, role, created_at, updated_at
+        FROM users
+        WHERE id = #{id}
+    </select>
+
     <select id="findByUsername" resultMap="userResultMap">
         SELECT id, username, password, email, role, created_at, updated_at
         FROM users
