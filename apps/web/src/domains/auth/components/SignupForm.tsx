@@ -21,7 +21,7 @@ export function SignupForm() {
     try {
       const result = await signup(form);
       if (result.success && result.data) {
-        persistSession(result.data);
+        persistSession(result.data, false);
         router.push("/dashboard/home");
       } else {
         setError(result.message ?? "회원가입 실패");

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { SpaceSwitcher } from "@/domains/teamspace/components/SpaceSwitcher";
 import { SpaceSidebar } from "@/domains/teamspace/components/SpaceSidebar";
 import { TravelCalendar } from "@/domains/teamspace/components/TravelCalendar";
@@ -12,6 +13,7 @@ import { Toast, useToast } from "@/components/Toast";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
 import { addPlace } from "@/domains/place/api";
+import { InviteMemberModal } from "@/domains/teamspace/components/InviteMemberModal";
 
 interface ParsedResult {
   name: string | null;
@@ -56,6 +58,7 @@ function DashboardInner() {
   const [activeNav, setActiveNav]             = useState<NavItem>("calendar");
   const [showUrlModal, setShowUrlModal]       = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const { visible, showToast } = useToast();
 
   useEffect(() => {
@@ -73,10 +76,10 @@ function DashboardInner() {
         const found = converted.find((s) => s.id === paramId);
         setSelectedSpaceId(found ? found.id : converted[0].id);
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[DashboardScreen]", err));
   }, [router, searchParams]);
 
-  if (!username) return null;
+  if (!username) return <LoadingScreen />;
 
   const selectedSpace: TeamSpace | undefined = spaces.find((sp) => sp.id === selectedSpaceId) ?? spaces[0];
 
@@ -132,7 +135,7 @@ function DashboardInner() {
             space={selectedSpace}
             activeNav={activeNav}
             onNavChange={setActiveNav}
-            onInviteClick={showToast}
+            onInviteClick={() => setShowInviteModal(true)}
           />
 
           <main className="flex min-w-0 flex-1 flex-col overflow-auto bg-slate-50">
@@ -166,6 +169,22 @@ function DashboardInner() {
             setSpaces((prev) => [...prev, newSpace]);
             setSelectedSpaceId(newSpace.id);
             setShowCreateModal(false);
+          }}
+        />
+      )}
+
+      {showInviteModal && selectedSpace && (
+        <InviteMemberModal
+          spaceId={Number(selectedSpace.id)}
+          token={token}
+          onClose={() => setShowInviteModal(false)}
+          onInvited={() => {
+            listTeamSpaces(token).then((res) => {
+              if (res.success && res.data) {
+                const converted = res.data.map(toTeamSpace);
+                setSpaces(converted);
+              }
+            }).catch((err) => console.error("[DashboardScreen]", err));
           }}
         />
       )}

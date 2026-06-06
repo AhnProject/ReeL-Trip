@@ -63,6 +63,13 @@ export function addPlace(payload: AddPlacePayload, token: string) {
   }, token);
 }
 
+export function updatePlace(id: number, payload: Partial<AddPlacePayload>, token: string) {
+  return apiRequest<PlaceResponse>(`/api/places/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  }, token);
+}
+
 export function deletePlace(id: number, token: string) {
   return apiRequest<void>(`/api/places/${id}`, { method: "DELETE" }, token);
 }
