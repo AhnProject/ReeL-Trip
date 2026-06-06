@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { HomeFeatureBanner } from "./HomeFeatureBanner";
 import { HomeSpaceList } from "./HomeSpaceList";
 import { HomeCalendarWidget } from "./HomeCalendarWidget";
+import type { TodayEvent } from "./HomeCalendarWidget";
 import { CreateSpaceModal } from "@/domains/teamspace/components/CreateSpaceModal";
 import type { TeamSpace } from "@/domains/teamspace/types";
 import { Toast, useToast } from "@/components/Toast";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
+import { listEvents, updateEvent } from "@/domains/event/api";
+import type { EventResponse } from "@/domains/event/api";
 
 function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
   return {
@@ -29,27 +33,45 @@ function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
 
 export function DashboardHomeScreen() {
   const router = useRouter();
-  const { visible, showToast } = useToast();
-  const [username, setUsername] = useState("");
-  const [token, setToken] = useState("");
-  const [spaces, setSpaces] = useState<TeamSpace[]>([]);
+  const { visible } = useToast();
+  const [username, setUsername]           = useState("");
+  const [token, setToken]                 = useState("");
+  const [spaces, setSpaces]               = useState<TeamSpace[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [todayRawEvents, setTodayRawEvents]   = useState<EventResponse[]>([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const name  = localStorage.getItem("username");
-    if (!token) { router.replace("/"); return; }
-    setToken(token);
+    const storedToken = localStorage.getItem("token");
+    const name        = localStorage.getItem("username");
+    if (!storedToken) { router.replace("/"); return; }
+    setToken(storedToken);
     setUsername(name ?? "");
 
-    listTeamSpaces(token).then((res) => {
+    listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data) {
         setSpaces(res.data.map(toTeamSpace));
+
+        if (res.data.length > 0) {
+          const spaceId = res.data[0].id;
+          const now     = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          const monthStr = todayStr.slice(0, 7);
+
+          listEvents(spaceId, monthStr, storedToken).then((eventsRes) => {
+            if (eventsRes.success && eventsRes.data) {
+              const todayEvts = eventsRes.data.filter((e) => {
+                const d = e.startDate.includes("T") ? e.startDate.split("T")[0] : e.startDate;
+                return d === todayStr;
+              });
+              setTodayRawEvents(todayEvts);
+            }
+          }).catch((err) => console.error("[DashboardHomeScreen] listEvents", err));
+        }
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[DashboardHomeScreen] listTeamSpaces", err));
   }, [router]);
 
-  if (!username) return null;
+  if (!username) return <LoadingScreen />;
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -60,6 +82,39 @@ export function DashboardHomeScreen() {
   const handleEnterSpace = (_space: TeamSpace) => {
     router.push("/dashboard/main");
   };
+
+  /* ── 오늘 일정 확정/미정 토글 ── */
+  const handleScheduleAction = async (id: number, confirmed: boolean) => {
+    const raw = todayRawEvents.find((e) => e.id === id);
+    if (!raw || !token) return;
+    const newStatus = confirmed ? "pending" : "confirmed";
+    setTodayRawEvents((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, status: newStatus } : e)),
+    );
+    await updateEvent(id, {
+      title: raw.title,
+      description: raw.description ?? undefined,
+      startDate: raw.startDate,
+      endDate: raw.endDate,
+      location: raw.location ?? undefined,
+      price: raw.price ?? undefined,
+      color: raw.color,
+      status: newStatus,
+    }, token).catch(() => {
+      setTodayRawEvents((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, status: raw.status } : e)),
+      );
+    });
+  };
+
+  /* ── TodayEvent 변환 ── */
+  const todayEvents: TodayEvent[] = todayRawEvents.map((e) => ({
+    id: e.id,
+    title: e.title,
+    time: e.startDate.includes("T") ? (e.startDate.split("T")[1]?.slice(0, 5) ?? "") : "",
+    price: e.price ?? "",
+    confirmed: e.status === "confirmed",
+  }));
 
   const featuredSpace = spaces[0];
 
@@ -134,11 +189,13 @@ export function DashboardHomeScreen() {
         {/* 우측 위젯 */}
         <HomeCalendarWidget
           spaces={spaces}
+          todayEvents={todayEvents}
           onEnterSpace={handleEnterSpace}
           onMoreClick={() => router.push("/dashboard/calendar")}
-          onScheduleActionClick={showToast}
+          onScheduleActionClick={handleScheduleAction}
         />
       </div>
+
       {showCreateModal && (
         <CreateSpaceModal
           token={token}

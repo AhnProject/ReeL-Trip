@@ -6,26 +6,29 @@ const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// 모노레포의 모든 파일을 감시
-config.watchFolders = [workspaceRoot];
+// 모노레포 전체 감시 (기존 기본값 유지 + 루트 추가)
+config.watchFolders = [...(config.watchFolders ?? []), workspaceRoot];
 
-// React를 mobile app의 node_modules에서 우선 resolve (중복 인스턴스 방지)
+// mobile 로컬 node_modules 우선, 없으면 루트에서 resolve
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// react-native는 workspace root에만 존재하므로 그쪽에서 resolve
-config.resolver.extraNodeModules = {
-  'react-native': path.resolve(workspaceRoot, 'node_modules/react-native'),
-};
-
-// react는 react-native 내부 require 포함 모든 경로에서 mobile local(19.0.0)로 고정
-// → 단일 React 인스턴스 보장 (hooks 오류 방지)
+// 모노레포에서 React 두 카피 문제 방지
+// extraNodeModules는 폴백이라 이미 찾은 경우 무시됨.
+// resolveRequest로 모든 react import를 강제 인터셉트해서 단일 경로 고정.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'react') {
+  // react, react-dom, react-native가 루트/앱 node_modules 양쪽에 존재할 경우
+  // 서로 다른 모듈 인스턴스가 생겨 Registry 불일치 문제가 발생함.
+  // 모두 앱 로컬 node_modules 기준으로 단일 인스턴스로 고정.
+  if (
+    moduleName === 'react' || moduleName.startsWith('react/') ||
+    moduleName === 'react-dom' || moduleName.startsWith('react-dom/') ||
+    moduleName === 'react-native' || moduleName.startsWith('react-native/')
+  ) {
     return {
-      filePath: path.resolve(projectRoot, 'node_modules/react/index.js'),
+      filePath: require.resolve(moduleName, { paths: [projectRoot] }),
       type: 'sourceFile',
     };
   }

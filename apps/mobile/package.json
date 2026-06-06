@@ -9,28 +9,31 @@
     "build:ios": "eas build --platform ios",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf .expo"
+    "clean": "rm -rf .expo",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@react-navigation/native": "^7.0.14",
     "@reel-trip/types": "*",
+    "@tanstack/react-query": "^5.100.14",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.13",
     "expo-linking": "~8.0.12",
-    "expo-router": "~5.1.11",
-    "expo-secure-store": "~14.2.4",
-    "expo-status-bar": "~2.2.0",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "react-native": "0.79.6",
-    "react-native-reanimated": "~3.16.7",
+    "expo-router": "~6.0.24",
+    "expo-secure-store": "~15.0.8",
+    "expo-share-intent": "~5.1.1",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "react-native": "0.81.5",
+    "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-web": "^0.21.0"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "^19",
-    "@types/react-native": "^0.73.0",
     "typescript": "^5.8.3"
   }
 }

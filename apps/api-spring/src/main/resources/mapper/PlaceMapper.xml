@@ -23,9 +23,9 @@
         <result property="sourceUrl"      column="source_url"/>
         <result property="sourcePlatform" column="source_platform"/>
         <result property="tags"           column="tags"
-                typeHandler="org.apache.ibatis.type.ArrayTypeHandler"/>
+                typeHandler="com.reeltrip.api.common.typehandler.StringListTypeHandler"/>
         <result property="menu"           column="menu"
-                typeHandler="org.apache.ibatis.type.ArrayTypeHandler"/>
+                typeHandler="com.reeltrip.api.common.typehandler.StringListTypeHandler"/>
         <result property="confidence"     column="confidence"/>
         <result property="createdBy"      column="created_by"/>
         <result property="createdAt"      column="created_at"/>
@@ -42,8 +42,8 @@
             #{spaceId}, #{name}, #{category}, #{address}, #{region}, #{country},
             #{latitude}, #{longitude}, #{priceDesc}, #{priceMin}, #{priceMax}, #{currency},
             #{hours}, #{thumbnailUrl}, #{sourceUrl}, #{sourcePlatform},
-            #{tags, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},
-            #{menu, typeHandler=org.apache.ibatis.type.ArrayTypeHandler},
+            #{tags, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
+            #{menu, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
             #{confidence}, #{createdBy}, NOW(), NOW()
         )
     </insert>

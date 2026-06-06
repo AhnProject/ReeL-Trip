@@ -2,9 +2,10 @@
 
 interface Props {
   onClose: () => void;
+  onAddToSchedule?: () => void;
 }
 
-export function TravelMapMarkerPopup({ onClose }: Props) {
+export function TravelMapMarkerPopup({ onClose, onAddToSchedule }: Props) {
   return (
     <div
       className="absolute z-[1000] w-[260px] font-sans"
@@ -74,6 +75,7 @@ export function TravelMapMarkerPopup({ onClose }: Props) {
       {/* 버튼 2개 */}
       <div className="flex gap-2">
         <button
+          onClick={onAddToSchedule}
           className="flex-1 cursor-pointer rounded-[24px] border-none py-2 text-[12px] font-semibold text-white"
           style={{ background: "#4A6CF7" }}
         >

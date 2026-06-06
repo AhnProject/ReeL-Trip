@@ -11,7 +11,11 @@ const MARKERS = [
   { id: "cafe",   pos: [37.5430, 127.0590] as [number, number], color: "#7C3AED", size: 16 },
 ];
 
-export function TravelMapView() {
+interface Props {
+  onAddToSchedule?: () => void;
+}
+
+export function TravelMapView({ onAddToSchedule }: Props) {
   const mapRef   = useRef<HTMLDivElement>(null);
   const mapInst  = useRef<import("leaflet").Map | null>(null);
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
@@ -96,7 +100,10 @@ export function TravelMapView() {
             pointerEvents: "auto",
           }}
         >
-          <TravelMapMarkerPopup onClose={() => setActiveMarker(null)} />
+          <TravelMapMarkerPopup
+            onClose={() => setActiveMarker(null)}
+            onAddToSchedule={onAddToSchedule}
+          />
         </div>
       )}
 

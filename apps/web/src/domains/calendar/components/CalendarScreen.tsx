@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import type { CalendarEvent } from "../types";
 import { Toast, useToast } from "@/components/Toast";
 import { getProfile } from "@/domains/user/api";
 import { listTeamSpaces } from "@/domains/teamspace/api";
-import { listEvents } from "@/domains/event/api";
+import { listEvents, updateEvent } from "@/domains/event/api";
+import type { EventResponse } from "@/domains/event/api";
+import { CreateEventModal } from "@/domains/event/components/CreateEventModal";
 
 /* ─────────────────────────── 상수 ─────────────────────────── */
 
@@ -44,6 +47,20 @@ function formatKoDate(dateStr: string) {
   return `${month}월 ${day}일, ${dow}요일`;
 }
 
+function rawToCalendarEvent(e: EventResponse): CalendarEvent {
+  const dateOnly = e.startDate.includes("T") ? e.startDate.split("T")[0] : e.startDate;
+  return {
+    id: String(e.id),
+    title: e.title,
+    date: dateOnly,
+    time: undefined,
+    price: e.price ?? undefined,
+    color: e.color,
+    status: e.status as "confirmed" | "pending",
+    location: e.location ?? undefined,
+  };
+}
+
 /* ─────────────────────────── 컴포넌트 ─────────────────────────── */
 
 export function CalendarScreen() {
@@ -54,6 +71,15 @@ export function CalendarScreen() {
   const [username, setUsername] = useState("");
   const [token, setToken] = useState("");
   const [planLabel, setPlanLabel] = useState("...");
+
+  /* ── 스페이스 ── */
+  const [spaceId, setSpaceId] = useState<number | null>(null);
+
+  /* ── 이벤트 데이터 (raw) ── */
+  const [rawEvents, setRawEvents] = useState<EventResponse[]>([]);
+
+  /* ── 모달 ── */
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -66,7 +92,13 @@ export function CalendarScreen() {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
       }
-    }).catch(() => {});
+    }).catch((err) => console.error("[CalendarScreen]", err));
+
+    listTeamSpaces(storedToken).then((res) => {
+      if (res.success && res.data && res.data.length > 0) {
+        setSpaceId(res.data[0].id);
+      }
+    }).catch((err) => console.error("[CalendarScreen]", err));
   }, [router]);
 
   /* ── 캘린더 상태 ── */
@@ -78,34 +110,49 @@ export function CalendarScreen() {
   );
   const [viewMode, setViewMode] = useState<"month" | "week">("month");
 
-  /* ── 이벤트 데이터 ── */
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-
+  /* ── 월 변경 시 이벤트 로드 ── */
   useEffect(() => {
-    if (!token) return;
+    if (!token || !spaceId) return;
     const monthStr = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+    listEvents(spaceId, monthStr, token).then((eventsRes) => {
+      if (eventsRes.success && eventsRes.data) {
+        setRawEvents(eventsRes.data);
+      }
+    }).catch((err) => console.error("[CalendarScreen]", err));
+  }, [token, spaceId, viewYear, viewMonth]);
 
-    // 첫 번째 팀스페이스의 이벤트를 로드
-    listTeamSpaces(token).then((spacesRes) => {
-      if (!spacesRes.success || !spacesRes.data || spacesRes.data.length === 0) return;
-      const spaceId = spacesRes.data[0].id;
+  /* ── raw → CalendarEvent 변환 ── */
+  const events: CalendarEvent[] = rawEvents.map(rawToCalendarEvent);
 
-      listEvents(spaceId, monthStr, token).then((eventsRes) => {
-        if (eventsRes.success && eventsRes.data) {
-          setEvents(eventsRes.data.map((e) => ({
-            id: String(e.id),
-            title: e.title,
-            date: e.startDate,
-            time: undefined,
-            price: e.price ?? undefined,
-            color: e.color,
-            status: e.status as "confirmed" | "pending",
-            location: e.location ?? undefined,
-          })));
-        }
-      }).catch(() => {});
-    }).catch(() => {});
-  }, [token, viewYear, viewMonth]);
+  /* ── 상태 토글 ── */
+  const handleToggleStatus = async (eventId: string) => {
+    const raw = rawEvents.find((e) => String(e.id) === eventId);
+    if (!raw || !token) return;
+    const newStatus = raw.status === "confirmed" ? "pending" : "confirmed";
+    setRawEvents((prev) =>
+      prev.map((e) => (e.id === raw.id ? { ...e, status: newStatus } : e)),
+    );
+    await updateEvent(raw.id, {
+      title: raw.title,
+      description: raw.description ?? undefined,
+      startDate: raw.startDate,
+      endDate: raw.endDate,
+      location: raw.location ?? undefined,
+      price: raw.price ?? undefined,
+      color: raw.color,
+      status: newStatus,
+    }, token).catch(() => {
+      setRawEvents((prev) =>
+        prev.map((e) => (e.id === raw.id ? { ...e, status: raw.status } : e)),
+      );
+    });
+  };
+
+  /* ── 이벤트 생성 완료 ── */
+  const handleEventCreated = (event: EventResponse) => {
+    setRawEvents((prev) => [...prev, event]);
+    setShowCreateModal(false);
+  };
 
   /* ── 파생 데이터 ── */
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
@@ -158,7 +205,7 @@ export function CalendarScreen() {
   };
 
   /* ── 인증 대기 ── */
-  if (!token) return null;
+  if (!token) return <LoadingScreen />;
 
   /* ── username에서 성씨 추출 ── */
   const familyName = username.length > 0 ? username[0] : "?";
@@ -183,7 +230,6 @@ export function CalendarScreen() {
           </div>
           <div>
             <div className="text-[15px] font-bold leading-tight text-slate-900">ReelTrip</div>
-            {/* API: username은 localStorage에서 수신 */}
             <div className="text-[11px] leading-tight text-slate-400">
               {username}님, 환영합니다
             </div>
@@ -261,13 +307,10 @@ export function CalendarScreen() {
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
               style={{ background: "#4A6CF7" }}
             >
-              {/* API: username 첫 글자(성씨) 표시 */}
               {familyName}
             </div>
             <div className="min-w-0">
-              {/* API: username */}
               <div className="truncate text-[13px] font-semibold text-slate-800">{username}</div>
-              {/* [Test] plan 정보 — API 미구현 */}
               <div className="text-[11px] text-slate-400">{planLabel}</div>
             </div>
           </div>
@@ -536,7 +579,6 @@ export function CalendarScreen() {
               {formatKoDate(selectedDate)}
             </div>
             <div className="mt-0.5 text-[12px] text-slate-400">
-              {/* API: username */}
               {username}님의 일정
             </div>
           </div>
@@ -570,7 +612,6 @@ export function CalendarScreen() {
                     <div className="mt-0.5 text-[12px] text-slate-400">
                       {evt.time && `🕐 ${evt.time}`}
                       {evt.time && evt.price && " · "}
-                      {/* [Test] price 데이터 — API 미구현 */}
                       {evt.price && evt.price}
                     </div>
                     {evt.location && (
@@ -581,7 +622,7 @@ export function CalendarScreen() {
                   </div>
                   {evt.status === "confirmed" ? (
                     <button
-                      onClick={showToast}
+                      onClick={() => handleToggleStatus(evt.id)}
                       className="ml-3 flex-shrink-0 cursor-pointer rounded-2xl border-none px-3 py-1.5 text-[12px] font-semibold text-white"
                       style={{ background: "#4A6CF7", borderRadius: "24px" }}
                     >
@@ -589,7 +630,7 @@ export function CalendarScreen() {
                     </button>
                   ) : (
                     <button
-                      onClick={showToast}
+                      onClick={() => handleToggleStatus(evt.id)}
                       className="ml-3 flex-shrink-0 cursor-pointer rounded-2xl border px-3 py-1.5 text-[12px] font-semibold"
                       style={{
                         background: "transparent",
@@ -608,7 +649,7 @@ export function CalendarScreen() {
 
           {/* + 일정 추가 버튼 */}
           <button
-            onClick={showToast}
+            onClick={() => spaceId ? setShowCreateModal(true) : showToast()}
             className="mt-4 w-full cursor-pointer rounded-2xl border-none py-3 text-[14px] font-semibold text-white"
             style={{ background: "#4A6CF7", borderRadius: "24px" }}
           >
@@ -619,6 +660,16 @@ export function CalendarScreen() {
       </div>
 
       <Toast visible={visible} />
+
+      {showCreateModal && spaceId && (
+        <CreateEventModal
+          spaceId={spaceId}
+          token={token}
+          defaultDate={selectedDate}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={handleEventCreated}
+        />
+      )}
     </div>
   );
 }
