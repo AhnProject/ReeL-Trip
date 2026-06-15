@@ -1,22 +1,28 @@
-const IS_DEV = process.env.APP_VARIANT === "development";
+const variant = process.env.APP_VARIANT ?? "production";
+const IS_DEV     = variant === "development";
+const IS_STAGING = variant === "staging";
+
+const appName = IS_DEV ? "ReeL-Trip (Dev)" : IS_STAGING ? "ReeL-Trip (Test)" : "ReeL-Trip";
+const appId   = IS_DEV ? "com.reeltrip.app.dev" : IS_STAGING ? "com.reeltrip.app.staging" : "com.reeltrip.app";
+const scheme  = IS_DEV ? "reeltrip-dev" : IS_STAGING ? "reeltrip-staging" : "reeltrip";
 
 module.exports = {
   expo: {
-    name:        IS_DEV ? "ReeL-Trip (Dev)" : "ReeL-Trip",
+    name:        appName,
     slug:        "reel-trip",
     version:     "1.0.0",
     orientation: "portrait",
-    scheme:      IS_DEV ? "reeltrip-dev" : "reeltrip",
+    scheme,
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet:   true,
-      bundleIdentifier: IS_DEV ? "com.reeltrip.app.dev" : "com.reeltrip.app",
+      bundleIdentifier: appId,
     },
     android: {
       adaptiveIcon: {
         backgroundColor: "#ffffff",
       },
-      package: IS_DEV ? "com.reeltrip.app.dev" : "com.reeltrip.app",
+      package: appId,
     },
     plugins: [
       "expo-router",

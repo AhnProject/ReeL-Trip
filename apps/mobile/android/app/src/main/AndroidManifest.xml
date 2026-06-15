@@ -24,7 +24,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="reeltrip-dev"/>
+        <data android:scheme="reeltrip-staging"/>
+        <data android:scheme="exp+reel-trip"/>
       </intent-filter>
       <intent-filter>
         <action android:name="android.intent.action.SEND"/>
