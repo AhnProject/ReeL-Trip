@@ -1,4 +1,4 @@
-package com.reeltrip.app.dev
+package com.reeltrip.app.staging
 
 import android.app.Application
 import android.content.res.Configuration
