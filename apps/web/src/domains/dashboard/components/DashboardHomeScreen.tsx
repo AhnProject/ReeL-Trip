@@ -14,6 +14,7 @@ import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
 import { listEvents, updateEvent } from "@/domains/event/api";
 import type { EventResponse } from "@/domains/event/api";
+import { Logo } from "@/components/Logo";
 
 function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
   return {
@@ -122,12 +123,9 @@ export function DashboardHomeScreen() {
     <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] to-slate-50 font-sans text-slate-900">
       {/* 상단 네비 */}
       <header className="sticky top-0 z-[100] flex h-[60px] items-center justify-between border-b border-brand-primary/10 bg-white/85 px-8 backdrop-blur-md">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-brand-primary">
-            <span className="text-sm font-extrabold tracking-wider text-white">RT</span>
-          </div>
-          <span className="text-base font-bold text-slate-900">ReeL-Trip</span>
-        </div>
+        <button onClick={() => router.push("/dashboard/home")} className="cursor-pointer border-none bg-transparent p-0">
+          <Logo className="h-9" />
+        </button>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 rounded-full bg-[#F1F5FF] py-[5px] pl-[5px] pr-3">
