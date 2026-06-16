@@ -18,6 +18,16 @@ const config: Config = {
         accent: {
           danger: "#E84E5C",
         },
+        tsstatus: {
+          greenBg:    "#DCFCE7",
+          greenText:  "#16A34A",
+          redBg:      "#FEE2E2",
+          redText:    "#DC2626",
+          orangeBg:   "#FEF3C7",
+          orangeText: "#D97706",
+          purpleBg:   "#EDE9FE",
+          purpleText: "#7C3AED",
+        },
       },
       fontFamily: {
         sans: [

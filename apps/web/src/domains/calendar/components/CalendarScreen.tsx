@@ -10,16 +10,10 @@ import { listTeamSpaces } from "@/domains/teamspace/api";
 import { listEvents, updateEvent } from "@/domains/event/api";
 import type { EventResponse } from "@/domains/event/api";
 import { CreateEventModal } from "@/domains/event/components/CreateEventModal";
+import { Logo } from "@/components/Logo";
 
 /* ─────────────────────────── 상수 ─────────────────────────── */
 
-const NAV_ITEMS = [
-  { key: "dashboard",  icon: "🔵", label: "대시보드",   hasArrow: false, active: false },
-  { key: "travel",     icon: "✈️", label: "여행계획",   hasArrow: false, active: false },
-  { key: "calendar",   icon: "📅", label: "캘린더",     hasArrow: true,  active: true  },
-  { key: "checklist",  icon: "☑️", label: "체크리스트", hasArrow: true,  active: false },
-  { key: "transport",  icon: "🚌", label: "교통",       hasArrow: false, active: false },
-];
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -199,9 +193,15 @@ export function CalendarScreen() {
   };
 
   const handleNav = (key: string) => {
-    if (key === "dashboard") router.push("/dashboard/main");
-    if (key === "travel")    router.push("/dashboard/travel");
-    if (key === "checklist" || key === "transport") showToast();
+    if (key === "dashboard")    { router.push("/dashboard");              return; }
+    if (key === "place")        { router.push("/dashboard/travel");       return; }
+    if (key === "ai")           { router.push("/dashboard/ai");           return; }
+    if (key === "member")       { router.push("/dashboard/member");       return; }
+    if (key === "chat")         { router.push("/dashboard/chat");         return; }
+    if (key === "notification") { router.push("/dashboard/notification"); return; }
+    if (key === "settings")     { router.push("/dashboard/settings");     return; }
+    if (key === "schedule")     return;
+    showToast();
   };
 
   /* ── 인증 대기 ── */
@@ -211,54 +211,29 @@ export function CalendarScreen() {
   const familyName = username.length > 0 ? username[0] : "?";
 
   return (
-    <div
-      className="flex h-screen flex-col overflow-hidden"
-      style={{ background: "#F5F6FA", fontFamily: "'Noto Sans KR', sans-serif" }}
-    >
+    <div className="flex h-screen flex-col overflow-hidden font-sans">
       {/* ══════════════ GNB ══════════════ */}
-      <header
-        className="flex h-[60px] flex-shrink-0 items-center justify-between px-6"
-        style={{ background: "#FFFFFF", borderBottom: "1px solid #EAEDF3" }}
-      >
-        {/* 좌측 로고 */}
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-extrabold text-white"
-            style={{ background: "#4A6CF7" }}
-          >
-            RT
-          </div>
-          <div>
-            <div className="text-[15px] font-bold leading-tight text-slate-900">ReelTrip</div>
-            <div className="text-[11px] leading-tight text-slate-400">
-              {username}님, 환영합니다
-            </div>
-          </div>
-        </div>
+      <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6">
+        <button onClick={() => router.push("/dashboard/home")} className="cursor-pointer border-none bg-transparent p-0">
+          <Logo className="h-9" />
+        </button>
 
-        {/* 중앙 검색창 */}
-        <div
-          className="flex h-9 items-center gap-2 rounded-2xl px-4"
-          style={{ background: "#F5F6FA", border: "1px solid #E2E6F0" }}
-        >
+        <div className="flex h-9 w-[280px] items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
           <input
             type="text"
-            placeholder="장소 또는 이름 검색"
-            className="w-[220px] border-none bg-transparent text-[13px] text-slate-600 outline-none placeholder:text-slate-400"
+            placeholder="장소, 일정 검색"
+            className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
           />
         </div>
 
-        {/* 우측 버튼 */}
         <button
-          onClick={showToast}
-          className="h-9 cursor-pointer rounded-2xl border-none px-5 text-[13px] font-semibold text-white"
-          style={{ background: "#4A6CF7" }}
+          onClick={() => router.push("/dashboard")}
+          className="h-9 cursor-pointer rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50"
         >
-          시작하기
+          ← 대시보드
         </button>
       </header>
 
@@ -266,58 +241,53 @@ export function CalendarScreen() {
       <div className="flex min-h-0 flex-1">
 
         {/* ── 좌측 사이드바 ── */}
-        <aside
-          className="flex h-full w-[200px] flex-shrink-0 flex-col"
-          style={{ background: "#FFFFFF", borderRight: "1px solid #EAEDF3" }}
-        >
-          <nav className="flex flex-1 flex-col gap-1 px-3 pt-5">
-            {NAV_ITEMS.map((item) => (
+        <aside className="flex h-full w-[200px] flex-shrink-0 flex-col border-r border-slate-100 bg-white">
+          <div className="mx-3 mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+            📅 일정
+          </div>
+          <nav className="flex flex-1 flex-col gap-0.5 px-3 pt-3">
+            {([
+              { key: "dashboard",    label: "대시보드" , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+              { key: "schedule",     label: "일정"     , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+              { key: "place",        label: "장소"     , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> },
+              { key: "ai",           label: "AI 추천"  , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2z"/></svg> },
+              { key: "member",       label: "멤버"     , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+              { key: "chat",         label: "채팅"     , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, badge: <span className="h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" /> },
+              { key: "notification", label: "알림"     , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> },
+              { key: "settings",     label: "설정"     , icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+            ] as const).map((item) => (
               <button
                 key={item.key}
                 onClick={() => handleNav(item.key)}
-                className="flex w-full cursor-pointer items-center justify-between rounded-xl border-none px-3 py-2.5 text-left text-[13.5px] transition-colors"
-                style={
-                  item.active
-                    ? { background: "#EEF2FF", color: "#4A6CF7", fontWeight: 600 }
-                    : { background: "transparent", color: "#6B7280", fontWeight: 400 }
-                }
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  item.key === "schedule"
+                    ? "bg-brand-primary/10 font-semibold text-brand-primary"
+                    : "text-slate-500 hover:bg-slate-50"
+                }`}
               >
-                <span className="flex items-center gap-2">
-                  <span className="text-base">{item.icon}</span>
-                  {item.label}
-                </span>
-                {item.hasArrow && (
-                  <span
-                    className="text-[10px]"
-                    style={{ color: item.active ? "#4A6CF7" : "#9CA3AF" }}
-                  >
-                    ▼
-                  </span>
-                )}
+                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="flex-1 text-left">{item.label}</span>
+                {"badge" in item && item.badge}
               </button>
             ))}
           </nav>
 
           {/* 하단 프로필 */}
-          <div
-            className="flex items-center gap-2.5 px-4 py-4"
-            style={{ borderTop: "1px solid #EAEDF3" }}
-          >
-            <div
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-              style={{ background: "#4A6CF7" }}
-            >
-              {familyName}
-            </div>
-            <div className="min-w-0">
-              <div className="truncate text-[13px] font-semibold text-slate-800">{username}</div>
-              <div className="text-[11px] text-slate-400">{planLabel}</div>
+          <div className="flex flex-col gap-2 border-t border-slate-100 p-3">
+            <div className="flex items-center gap-2 rounded-lg px-1 py-1.5">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+                {username[0]?.toUpperCase() ?? "?"}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-slate-800">{username}</p>
+                <p className="text-xs text-slate-400">{planLabel}</p>
+              </div>
             </div>
           </div>
         </aside>
 
         {/* ── 중앙 캘린더 콘텐츠 ── */}
-        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto px-8 py-6">
+        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-slate-50 px-8 py-6">
 
           {/* 월 네비게이션 */}
           <div className="mb-5 flex items-center justify-between">

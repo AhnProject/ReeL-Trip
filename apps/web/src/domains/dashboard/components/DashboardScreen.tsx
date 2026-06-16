@@ -3,17 +3,24 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { SpaceSwitcher } from "@/domains/teamspace/components/SpaceSwitcher";
-import { SpaceSidebar } from "@/domains/teamspace/components/SpaceSidebar";
-import { TravelCalendar } from "@/domains/teamspace/components/TravelCalendar";
+import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { CreateSpaceModal } from "@/domains/teamspace/components/CreateSpaceModal";
+import { InviteMemberModal } from "@/domains/teamspace/components/InviteMemberModal";
 import { UrlParserModal } from "@/app/dashboard/url-parser-modal";
-import type { NavItem, TeamSpace } from "@/domains/teamspace/types";
-import { Toast, useToast } from "@/components/Toast";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
+import { listNotifications } from "@/domains/notification/api";
+import type { NotificationResponse } from "@/domains/notification/api";
 import { addPlace } from "@/domains/place/api";
-import { InviteMemberModal } from "@/domains/teamspace/components/InviteMemberModal";
+import type { TeamSpace } from "@/domains/teamspace/types";
+import { cn } from "@/lib/cn";
+
+/* ── 타입 ── */
+
+type DashboardNavKey =
+  | "dashboard" | "schedule" | "place" | "ai"
+  | "member" | "chat" | "notification" | "settings";
 
 interface ParsedResult {
   name: string | null;
@@ -30,7 +37,8 @@ interface ParsedResult {
   confidence: "high" | "medium" | "low";
 }
 
-// API 응답을 기존 TeamSpace 타입으로 변환
+/* ── 유틸 ── */
+
 function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
   return {
     id: String(res.id),
@@ -47,19 +55,400 @@ function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
   };
 }
 
+function calcDday(dateStr: string): number {
+  const target = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / 86400000);
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}분 전`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
+}
+
+/* ── SVG 아이콘 ── */
+
+const IconHome = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+const IconCalendar = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+const IconMapPin = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0z" /><circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const IconSparkles = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2z" />
+  </svg>
+);
+const IconUsers = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+const IconChat = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+const IconBell = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
+const IconSettings = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+const IconSearch = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+  </svg>
+);
+const IconChevronDown = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+const IconChevronRight = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const IconUserPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+    <line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
+  </svg>
+);
+const IconGearSmall = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" /><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+  </svg>
+);
+
+/* ── 네비 목록 ── */
+
+const NAV_ITEMS: { key: DashboardNavKey; label: string; icon: React.ReactNode }[] = [
+  { key: "dashboard",    label: "대시보드", icon: <IconHome /> },
+  { key: "schedule",     label: "일정",     icon: <IconCalendar /> },
+  { key: "place",        label: "장소",     icon: <IconMapPin /> },
+  { key: "ai",           label: "AI 추천",  icon: <IconSparkles /> },
+  { key: "member",       label: "멤버",     icon: <IconUsers /> },
+  { key: "chat",         label: "채팅",     icon: <IconChat /> },
+  { key: "notification", label: "알림",     icon: <IconBell /> },
+  { key: "settings",     label: "설정",     icon: <IconSettings /> },
+];
+
+/* ── 더미 데이터 (API 미구현) ── */
+
+const DUMMY_SCHEDULE = [
+  { date: "08.01", day: "토", items: ["✈️ 09:00 제주국제공항 도착", "🚗 렌터카 픽업", "🍽 점심 식사"], extra: 3 },
+  { date: "08.02", day: "일", items: ["☕ 10:00 우도 여행"], extra: 4 },
+  { date: "08.03", day: "월", items: ["🏔 10:00 성산일출봉", "🍽 저녁 식사"], extra: 3 },
+  { date: "08.04", day: "화", items: ["🏨 10:00 체크아웃", "✈️ 공항 이동"], extra: 2 },
+];
+
+const DUMMY_PLACES = [
+  { name: "우도 해변", region: "서귀포시 우도면", tags: ["#바다"] },
+  { name: "성산일출봉", region: "서귀포시 성산읍", tags: ["#자연"] },
+  { name: "카페 모모", region: "제주시 구좌읍", tags: ["#카페"] },
+];
+
+const DUMMY_TODOS = [
+  { label: "숙소 예약하기",     priority: "높음", priorityColor: "text-red-500 bg-red-50",    dday: 2 },
+  { label: "렌터카 확정하기",   priority: "중간", priorityColor: "text-amber-500 bg-amber-50", dday: 5 },
+  { label: "일정 투표 참여하기", priority: "낮음", priorityColor: "text-green-600 bg-green-50", dday: 7 },
+];
+
+/* ── 서브 컴포넌트 ── */
+
+function TravelHeroCard({ space }: { space: TeamSpace | undefined }) {
+  if (!space) return (
+    <div className="col-span-2 rounded-xl border border-slate-100 bg-white p-5 py-10 text-center text-sm text-slate-400 shadow-sm">
+      여행 스페이스가 없습니다. 새 여행을 만들어보세요.
+    </div>
+  );
+
+  const dday = space.events.length > 0 ? calcDday(space.events[0].startDate) : null;
+
+  return (
+    <div className="col-span-2 flex gap-5 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+      {/* 썸네일 */}
+      <div className="h-[150px] w-[200px] flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-slate-200 to-slate-300">
+        <div className="flex h-full w-full items-center justify-center text-6xl">{space.emoji}</div>
+      </div>
+
+      {/* 콘텐츠 */}
+      <div className="flex flex-1 flex-col">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-900">{space.name}</h2>
+          <button className="cursor-pointer border-none bg-transparent text-slate-300 hover:text-slate-500">
+            <IconGearSmall />
+          </button>
+        </div>
+        <p className="mt-0.5 text-sm text-slate-400">
+          {space.events.length > 0
+            ? `${space.events[0].startDate} ~ ${space.events[space.events.length - 1].endDate}`
+            : "2026.08.01 (토) ~ 08.04 (화) · 3박 4일"}
+        </p>
+
+        <div className="mt-3 flex items-end gap-8">
+          <div>
+            <p className="text-5xl font-extrabold text-brand-primary">
+              {dday !== null ? `D-${dday}` : "D-12"}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">여행까지 남은 시간</p>
+          </div>
+          <div>
+            <div className="mb-1.5 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900">65%</span>
+              <span className="text-xs text-slate-400">준비 진행률</span>
+            </div>
+            <div className="h-2 w-[140px] overflow-hidden rounded-full bg-slate-100">
+              <div className="h-2 w-[91px] rounded-full bg-brand-primary" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-8 border-t border-slate-100 pt-4">
+          {[
+            { icon: "📍", count: "12개", label: "저장된 장소" },
+            { icon: "📅", count: "4일",  label: "일정"        },
+            { icon: "👥", count: `${space.members.length}명`, label: "참여 멤버" },
+            { icon: "✅", count: "4개",  label: "예약 완료"   },
+          ].map((s) => (
+            <div key={s.label} className="flex items-center gap-2">
+              <span className="text-base">{s.icon}</span>
+              <div>
+                <p className="text-sm font-bold text-slate-900">{s.count}</p>
+                <p className="text-xs text-slate-400">{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleTimeline() {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-slate-900">이번 여행 일정</h3>
+        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 일정 보기</button>
+      </div>
+      <div className="mt-3 flex flex-col">
+        {DUMMY_SCHEDULE.map((row, i) => (
+          <div key={row.date} className={cn("flex gap-3 py-3", i < DUMMY_SCHEDULE.length - 1 && "border-b border-slate-50")}>
+            <div className="w-[44px] flex-shrink-0 text-center">
+              <p className="text-sm font-bold text-slate-800">{row.date}</p>
+              <p className="text-xs text-slate-400">{row.day}</p>
+            </div>
+            <div className="mt-1.5 flex flex-shrink-0 flex-col items-center">
+              <div className="h-2 w-2 rounded-full bg-brand-primary" />
+              {i < DUMMY_SCHEDULE.length - 1 && <div className="mt-1 w-px flex-1 bg-slate-100" />}
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap gap-1.5">
+                {row.items.map((item) => (
+                  <span key={item} className="rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-700">{item}</span>
+                ))}
+              </div>
+              <button className="mt-1.5 text-xs text-slate-400">외 {row.extra}개 일정 ▾</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AiRecommendSection() {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-slate-900">AI 추천 장소</h3>
+        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">더보기</button>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-3">
+        {DUMMY_PLACES.map((place) => (
+          <div key={place.name} className="overflow-hidden rounded-xl border border-slate-100">
+            <div className="relative flex h-[110px] items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+              <span className="text-3xl">🏖️</span>
+              <button className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-red-400 text-sm">
+                ♡
+              </button>
+            </div>
+            <div className="p-2.5">
+              <p className="text-sm font-semibold text-slate-900">{place.name}</p>
+              <p className="mt-0.5 text-xs text-slate-400">{place.region}</p>
+              <div className="mt-1.5 flex gap-1 flex-wrap">
+                {place.tags.map((tag) => (
+                  <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex justify-center gap-1.5">
+        <span className="h-2 w-4 rounded-full bg-brand-primary" />
+        {[1, 2, 3, 4].map((i) => <span key={i} className="h-2 w-2 rounded-full bg-slate-200" />)}
+      </div>
+    </div>
+  );
+}
+
+function MemberStatus({ space, onInvite }: { space: TeamSpace | undefined; onInvite: () => void }) {
+  return (
+    <div className="flex-1 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-slate-900">멤버 현황</h3>
+        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 멤버 보기</button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-4">
+        {(space?.members ?? []).map((m) => (
+          <div key={m.id} className="flex flex-col items-center gap-1">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+              {m.username[0]?.toUpperCase() ?? "?"}
+            </div>
+            <p className="text-xs text-slate-700">{m.username}</p>
+            {m.role === "owner" && <p className="text-[10px] text-slate-400">소유자</p>}
+          </div>
+        ))}
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={onInvite}
+            className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-slate-200 bg-transparent text-slate-300 hover:border-brand-primary hover:text-brand-primary"
+          >
+            <IconUserPlus />
+          </button>
+          <p className="text-xs text-slate-400">초대하기</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BookingStatus() {
+  const items = [
+    { emoji: "✈️", label: "항공권",   done: 5, total: 5, status: "완료",   color: "text-green-600"  },
+    { emoji: "🏨", label: "숙소",     done: 2, total: 5, status: "예약 중", color: "text-amber-500" },
+    { emoji: "🚗", label: "렌터카",   done: 1, total: 5, status: "예약 중", color: "text-amber-500" },
+    { emoji: "🎭", label: "액티비티", done: 0, total: 5, status: "예약 전", color: "text-red-400"   },
+  ] as const;
+
+  return (
+    <div className="flex-1 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-slate-900">예약 및 준비 현황</h3>
+        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 보기</button>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {items.map((item) => (
+          <div key={item.label} className="flex flex-col items-center gap-1.5 rounded-lg bg-slate-50 p-3">
+            <span className="text-xl">{item.emoji}</span>
+            <p className="text-xs text-slate-500">{item.label}</p>
+            <p className={cn("text-sm font-bold", item.color)}>{item.done}/{item.total}</p>
+            <p className={cn("text-xs", item.color)}>{item.status}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TodoPanel() {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-bold text-slate-900">다음에 해야 할 일</h3>
+        <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-xs font-semibold text-brand-primary">3</span>
+      </div>
+      <div className="mt-3 flex flex-col gap-4">
+        {DUMMY_TODOS.map((todo) => (
+          <div key={todo.label} className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
+                <span className="text-sm text-slate-700">{todo.label}</span>
+              </div>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", todo.priorityColor)}>
+                  우선순위 {todo.priority}
+                </span>
+                <span className="text-xs text-slate-400">마감까지 {todo.dday}일</span>
+              </div>
+            </div>
+            <span className="mt-0.5 text-slate-300"><IconChevronRight /></span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActivityPanel({ notifications }: { notifications: NotificationResponse[] }) {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-slate-900">최근 활동</h3>
+        <button className="cursor-pointer border-none bg-transparent text-xs text-brand-primary">전체 보기</button>
+      </div>
+      {notifications.length === 0 ? (
+        <p className="py-4 text-center text-sm text-slate-400">최근 활동이 없습니다</p>
+      ) : (
+        <div className="mt-3 flex flex-col gap-3">
+          {notifications.map((n) => (
+            <div key={n.id} className="flex items-start gap-2.5">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                {n.type === "ai" ? <IconSparkles /> : n.type === "place" ? <IconMapPin /> : n.type === "schedule" ? <IconCalendar /> : <IconUsers />}
+              </div>
+              <div className="flex-1">
+                <p className="text-xs leading-relaxed text-slate-700">{n.message}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{timeAgo(n.createdAt)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 메인 ── */
+
 function DashboardInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
 
-  const [username, setUsername]               = useState("");
   const [token, setToken]                     = useState("");
+  const [username, setUsername]               = useState("");
   const [spaces, setSpaces]                   = useState<TeamSpace[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
-  const [activeNav, setActiveNav]             = useState<NavItem>("calendar");
-  const [showUrlModal, setShowUrlModal]       = useState(false);
+  const [notifications, setNotifications]     = useState<NotificationResponse[]>([]);
+  const [activeNav, setActiveNav]             = useState<DashboardNavKey>("dashboard");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const { visible, showToast } = useToast();
+  const [showUrlModal, setShowUrlModal]       = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -73,26 +462,20 @@ function DashboardInner() {
         const converted = res.data.map(toTeamSpace);
         setSpaces(converted);
         const paramId = searchParams.get("space");
-        const found = converted.find((s) => s.id === paramId);
+        const found   = converted.find((s) => s.id === paramId);
         setSelectedSpaceId(found ? found.id : converted[0].id);
       }
+    }).catch((err) => console.error("[DashboardScreen]", err));
+
+    listNotifications(storedToken).then((res) => {
+      if (res.success && res.data) setNotifications(res.data);
     }).catch((err) => console.error("[DashboardScreen]", err));
   }, [router, searchParams]);
 
   if (!username) return <LoadingScreen />;
 
-  const selectedSpace: TeamSpace | undefined = spaces.find((sp) => sp.id === selectedSpaceId) ?? spaces[0];
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    router.replace("/");
-  };
-
-  const handleSpaceChange = (id: string) => {
-    setSelectedSpaceId(id);
-    setActiveNav("calendar");
-  };
+  const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? spaces[0];
+  const unreadCount   = notifications.filter((n) => !n.isRead).length;
 
   const handleAddPlace = async (parsed: ParsedResult) => {
     if (!selectedSpace || !token) return;
@@ -115,51 +498,204 @@ function DashboardInner() {
       menu: parsed.menu,
       confidence: parsed.confidence,
     }, token);
+    setShowUrlModal(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    router.replace("/");
   };
 
   return (
     <div className="flex h-screen overflow-hidden font-sans">
-      {selectedSpace && (
-        <>
-          <SpaceSwitcher
-            spaces={spaces}
-            selectedId={selectedSpaceId}
-            username={username}
-            onSelect={handleSpaceChange}
-            onLogout={handleLogout}
-            onHomeClick={() => router.push("/dashboard/main")}
-            onAddSpaceClick={() => setShowCreateModal(true)}
-          />
 
-          <SpaceSidebar
-            space={selectedSpace}
-            activeNav={activeNav}
-            onNavChange={setActiveNav}
-            onInviteClick={() => setShowInviteModal(true)}
-          />
+      {/* ══════════════════════════════════════════
+          사이드바 (w-[200px])
+          - 로고 없음, 여행 드롭다운이 최상단
+          - 네비 메뉴
+          - 하단: 새 여행 만들기 + 최근 여행 + 프로필
+      ══════════════════════════════════════════ */}
+      <aside className="flex h-full w-[200px] flex-shrink-0 flex-col border-r border-slate-100 bg-white">
 
-          <main className="flex min-w-0 flex-1 flex-col overflow-auto bg-slate-50">
-            {activeNav === "calendar"    && <TravelCalendar space={selectedSpace} />}
-            {activeNav === "places"      && <ComingSoon icon="📍" title="장소 목록"  desc="팀스페이스에 저장된 장소 목록을 관리합니다." />}
-            {activeNav === "search"      && <ComingSoon icon="🔍" title="장소 검색"  desc="벡터 검색으로 유사한 여행지를 찾습니다." />}
-            {activeNav === "url-parser"  && <UrlParserView onOpen={() => setShowUrlModal(true)} />}
-          </main>
-        </>
-      )}
-
-      {spaces.length === 0 && username && (
-        <div className="flex flex-1 items-center justify-center text-slate-400">
-          팀스페이스가 없습니다. 새 스페이스를 만들어보세요.
+        {/* 여행 드롭다운 */}
+        <div className="border-b border-slate-100 p-3">
+          <button className="flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200 text-sm">
+              {selectedSpace?.emoji ?? "✈️"}
+            </div>
+            <span className="flex-1 truncate text-left text-sm font-semibold text-slate-800">
+              {selectedSpace?.name ?? "여행 없음"}
+            </span>
+            <span className="text-slate-400"><IconChevronDown /></span>
+          </button>
         </div>
-      )}
 
-      {showUrlModal && selectedSpace && (
-        <UrlParserModal
-          onClose={() => setShowUrlModal(false)}
-          onAdd={handleAddPlace}
-        />
-      )}
+        {/* 네비 */}
+        <nav className="flex flex-1 flex-col gap-0.5 px-3 py-3">
+          {NAV_ITEMS.map((item) => {
+            const active = activeNav === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => {
+                  if (item.key === "schedule")     { router.push("/dashboard/calendar");     return; }
+                  if (item.key === "place")         { router.push("/dashboard/travel");       return; }
+                  if (item.key === "ai")            { router.push("/dashboard/ai");           return; }
+                  if (item.key === "member")        { router.push("/dashboard/member");       return; }
+                  if (item.key === "chat")          { router.push("/dashboard/chat");         return; }
+                  if (item.key === "notification")  { router.push("/dashboard/notification"); return; }
+                  if (item.key === "settings")      { router.push("/dashboard/settings");     return; }
+                  setActiveNav(item.key);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                  active
+                    ? "bg-brand-primary/10 font-semibold text-brand-primary"
+                    : "font-normal text-slate-500 hover:bg-slate-50",
+                )}
+              >
+                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="flex-1 text-left">{item.label}</span>
+                {item.key === "chat" && <span className="h-2 w-2 rounded-full bg-blue-500" />}
+                {item.key === "notification" && unreadCount > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
+        {/* 하단 */}
+        <div className="flex flex-col gap-2 border-t border-slate-100 p-3">
+          {/* 새 여행 만들기 */}
+          <div className="mb-1 px-1 text-xs text-slate-400">새로운 여행을 계획해보세요</div>
+          <Button variant="primary" fullWidth onClick={() => setShowCreateModal(true)} className="text-sm">
+            + 새 여행 만들기
+          </Button>
+
+          {/* 최근 본 여행 */}
+          {spaces.filter((s) => s.id !== selectedSpaceId).length > 0 && (
+            <div className="mt-1 flex flex-col gap-0.5">
+              <p className="px-1 text-[11px] text-slate-400">최근 본 여행</p>
+              {spaces.filter((s) => s.id !== selectedSpaceId).slice(0, 2).map((sp) => (
+                <button
+                  key={sp.id}
+                  onClick={() => setSelectedSpaceId(sp.id)}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
+                >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-200 text-sm">
+                    {sp.emoji}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-slate-700">{sp.name}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {sp.events.length > 0 ? `D-${calcDday(sp.events[0].startDate)}` : "일정 미정"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 프로필 */}
+          <button
+            onClick={handleLogout}
+            className="mt-1 flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
+            title="클릭하여 로그아웃"
+          >
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-primary text-sm font-bold text-white">
+              {username[0]?.toUpperCase() ?? "?"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-slate-800">{username}</p>
+              <p className="truncate text-[10px] text-slate-400">{username.toLowerCase()}@reeltrip.com</p>
+            </div>
+            <IconChevronRight />
+          </button>
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════════
+          우측 전체 영역
+      ══════════════════════════════════════════ */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
+
+        {/* ── GNB ── */}
+        <header className="flex h-[60px] flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6">
+          {/* 좌측: 로고 + 인사말 */}
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.push("/dashboard/home")} className="cursor-pointer border-none bg-transparent p-0">
+              <Logo />
+            </button>
+            <div className="h-5 w-px bg-slate-200" />
+            <div>
+              <p className="text-base font-bold text-slate-900">안녕하세요, {username}님 👋</p>
+              <p className="text-xs text-slate-400">함께하는 {selectedSpace?.name ?? "여행"}, 즐겁게 준비해봐요!</p>
+            </div>
+          </div>
+
+          {/* 우측: 검색 + 알림 + 초대 */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-[220px] items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4">
+              <IconSearch />
+              <input
+                type="text"
+                placeholder="장소, 일정 검색"
+                className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
+              />
+            </div>
+            <button className="relative cursor-pointer border-none bg-transparent p-1.5 text-slate-500 hover:text-slate-700">
+              <IconBell />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            <Button
+              variant="primary"
+              fullWidth={false}
+              className="px-4 text-sm"
+              onClick={() => setShowInviteModal(true)}
+            >
+              👤 초대하기
+            </Button>
+          </div>
+        </header>
+
+        {/* ── 콘텐츠 3단: 메인(flex-1) + 우측패널(280px) ── */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+
+          {/* 메인 스크롤 영역 */}
+          <main className="flex flex-1 flex-col overflow-y-auto p-5">
+            {/* 히어로 카드 */}
+            <TravelHeroCard space={selectedSpace} />
+
+            {/* 일정 + AI추천 2열 */}
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <ScheduleTimeline />
+              <AiRecommendSection />
+            </div>
+
+            {/* 멤버 + 예약현황 2열 */}
+            <div className="mt-4 flex gap-4">
+              <MemberStatus space={selectedSpace} onInvite={() => setShowInviteModal(true)} />
+              <BookingStatus />
+            </div>
+          </main>
+
+          {/* 우측 패널 (280px) */}
+          <aside className="flex w-[280px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-l border-slate-100 bg-white p-4">
+            <TodoPanel />
+            <ActivityPanel notifications={notifications.slice(0, 4)} />
+          </aside>
+        </div>
+      </div>
+
+      {/* ── 모달 ── */}
       {showCreateModal && (
         <CreateSpaceModal
           token={token}
@@ -172,24 +708,24 @@ function DashboardInner() {
           }}
         />
       )}
-
       {showInviteModal && selectedSpace && (
         <InviteMemberModal
           spaceId={Number(selectedSpace.id)}
           token={token}
           onClose={() => setShowInviteModal(false)}
           onInvited={() => {
-            listTeamSpaces(token).then((res) => {
-              if (res.success && res.data) {
-                const converted = res.data.map(toTeamSpace);
-                setSpaces(converted);
-              }
-            }).catch((err) => console.error("[DashboardScreen]", err));
+            listTeamSpaces(token)
+              .then((res) => { if (res.success && res.data) setSpaces(res.data.map(toTeamSpace)); })
+              .catch((err) => console.error("[DashboardScreen]", err));
           }}
         />
       )}
-
-      <Toast visible={visible} />
+      {showUrlModal && selectedSpace && (
+        <UrlParserModal
+          onClose={() => setShowUrlModal(false)}
+          onAdd={handleAddPlace}
+        />
+      )}
     </div>
   );
 }
@@ -199,41 +735,5 @@ export function DashboardScreen() {
     <Suspense>
       <DashboardInner />
     </Suspense>
-  );
-}
-
-/* ── 서브 뷰 ── */
-
-function ComingSoon({ icon, title, desc }: { icon: string; title: string; desc: string }) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 p-10 text-center text-slate-500">
-      <span className="mb-2 block text-[52px]">{icon}</span>
-      <h2 className="m-0 text-xl font-bold text-slate-900">{title}</h2>
-      <p className="m-0 mb-4 text-sm leading-relaxed">{desc}</p>
-      <span className="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-500">
-        준비 중
-      </span>
-    </div>
-  );
-}
-
-function UrlParserView({ onOpen }: { onOpen: () => void }) {
-  return (
-    <div className="flex flex-1 items-center justify-center p-10">
-      <div className="flex w-full max-w-[420px] flex-col items-center rounded-3xl border border-slate-200 bg-white px-10 py-12 text-center shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-        <span className="mb-3 block text-[48px]">🔗</span>
-        <h2 className="mb-2 text-xl font-bold text-slate-900">URL로 추가</h2>
-        <p className="mb-5 text-sm leading-relaxed text-slate-500">
-          YouTube Shorts · Instagram Reels URL을 붙여넣으면<br />
-          여행지 정보를 자동으로 추출합니다.
-        </p>
-        <button
-          onClick={onOpen}
-          className="cursor-pointer rounded-xl border-none bg-brand-primary px-7 py-3 text-sm font-bold text-white"
-        >
-          URL 붙여넣기
-        </button>
-      </div>
-    </div>
   );
 }
