@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/cn";
 import type { TeamSpace } from "../types";
 
 interface Props {

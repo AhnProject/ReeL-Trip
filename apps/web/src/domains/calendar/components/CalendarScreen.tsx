@@ -207,9 +207,6 @@ export function CalendarScreen() {
   /* ── 인증 대기 ── */
   if (!token) return <LoadingScreen />;
 
-  /* ── username에서 성씨 추출 ── */
-  const familyName = username.length > 0 ? username[0] : "?";
-
   return (
     <div className="flex h-screen flex-col overflow-hidden font-sans">
       {/* ══════════════ GNB ══════════════ */}

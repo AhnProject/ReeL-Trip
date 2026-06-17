@@ -16,20 +16,6 @@ export function clearSession() {
   localStorage.removeItem("username");
 }
 
-// ── 아이디 저장 ───────────────────────────────────────────────────────────────
-
-export function getSavedUsername(): string {
-  return localStorage.getItem("saved_username") ?? "";
-}
-
-export function setSavedUsername(username: string, save: boolean) {
-  if (save) {
-    localStorage.setItem("saved_username", username);
-  } else {
-    localStorage.removeItem("saved_username");
-  }
-}
-
 // ── 설정 플래그 ───────────────────────────────────────────────────────────────
 
 export function getAutoLoginEnabled(): boolean {

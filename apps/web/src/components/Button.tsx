@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "google" | "naver" | "kakao";
+type Variant = "primary" | "orbit" | "google" | "naver" | "kakao";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
@@ -11,6 +11,8 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 const VARIANT_CLASS: Record<Variant, string> = {
   primary:
     "bg-brand-primary text-white hover:bg-brand-primaryHover disabled:opacity-60",
+  orbit:
+    "bg-gradient-to-r from-orbit-from to-orbit-to text-white hover:brightness-95 disabled:opacity-60",
   google:
     "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50",
   naver: "bg-oauth-naver text-white hover:brightness-95",
