@@ -1,35 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { apiRequest } from "../../lib/api-client";
-
-interface ParsedLocation {
-  address: string | null;
-  region: string | null;
-  country: string | null;
-}
-
-interface ParsedPrice {
-  description: string | null;
-  min: number | null;
-  max: number | null;
-  currency: string | null;
-}
-
-interface ParsedResult {
-  name: string | null;
-  category: string | null;
-  location: ParsedLocation;
-  price: ParsedPrice;
-  hours: string | null;
-  menu: string[];
-  tags: string[];
-  description: string | null;
-  sourceUrl: string;
-  sourcePlatform: "youtube_shorts" | "instagram_reels";
-  thumbnailUrl: string | null;
-  confidence: "high" | "medium" | "low";
-}
+import { apiRequest } from "@/lib/api-client";
+import { CATEGORY_LABEL } from "@/constants/categories";
+import type { ParsedResult } from "@/domains/place/types";
 
 type ParseStatus = "idle" | "loading" | "success" | "error";
 
@@ -44,14 +18,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 const PLATFORM_LABEL: Record<string, string> = {
   youtube_shorts: "YouTube Shorts",
   instagram_reels: "Instagram Reels",
-};
-
-const CATEGORY_LABEL: Record<string, string> = {
-  restaurant: "식당",
-  cafe: "카페",
-  attraction: "관광지",
-  accommodation: "숙소",
-  other: "기타",
 };
 
 const CONFIDENCE_COLOR: Record<string, string> = {

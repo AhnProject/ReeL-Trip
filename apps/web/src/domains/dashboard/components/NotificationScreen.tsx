@@ -9,15 +9,7 @@ import { listNotifications, markAsRead } from "@/domains/notification/api";
 import type { NotificationResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
-}
+import { timeAgo } from "@/lib/date";
 
 const TYPE_META: Record<string, { icon: string; label: string; bg: string; color: string }> = {
   place:    { icon: "📍", label: "장소",   bg: "bg-blue-50",   color: "text-blue-500"   },
