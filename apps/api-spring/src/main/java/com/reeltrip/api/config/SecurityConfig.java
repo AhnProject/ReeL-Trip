@@ -82,6 +82,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/events/**").authenticated()
                 .requestMatchers("/api/places/**").authenticated()
                 .requestMatchers("/api/notifications/**").authenticated()
+                .requestMatchers("/api/messages/**").authenticated()
+                .requestMatchers("/api/todos/**").authenticated()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex

@@ -10,12 +10,16 @@ import { InviteMemberModal } from "@/domains/teamspace/components/InviteMemberMo
 import { UrlParserModal } from "@/domains/place/components/UrlParserModal";
 import type { ParsedResult } from "@/domains/place/types";
 import { listTeamSpaces } from "@/domains/teamspace/api";
-import { toTeamSpace } from "@/domains/teamspace/mappers";
+import { listEvents } from "@/domains/event/api";
+import { toTeamSpace, toTripEvent } from "@/domains/teamspace/mappers";
 import { listNotifications } from "@/domains/notification/api";
 import type { NotificationResponse } from "@/domains/notification/api";
-import { addPlace } from "@/domains/place/api";
-import type { TeamSpace } from "@/domains/teamspace/types";
-import { calcDday, timeAgo } from "@/lib/date";
+import { addPlace, listPlaces } from "@/domains/place/api";
+import type { PlaceResponse } from "@/domains/place/api";
+import { listTodos, createTodo, deleteTodo } from "@/domains/todo/api";
+import type { TodoResponse } from "@/domains/todo/api";
+import type { TeamSpace, TripEvent } from "@/domains/teamspace/types";
+import { calcDday, timeAgo, formatMonthDay, getKoreanDay } from "@/lib/date";
 import { cn } from "@/lib/cn";
 import {
   IconHome, IconCalendar, IconMapPin, IconSparkles, IconUsers, IconChat,
@@ -42,26 +46,7 @@ const NAV_ITEMS: { key: DashboardNavKey; label: string; icon: React.ReactNode }[
   { key: "settings",     label: "설정",     icon: <IconSettings /> },
 ];
 
-/* ── 더미 데이터 (API 미구현) ── */
 
-const DUMMY_SCHEDULE = [
-  { date: "08.01", day: "토", items: ["✈️ 09:00 제주국제공항 도착", "🚗 렌터카 픽업", "🍽 점심 식사"], extra: 3 },
-  { date: "08.02", day: "일", items: ["☕ 10:00 우도 여행"], extra: 4 },
-  { date: "08.03", day: "월", items: ["🏔 10:00 성산일출봉", "🍽 저녁 식사"], extra: 3 },
-  { date: "08.04", day: "화", items: ["🏨 10:00 체크아웃", "✈️ 공항 이동"], extra: 2 },
-];
-
-const DUMMY_PLACES = [
-  { name: "우도 해변", region: "서귀포시 우도면", tags: ["#바다"] },
-  { name: "성산일출봉", region: "서귀포시 성산읍", tags: ["#자연"] },
-  { name: "카페 모모", region: "제주시 구좌읍", tags: ["#카페"] },
-];
-
-const DUMMY_TODOS = [
-  { label: "숙소 예약하기",     priority: "높음", priorityColor: "text-red-500 bg-red-50",    dday: 2 },
-  { label: "렌터카 확정하기",   priority: "중간", priorityColor: "text-amber-500 bg-amber-50", dday: 5 },
-  { label: "일정 투표 참여하기", priority: "낮음", priorityColor: "text-green-600 bg-green-50", dday: 7 },
-];
 
 /* ── 서브 컴포넌트 ── */
 
@@ -134,7 +119,20 @@ function TravelHeroCard({ space }: { space: TeamSpace | undefined }) {
   );
 }
 
-function ScheduleTimeline() {
+function ScheduleTimeline({ events }: { events: TripEvent[] }) {
+  // startDate ~ endDate 범위를 하루씩 펼쳐 날짜별 이벤트 Map 생성
+  const dateMap = new Map<string, TripEvent[]>();
+  for (const event of events) {
+    const cur = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    while (cur <= end) {
+      const key = cur.toISOString().slice(0, 10);
+      dateMap.set(key, [...(dateMap.get(key) ?? []), event]);
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+  const dates = Array.from(dateMap.keys()).sort().slice(0, 4);
+
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
@@ -142,62 +140,72 @@ function ScheduleTimeline() {
         <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 일정 보기</button>
       </div>
       <div className="mt-3 flex flex-col">
-        {DUMMY_SCHEDULE.map((row, i) => (
-          <div key={row.date} className={cn("flex gap-3 py-3", i < DUMMY_SCHEDULE.length - 1 && "border-b border-slate-50")}>
-            <div className="w-[44px] flex-shrink-0 text-center">
-              <p className="text-sm font-bold text-slate-800">{row.date}</p>
-              <p className="text-xs text-slate-400">{row.day}</p>
-            </div>
-            <div className="mt-1.5 flex flex-shrink-0 flex-col items-center">
-              <div className="h-2 w-2 rounded-full bg-brand-primary" />
-              {i < DUMMY_SCHEDULE.length - 1 && <div className="mt-1 w-px flex-1 bg-slate-100" />}
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-wrap gap-1.5">
-                {row.items.map((item) => (
-                  <span key={item} className="rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-700">{item}</span>
-                ))}
+        {dates.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-400">등록된 일정이 없습니다</p>
+        ) : (
+          dates.map((date, i) => (
+            <div key={date} className={cn("flex gap-3 py-3", i < dates.length - 1 && "border-b border-slate-50")}>
+              <div className="w-[44px] flex-shrink-0 text-center">
+                <p className="text-sm font-bold text-slate-800">{formatMonthDay(date)}</p>
+                <p className="text-xs text-slate-400">{getKoreanDay(date)}</p>
               </div>
-              <button className="mt-1.5 text-xs text-slate-400">외 {row.extra}개 일정 ▾</button>
+              <div className="mt-1.5 flex flex-shrink-0 flex-col items-center">
+                <div className="h-2 w-2 rounded-full bg-brand-primary" />
+                {i < dates.length - 1 && <div className="mt-1 w-px flex-1 bg-slate-100" />}
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-wrap gap-1.5">
+                  {(dateMap.get(date) ?? []).map((ev) => (
+                    <span
+                      key={ev.id}
+                      className="flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-700"
+                    >
+                      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: ev.color }} />
+                      {ev.title}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 }
 
-function AiRecommendSection() {
+function AiRecommendSection({ places }: { places: PlaceResponse[] }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-900">AI 추천 장소</h3>
+        <h3 className="font-bold text-slate-900">저장된 장소</h3>
         <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">더보기</button>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3">
-        {DUMMY_PLACES.map((place) => (
-          <div key={place.name} className="overflow-hidden rounded-xl border border-slate-100">
-            <div className="relative flex h-[110px] items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
-              <span className="text-3xl">🏖️</span>
-              <button className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-slate-400 hover:text-red-400 text-sm">
-                ♡
-              </button>
-            </div>
-            <div className="p-2.5">
-              <p className="text-sm font-semibold text-slate-900">{place.name}</p>
-              <p className="mt-0.5 text-xs text-slate-400">{place.region}</p>
-              <div className="mt-1.5 flex gap-1 flex-wrap">
-                {place.tags.map((tag) => (
-                  <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">{tag}</span>
-                ))}
+        {places.length === 0 ? (
+          <p className="col-span-3 py-6 text-center text-sm text-slate-400">저장된 장소가 없습니다</p>
+        ) : (
+          places.map((place) => (
+            <div key={place.id} className="overflow-hidden rounded-xl border border-slate-100">
+              <div className="relative flex h-[110px] items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+                {place.thumbnailUrl ? (
+                  <img src={place.thumbnailUrl} alt={place.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-3xl">📍</span>
+                )}
+              </div>
+              <div className="p-2.5">
+                <p className="text-sm font-semibold text-slate-900">{place.name}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{place.region ?? place.country ?? "-"}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {place.tags.map((tag) => (
+                    <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">#{tag}</span>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex justify-center gap-1.5">
-        <span className="h-2 w-4 rounded-full bg-brand-primary" />
-        {[1, 2, 3, 4].map((i) => <span key={i} className="h-2 w-2 rounded-full bg-slate-200" />)}
+          ))
+        )}
       </div>
     </div>
   );
@@ -262,31 +270,115 @@ function BookingStatus() {
   );
 }
 
-function TodoPanel() {
+const PRIORITY_MAP = {
+  high:   { label: "높음", color: "text-red-500 bg-red-50" },
+  medium: { label: "중간", color: "text-amber-500 bg-amber-50" },
+  low:    { label: "낮음", color: "text-green-600 bg-green-50" },
+} as const;
+
+function TodoPanel({
+  todos,
+  spaceId,
+  token,
+  onAdd,
+  onDelete,
+}: {
+  todos: TodoResponse[];
+  spaceId: number;
+  token: string;
+  onAdd: (todo: TodoResponse) => void;
+  onDelete: (id: number) => void;
+}) {
+  const [inputValue, setInputValue] = useState("");
+  const [adding, setAdding]         = useState(false);
+
+  const handleAdd = async () => {
+    const title = inputValue.trim();
+    if (!title) return;
+    setAdding(true);
+    try {
+      const res = await createTodo({ spaceId, title, priority: "medium" }, token);
+      if (res.success && res.data) {
+        onAdd(res.data);
+        setInputValue("");
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    await deleteTodo(id, token);
+    onDelete(id);
+  };
+
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <h3 className="text-sm font-bold text-slate-900">다음에 해야 할 일</h3>
-        <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-xs font-semibold text-brand-primary">3</span>
+        {todos.length > 0 && (
+          <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-xs font-semibold text-brand-primary">
+            {todos.length}
+          </span>
+        )}
       </div>
-      <div className="mt-3 flex flex-col gap-4">
-        {DUMMY_TODOS.map((todo) => (
-          <div key={todo.label} className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
-                <span className="text-sm text-slate-700">{todo.label}</span>
+
+      {/* 입력창 */}
+      <div className="mt-3 flex gap-2">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+          placeholder="할 일 추가..."
+          className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-brand-primary"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={adding || !inputValue.trim()}
+          className="flex-shrink-0 cursor-pointer rounded-lg bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+        >
+          추가
+        </button>
+      </div>
+
+      {/* 목록 */}
+      <div className="mt-3 flex flex-col gap-3">
+        {todos.length === 0 ? (
+          <p className="py-3 text-center text-xs text-slate-400">할 일이 없습니다</p>
+        ) : (
+          todos.map((todo) => {
+            const p = PRIORITY_MAP[todo.priority] ?? PRIORITY_MAP.medium;
+            const dday = todo.dueDate ? calcDday(todo.dueDate) : null;
+            return (
+              <div key={todo.id} className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                    </svg>
+                    <span className="text-sm text-slate-700">{todo.title}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", p.color)}>
+                      우선순위 {p.label}
+                    </span>
+                    {dday !== null && (
+                      <span className="text-xs text-slate-400">마감까지 {dday}일</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(todo.id)}
+                  className="mt-0.5 cursor-pointer border-none bg-transparent text-slate-300 hover:text-red-400"
+                  title="삭제"
+                >
+                  ×
+                </button>
               </div>
-              <div className="mt-1.5 flex items-center gap-2">
-                <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", todo.priorityColor)}>
-                  우선순위 {todo.priority}
-                </span>
-                <span className="text-xs text-slate-400">마감까지 {todo.dday}일</span>
-              </div>
-            </div>
-            <span className="mt-0.5 text-slate-300"><IconChevronRight /></span>
-          </div>
-        ))}
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -331,6 +423,8 @@ function DashboardInner() {
   const [spaces, setSpaces]                   = useState<TeamSpace[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
   const [notifications, setNotifications]     = useState<NotificationResponse[]>([]);
+  const [places, setPlaces]                   = useState<PlaceResponse[]>([]);
+  const [todos, setTodos]                     = useState<TodoResponse[]>([]);
   const [activeNav, setActiveNav]             = useState<DashboardNavKey>("dashboard");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -358,6 +452,26 @@ function DashboardInner() {
     }).catch((err) => console.error("[DashboardScreen]", err));
   }, [router, searchParams]);
 
+  useEffect(() => {
+    if (!token || !selectedSpaceId) return;
+    listEvents(Number(selectedSpaceId), null, token).then((res) => {
+      if (res.success && res.data) {
+        const events = res.data.map(toTripEvent);
+        setSpaces((prev) =>
+          prev.map((s) => s.id === selectedSpaceId ? { ...s, events } : s)
+        );
+      }
+    }).catch((err) => console.error("[DashboardScreen] events", err));
+
+    listPlaces(Number(selectedSpaceId), token).then((res) => {
+      if (res.success && res.data) setPlaces(res.data);
+    }).catch((err) => console.error("[DashboardScreen] places", err));
+
+    listTodos(Number(selectedSpaceId), token).then((res) => {
+      if (res.success && res.data) setTodos(res.data);
+    }).catch((err) => console.error("[DashboardScreen] todos", err));
+  }, [token, selectedSpaceId]);
+
   if (!username) return <LoadingScreen />;
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? spaces[0];
@@ -365,7 +479,7 @@ function DashboardInner() {
 
   const handleAddPlace = async (parsed: ParsedResult) => {
     if (!selectedSpace || !token) return;
-    await addPlace({
+    const res = await addPlace({
       spaceId: Number(selectedSpace.id),
       name: parsed.name ?? "이름 없음",
       category: parsed.category ?? undefined,
@@ -384,6 +498,9 @@ function DashboardInner() {
       menu: parsed.menu,
       confidence: parsed.confidence,
     }, token);
+    if (res.success && res.data) {
+      setPlaces((prev) => [res.data!, ...prev]);
+    }
     setShowUrlModal(false);
   };
 
@@ -562,8 +679,8 @@ function DashboardInner() {
 
             {/* 일정 + AI추천 2열 */}
             <div className="mt-4 grid grid-cols-2 gap-4">
-              <ScheduleTimeline />
-              <AiRecommendSection />
+              <ScheduleTimeline events={selectedSpace?.events ?? []} />
+              <AiRecommendSection places={places.slice(0, 3)} />
             </div>
 
             {/* 멤버 + 예약현황 2열 */}
@@ -575,7 +692,13 @@ function DashboardInner() {
 
           {/* 우측 패널 (280px) */}
           <aside className="flex w-[280px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-l border-slate-100 bg-white p-4">
-            <TodoPanel />
+            <TodoPanel
+              todos={todos}
+              spaceId={Number(selectedSpaceId)}
+              token={token}
+              onAdd={(todo) => setTodos((prev) => [...prev, todo])}
+              onDelete={(id) => setTodos((prev) => prev.filter((t) => t.id !== id))}
+            />
             <ActivityPanel notifications={notifications.slice(0, 4)} />
           </aside>
         </div>

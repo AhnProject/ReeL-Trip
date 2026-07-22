@@ -55,6 +55,13 @@ public enum ErrorCode {
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification not found"),
 
+    // Chat
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "Message not found"),
+
+    // Todo
+    TODO_NOT_FOUND(HttpStatus.NOT_FOUND, "Todo not found"),
+    TODO_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this todo"),
+
     // Validation
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "Validation failed"),
 
