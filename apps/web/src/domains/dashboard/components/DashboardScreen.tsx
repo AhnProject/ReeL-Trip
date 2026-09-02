@@ -50,7 +50,7 @@ const NAV_ITEMS: { key: DashboardNavKey; label: string; icon: React.ReactNode }[
 
 /* ── 서브 컴포넌트 ── */
 
-function TravelHeroCard({ space }: { space: TeamSpace | undefined }) {
+function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; placesCount: number }) {
   if (!space) return (
     <div className="col-span-2 rounded-xl border border-slate-100 bg-white p-5 py-10 text-center text-sm text-slate-400 shadow-sm">
       여행 스페이스가 없습니다. 새 여행을 만들어보세요.
@@ -58,6 +58,14 @@ function TravelHeroCard({ space }: { space: TeamSpace | undefined }) {
   );
 
   const dday = space.events.length > 0 ? calcDday(space.events[0].startDate) : null;
+
+  const tripDays = space.events.length > 0
+    ? Math.round(
+        (new Date(space.events[space.events.length - 1].endDate).getTime() -
+          new Date(space.events[0].startDate).getTime()) /
+          (1000 * 60 * 60 * 24) + 1
+      )
+    : 0;
 
   return (
     <div className="col-span-2 flex gap-5 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -100,10 +108,9 @@ function TravelHeroCard({ space }: { space: TeamSpace | undefined }) {
 
         <div className="mt-4 flex gap-8 border-t border-slate-100 pt-4">
           {[
-            { icon: "📍", count: "12개", label: "저장된 장소" },
-            { icon: "📅", count: "4일",  label: "일정"        },
+            { icon: "📍", count: `${placesCount}개`, label: "저장된 장소" },
+            { icon: "📅", count: tripDays > 0 ? `${tripDays}일` : "-", label: "일정" },
             { icon: "👥", count: `${space.members.length}명`, label: "참여 멤버" },
-            { icon: "✅", count: "4개",  label: "예약 완료"   },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-2">
               <span className="text-base">{s.icon}</span>
@@ -242,33 +249,6 @@ function MemberStatus({ space, onInvite }: { space: TeamSpace | undefined; onInv
   );
 }
 
-function BookingStatus() {
-  const items = [
-    { emoji: "✈️", label: "항공권",   done: 5, total: 5, status: "완료",   color: "text-green-600"  },
-    { emoji: "🏨", label: "숙소",     done: 2, total: 5, status: "예약 중", color: "text-amber-500" },
-    { emoji: "🚗", label: "렌터카",   done: 1, total: 5, status: "예약 중", color: "text-amber-500" },
-    { emoji: "🎭", label: "액티비티", done: 0, total: 5, status: "예약 전", color: "text-red-400"   },
-  ] as const;
-
-  return (
-    <div className="flex-1 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-900">예약 및 준비 현황</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 보기</button>
-      </div>
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        {items.map((item) => (
-          <div key={item.label} className="flex flex-col items-center gap-1.5 rounded-lg bg-slate-50 p-3">
-            <span className="text-xl">{item.emoji}</span>
-            <p className="text-xs text-slate-500">{item.label}</p>
-            <p className={cn("text-sm font-bold", item.color)}>{item.done}/{item.total}</p>
-            <p className={cn("text-xs", item.color)}>{item.status}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 const PRIORITY_MAP = {
   high:   { label: "높음", color: "text-red-500 bg-red-50" },
@@ -675,7 +655,7 @@ function DashboardInner() {
           {/* 메인 스크롤 영역 */}
           <main className="flex flex-1 flex-col overflow-y-auto p-5">
             {/* 히어로 카드 */}
-            <TravelHeroCard space={selectedSpace} />
+            <TravelHeroCard space={selectedSpace} placesCount={places.length} />
 
             {/* 일정 + AI추천 2열 */}
             <div className="mt-4 grid grid-cols-2 gap-4">
@@ -683,10 +663,9 @@ function DashboardInner() {
               <AiRecommendSection places={places.slice(0, 3)} />
             </div>
 
-            {/* 멤버 + 예약현황 2열 */}
-            <div className="mt-4 flex gap-4">
+            {/* 멤버 현황 */}
+            <div className="mt-4">
               <MemberStatus space={selectedSpace} onInvite={() => setShowInviteModal(true)} />
-              <BookingStatus />
             </div>
           </main>
 
