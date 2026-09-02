@@ -9,7 +9,8 @@ import { listPlaces, updatePlace, addPlace } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { MemberResponse } from "@/domains/teamspace/api";
-import { UrlParserModal } from "@/app/dashboard/url-parser-modal";
+import { UrlParserModal } from "@/domains/place/components/UrlParserModal";
+import type { ParsedResult } from "@/domains/place/types";
 import { CreateEventModal } from "@/domains/event/components/CreateEventModal";
 import { Logo } from "@/components/Logo";
 
@@ -19,21 +20,6 @@ const TravelMapView = dynamic(
   { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-slate-100" /> },
 );
 
-/* ── ParsedResult 타입 ── */
-interface ParsedResult {
-  name: string | null;
-  category: string | null;
-  location: { address: string | null; region: string | null; country: string | null };
-  price: { description: string | null; min: number | null; max: number | null; currency: string | null };
-  hours: string | null;
-  menu: string[];
-  tags: string[];
-  description: string | null;
-  sourceUrl: string;
-  sourcePlatform: "youtube_shorts" | "instagram_reels";
-  thumbnailUrl: string | null;
-  confidence: "high" | "medium" | "low";
-}
 
 /* ── 상수 ── */
 

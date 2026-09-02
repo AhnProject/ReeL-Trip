@@ -16,7 +16,6 @@ const AVATAR_COLORS = [
 export function MemberScreen() {
   const router = useRouter();
   const [username, setUsername]     = useState("");
-  const [token, setToken]           = useState("");
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
   const [members, setMembers]       = useState<MemberResponse[]>([]);
@@ -26,7 +25,6 @@ export function MemberScreen() {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
     if (!storedToken) { router.replace("/"); return; }
-    setToken(storedToken);
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
@@ -41,7 +39,6 @@ export function MemberScreen() {
   if (!username) return <LoadingScreen />;
 
   const owner  = members.find((m) => m.role === "owner");
-  const others = members.filter((m) => m.role !== "owner");
 
   return (
     <DashboardLayout activeNav="member" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji}>

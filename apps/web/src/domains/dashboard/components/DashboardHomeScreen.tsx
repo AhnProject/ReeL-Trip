@@ -11,26 +11,10 @@ import { CreateSpaceModal } from "@/domains/teamspace/components/CreateSpaceModa
 import type { TeamSpace } from "@/domains/teamspace/types";
 import { Toast, useToast } from "@/components/Toast";
 import { listTeamSpaces } from "@/domains/teamspace/api";
-import type { TeamSpaceResponse } from "@/domains/teamspace/api";
+import { toTeamSpace } from "@/domains/teamspace/mappers";
 import { listEvents, updateEvent } from "@/domains/event/api";
 import type { EventResponse } from "@/domains/event/api";
 import { Logo } from "@/components/Logo";
-
-function toTeamSpace(res: TeamSpaceResponse): TeamSpace {
-  return {
-    id: String(res.id),
-    name: res.name,
-    emoji: res.emoji ?? "✈️",
-    bgColor: res.bgColor ?? "#4A6CF7",
-    members: res.members.map((m) => ({
-      id: String(m.userId),
-      username: m.username,
-      avatarColor: "#4A6CF7",
-      role: m.role,
-    })),
-    events: [],
-  };
-}
 
 export function DashboardHomeScreen() {
   const router = useRouter();
@@ -81,7 +65,7 @@ export function DashboardHomeScreen() {
   };
 
   const handleEnterSpace = (_space: TeamSpace) => {
-    router.push("/dashboard/main");
+    router.push("/dashboard");
   };
 
   /* ── 오늘 일정 확정/미정 토글 ── */
@@ -161,7 +145,7 @@ export function DashboardHomeScreen() {
               title={featuredSpace.name}
               sub={`${featuredSpace.members.length}명 참여`}
               memberColors={featuredSpace.members.slice(0, 4).map((m) => m.avatarColor)}
-              onEnter={() => router.push("/dashboard/main")}
+              onEnter={() => router.push("/dashboard")}
             />
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400">

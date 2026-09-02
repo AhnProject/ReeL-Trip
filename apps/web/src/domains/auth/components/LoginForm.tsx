@@ -7,8 +7,6 @@ import { Input } from "@/components/Input";
 import { login, refreshAccessToken } from "@/domains/auth/api";
 import {
   persistSession,
-  getSavedUsername,
-  setSavedUsername,
   getAutoLoginEnabled,
   setAutoLoginEnabled,
 } from "@/domains/auth/session";
@@ -19,20 +17,13 @@ export function LoginForm() {
   const [username,     setUsername]     = useState("");
   const [password,     setPassword]     = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [saveId,       setSaveId]       = useState(false);
   const [autoLogin,    setAutoLogin]    = useState(false);
   const [error,        setError]        = useState("");
   const [loading,      setLoading]      = useState(false);
 
-  // 저장된 아이디 / 자동 로그인 설정 복원 + 자동 로그인 시도
+  // 자동 로그인 설정 복원 + 자동 로그인 시도
   useEffect(() => {
-    const savedName   = getSavedUsername();
     const autoLoginOn = getAutoLoginEnabled();
-
-    if (savedName) {
-      setUsername(savedName);
-      setSaveId(true);
-    }
     setAutoLogin(autoLoginOn);
 
     if (autoLoginOn) {
@@ -50,7 +41,7 @@ export function LoginForm() {
           .finally(() => setLoading(false));
       }
     }
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +51,6 @@ export function LoginForm() {
       const result = await login({ username, password });
       if (result.success && result.data) {
         setAutoLoginEnabled(autoLogin);
-        setSavedUsername(username, saveId);
         persistSession(result.data, autoLogin);
         router.push("/dashboard/home");
       } else {
@@ -71,11 +61,6 @@ export function LoginForm() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleAutoLogin = (checked: boolean) => {
-    setAutoLogin(checked);
-    if (checked && !saveId) setSaveId(true);
   };
 
   return (
@@ -99,39 +84,26 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="text-xs font-semibold text-accent-danger"
+            className="text-xs font-semibold text-orbit-point"
           >
             {showPassword ? "숨기기" : "보기"}
           </button>
         }
       />
 
-      <div className="flex justify-between text-sm text-secondary">
-        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={saveId}
-            onChange={(e) => {
-              setSaveId(e.target.checked);
-              if (!e.target.checked) setSavedUsername("", false);
-            }}
-            className="accent-primary"
-          />
-          아이디 저장
-        </label>
-        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={autoLogin}
-            onChange={(e) => toggleAutoLogin(e.target.checked)}
-            className="accent-primary"
-          />
-          자동 로그인
-        </label>
-      </div>
+      <label className="flex cursor-pointer select-none items-center justify-end gap-1.5 px-1 text-xs text-slate-500">
+        <input
+          type="checkbox"
+          checked={autoLogin}
+          onChange={(e) => setAutoLogin(e.target.checked)}
+          className="accent-orbit-point"
+        />
+        자동 로그인
+      </label>
 
-      {error && <p className="text-xs text-accent-danger">{error}</p>}
-      <Button type="submit" disabled={loading} className="mt-2">
+      {error && <p className="px-1 text-xs text-orbit-point">{error}</p>}
+
+      <Button variant="orbit" type="submit" disabled={loading} className="mt-1">
         {loading ? "로그인 중..." : "로그인"}
       </Button>
     </form>

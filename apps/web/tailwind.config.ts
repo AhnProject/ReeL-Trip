@@ -18,6 +18,12 @@ const config: Config = {
         accent: {
           danger: "#E84E5C",
         },
+        // Orbitrip 로그인 화면 (오렌지→핑크 그라데이션)
+        orbit: {
+          from: "#FF8A5B",
+          to: "#FF6B6B",
+          point: "#FF6B6B",
+        },
         tsstatus: {
           greenBg:    "#DCFCE7",
           greenText:  "#16A34A",

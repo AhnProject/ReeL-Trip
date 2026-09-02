@@ -21,7 +21,6 @@ const TABS: { key: TabKey; label: string }[] = [
 export function SettingsScreen() {
   const router = useRouter();
   const [username, setUsername]       = useState("");
-  const [token, setToken]             = useState("");
   const [spaceName, setSpaceName]     = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji]   = useState("✈️");
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
@@ -34,7 +33,6 @@ export function SettingsScreen() {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
     if (!storedToken) { router.replace("/"); return; }
-    setToken(storedToken);
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {

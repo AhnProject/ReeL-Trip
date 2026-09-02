@@ -9,21 +9,7 @@ import { listPlaces } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
-
-/* ── 카테고리 코드 → 한글 레이블 (url-parser-modal과 동일) ── */
-const CATEGORY_LABEL: Record<string, string> = {
-  restaurant:    "식당",
-  cafe:          "카페",
-  attraction:    "관광지",
-  accommodation: "숙소",
-  activity:      "액티비티",
-  other:         "기타",
-};
-
-function categoryLabel(raw: string | null) {
-  if (!raw) return null;
-  return CATEGORY_LABEL[raw] ?? raw;
-}
+import { CATEGORY_LABEL, categoryLabel } from "@/constants/categories";
 
 /* ── 더미 AI 추천 (팝업 하단 고정) ── */
 const DUMMY_AI_RECS = [
@@ -338,8 +324,6 @@ export function AiScreen() {
   const [username, setUsername]     = useState("");
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
-  const [spaceId, setSpaceId]       = useState<number | null>(null);
-  const [token, setToken]           = useState("");
   const [places, setPlaces]         = useState<PlaceResponse[]>([]);
   const [loading, setLoading]       = useState(true);
 
@@ -352,7 +336,6 @@ export function AiScreen() {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
     if (!storedToken) { router.replace("/"); return; }
-    setToken(storedToken);
     setUsername(name ?? "");
 
     listTeamSpaces(storedToken).then((res) => {
@@ -360,7 +343,6 @@ export function AiScreen() {
         const sp = res.data[0] as TeamSpaceResponse;
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
-        setSpaceId(sp.id);
 
         listPlaces(sp.id, storedToken).then((pRes) => {
           if (pRes.success && pRes.data) setPlaces(pRes.data);
