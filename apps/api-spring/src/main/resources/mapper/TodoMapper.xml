@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.reeltrip.api.todo.mapper.TodoMapper">
+
+    <resultMap id="todoResultMap" type="com.reeltrip.api.todo.model.Todo">
+        <id     property="id"         column="id"/>
+        <result property="spaceId"    column="space_id"/>
+        <result property="title"      column="title"/>
+        <result property="priority"   column="priority"/>
+        <result property="dueDate"    column="due_date"/>
+        <result property="isDone"     column="is_done"/>
+        <result property="createdBy"  column="created_by"/>
+        <result property="createdAt"  column="created_at"/>
+        <result property="updatedAt"  column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO todos (space_id, title, priority, due_date, is_done, created_by, created_at, updated_at)
+        VALUES (#{spaceId}, #{title}, #{priority}, #{dueDate}, false, #{createdBy}, NOW(), NOW())
+    </insert>
+
+    <select id="findById" resultMap="todoResultMap">
+        SELECT id, space_id, title, priority, due_date, is_done, created_by, created_at, updated_at
+        FROM todos
+        WHERE id = #{id}
+    </select>
+
+    <select id="findBySpaceId" resultMap="todoResultMap">
+        SELECT id, space_id, title, priority, due_date, is_done, created_by, created_at, updated_at
+        FROM todos
+        WHERE space_id = #{spaceId}
+        ORDER BY
+            CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+            due_date ASC NULLS LAST,
+            created_at ASC
+    </select>
+
+    <update id="update">
+        UPDATE todos
+        SET title      = #{title},
+            priority   = #{priority},
+            due_date   = #{dueDate},
+            is_done    = #{isDone},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM todos WHERE id = #{id}
+    </delete>
+
+</mapper>

@@ -1,74 +1,110 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
+import { listMessages, sendMessage } from "@/domains/chat/api";
+import type { MessageResponse } from "@/domains/chat/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
 
-interface Message {
-  id: number;
-  author: string;
-  text: string;
-  time: string;
-  isMine: boolean;
-}
-
-const DUMMY_MESSAGES: Message[] = [
-  { id: 1, author: "민수",   text: "숙소 예약 어떻게 됐어요?",              time: "오전 10:12", isMine: false },
-  { id: 2, author: "지은",   text: "아직 못 했어요 ㅠㅠ 오늘 저녁에 할게요", time: "오전 10:14", isMine: false },
-  { id: 3, author: "나",     text: "제가 찾아봤는데 씨앤블루 어때요? 오션뷰에 가격도 적당해요", time: "오전 10:15", isMine: true },
-  { id: 4, author: "민수",   text: "오 좋아 보이는데! 날짜 확인해볼게요",    time: "오전 10:16", isMine: false },
-  { id: 5, author: "하람",   text: "저도 찬성! 일정에 추가해줘요",           time: "오전 10:18", isMine: false },
-  { id: 6, author: "나",     text: "렌터카도 같이 알아볼까요? 8월 1일 오전에 공항 도착이니까", time: "오전 10:20", isMine: true },
-  { id: 7, author: "정다해", text: "좋아요! 어디서 빌리는 게 나을까요",      time: "오전 10:22", isMine: false },
-];
-
 const AVATAR_COLORS: Record<string, string> = {
-  "민수": "bg-brand-primary",
-  "지은": "bg-purple-400",
-  "하람": "bg-pink-400",
-  "정다해": "bg-green-400",
+  default: "bg-slate-400",
 };
 
-export function ChatScreen() {
-  const router  = useRouter();
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const [username, setUsername]     = useState("");
-  const [spaceName, setSpaceName]   = useState("여행 없음");
-  const [spaceEmoji, setSpaceEmoji] = useState("✈️");
-  const [messages, setMessages]     = useState<Message[]>(DUMMY_MESSAGES);
-  const [input, setInput]           = useState("");
+const AVATAR_COLOR_LIST = [
+  "bg-brand-primary",
+  "bg-purple-400",
+  "bg-pink-400",
+  "bg-green-400",
+  "bg-yellow-400",
+  "bg-orange-400",
+];
 
+function getAvatarColor(username: string): string {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLOR_LIST[Math.abs(hash) % AVATAR_COLOR_LIST.length] ?? AVATAR_COLORS.default;
+}
+
+function formatTime(sentAt: string): string {
+  const date = new Date(sentAt);
+  const h = date.getHours();
+  const m = date.getMinutes();
+  return `${h < 12 ? "오전" : "오후"} ${h % 12 || 12}:${String(m).padStart(2, "0")}`;
+}
+
+const POLL_INTERVAL_MS = 5000;
+
+export function ChatScreen() {
+  const router    = useRouter();
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const [username, setUsername]   = useState("");
+  const [token, setToken]         = useState("");
+  const [spaceId, setSpaceId]     = useState<number | null>(null);
+  const [spaceName, setSpaceName] = useState("여행 없음");
+  const [spaceEmoji, setSpaceEmoji] = useState("✈️");
+  const [messages, setMessages]   = useState<MessageResponse[]>([]);
+  const [input, setInput]         = useState("");
+  const [sending, setSending]     = useState(false);
+
+  // 초기화: 토큰·유저명·팀스페이스 로드
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const name  = localStorage.getItem("username");
-    if (!token) { router.replace("/"); return; }
-    setUsername(name ?? "");
-    listTeamSpaces(token).then((res) => {
+    const t = localStorage.getItem("token");
+    const u = localStorage.getItem("username");
+    if (!t) { router.replace("/"); return; }
+    setToken(t);
+    setUsername(u ?? "");
+    listTeamSpaces(t).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
         const sp = res.data[0] as TeamSpaceResponse;
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
+        setSpaceId(sp.id);
       }
-    }).catch((err) => console.error("[ChatScreen]", err));
+    }).catch((err) => console.error("[ChatScreen] teamspace load:", err));
   }, [router]);
 
+  // 메시지 목록 fetch
+  const fetchMessages = useCallback(() => {
+    if (!spaceId || !token) return;
+    listMessages(spaceId, token).then((res) => {
+      if (res.success && res.data) setMessages(res.data);
+    }).catch((err) => console.error("[ChatScreen] fetch messages:", err));
+  }, [spaceId, token]);
+
+  // 초기 로드 + 5초 폴링
+  useEffect(() => {
+    fetchMessages();
+    const timer = setInterval(fetchMessages, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [fetchMessages]);
+
+  // 새 메시지 시 최하단 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   if (!username) return <LoadingScreen />;
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
-    if (!text) return;
-    const now = new Date();
-    const time = `${now.getHours() < 12 ? "오전" : "오후"} ${now.getHours() % 12 || 12}:${String(now.getMinutes()).padStart(2, "0")}`;
-    setMessages((prev) => [...prev, { id: Date.now(), author: "나", text, time, isMine: true }]);
+    if (!text || !spaceId || sending) return;
+    setSending(true);
     setInput("");
+    try {
+      const res = await sendMessage(spaceId, text, token);
+      if (res.success && res.data) {
+        setMessages((prev) => [...prev, res.data!]);
+      }
+    } catch (err) {
+      console.error("[ChatScreen] send message:", err);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -86,32 +122,35 @@ export function ChatScreen() {
 
         {/* 메시지 목록 */}
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={cn("flex gap-3", msg.isMine && "flex-row-reverse")}>
-              {!msg.isMine && (
-                <div className={cn(
-                  "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
-                  AVATAR_COLORS[msg.author] ?? "bg-slate-400",
-                )}>
-                  {msg.author[0]}
-                </div>
-              )}
-              <div className={cn("flex flex-col gap-1", msg.isMine && "items-end")}>
-                {!msg.isMine && (
-                  <p className="text-xs font-semibold text-slate-600">{msg.author}</p>
+          {messages.map((msg) => {
+            const isMine = msg.authorUsername === username;
+            return (
+              <div key={msg.id} className={cn("flex gap-3", isMine && "flex-row-reverse")}>
+                {!isMine && (
+                  <div className={cn(
+                    "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
+                    getAvatarColor(msg.authorUsername),
+                  )}>
+                    {msg.authorUsername[0]}
+                  </div>
                 )}
-                <div className={cn(
-                  "max-w-[320px] rounded-2xl px-4 py-2.5 text-sm",
-                  msg.isMine
-                    ? "rounded-tr-sm bg-brand-primary text-white"
-                    : "rounded-tl-sm bg-slate-100 text-slate-800",
-                )}>
-                  {msg.text}
+                <div className={cn("flex flex-col gap-1", isMine && "items-end")}>
+                  {!isMine && (
+                    <p className="text-xs font-semibold text-slate-600">{msg.authorUsername}</p>
+                  )}
+                  <div className={cn(
+                    "max-w-[320px] rounded-2xl px-4 py-2.5 text-sm",
+                    isMine
+                      ? "rounded-tr-sm bg-brand-primary text-white"
+                      : "rounded-tl-sm bg-slate-100 text-slate-800",
+                  )}>
+                    {msg.content}
+                  </div>
+                  <p className="text-[10px] text-slate-400">{formatTime(msg.sentAt)}</p>
                 </div>
-                <p className="text-[10px] text-slate-400">{msg.time}</p>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={bottomRef} />
         </div>
 
@@ -124,11 +163,13 @@ export function ChatScreen() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
               placeholder="메시지를 입력하세요..."
-              className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              disabled={sending}
+              className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-50"
             />
             <button
               onClick={handleSend}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary text-white hover:bg-brand-primaryHover"
+              disabled={sending || !input.trim()}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-primary text-white hover:bg-brand-primaryHover disabled:opacity-40"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
