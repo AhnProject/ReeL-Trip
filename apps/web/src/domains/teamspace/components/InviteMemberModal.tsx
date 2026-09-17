@@ -25,8 +25,12 @@ export function InviteMemberModal({ spaceId, token, onClose, onInvited }: Props)
       if (res.success && res.data) {
         onInvited(res.data);
         onClose();
+      } else if (res.errorCode === "USER_NOT_FOUND") {
+        setError("해당 사용자를 찾을 수 없습니다. 사용자 이름을 확인해주세요.");
+      } else if (res.errorCode === "ALREADY_MEMBER") {
+        setError("이미 이 스페이스의 멤버입니다.");
       } else {
-        setError("초대에 실패했습니다. 사용자 이름을 확인해주세요.");
+        setError("초대에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }
     } catch {
       setError("서버 오류가 발생했습니다.");
