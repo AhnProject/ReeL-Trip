@@ -23,12 +23,14 @@ AI 기반 여행지 추천 · 팀 여행 플래닝 서비스 (Turborepo 모노�
 ### 0단계 - 요구사항지시서 초안 작성
 
 요청을 맏으면 바로 작업지시를 내리지 않는다
-`docs/templates/requirements.md` 양식을 기반으로 요구사항지서서를 `docs/orders/` 하위에 마크다운 문서를 생성한다.
+`docs/templates/requirements.md` 양식을 기반으로 요구사항지시서를 옵시디언 서브모듈의
+`obsidian/Jeakyoung_Blog/01_Projects/06_ReelTrip/00_Requirements/` 하위에 마크다운 문서로 생성한다.
 
 ### 1단계 — 작업지시서 초안 작성
 
 요청을 받으면 즉시 작업을 시작하지 않는다.
-`docs/templates/work-order.md` 양식을 기반으로 작업지시서를 `docs/workOrders/` 하위에 마크다운 문서를 생성한다.
+`docs/templates/work-order.md` 양식을 기반으로 작업지시서를 옵시디언 서브모듈의
+`obsidian/Jeakyoung_Blog/01_Projects/06_ReelTrip/01_WorkOrders/` 하위에 마크다운 문서로 생성한다.
 
 포함 항목:
 - 요구사항 분석 요약 (모호한 부분은 `[?]` 표시 후 질문)
@@ -51,8 +53,15 @@ AI 기반 여행지 추천 · 팀 여행 플래닝 서비스 (Turborepo 모노�
 
 ### 4단계 — 완료보고서 작성
 
-작업 완료 후 `docs/templates/completion-report.md` 양식으로 완료보고서를 `docs/results/` 하위에 마크다운으로 작성한다.
-완료내역 존재시 `docs/results/` 하위 해당 페이지 문서를 업데이트한다.
+작업 완료 후 `docs/templates/completion-report.md` 양식으로 완료보고서를 옵시디언 서브모듈의
+`obsidian/Jeakyoung_Blog/01_Projects/06_ReelTrip/01_Tasks/` 하위에 마크다운으로 작성한다.
+YAML 프론트매터(title/date/type/project/status/assignee/tags)를 붙이고, 필요 시 관련 노트를 `[[위키링크]]`로 연결한다.
+
+### 문서 저장 위치 관련 주의사항
+
+- 요구사항서/작업지시서/완료보고서는 모두 이 저장소가 아니라 `obsidian/` 서브모듈(별도 GitHub 저장소) 안에 생성된다.
+- `docs/templates/`의 양식(표 구조)은 그대로 유지하고 저장 위치만 옵시디언으로 옮긴 것 — 문서 내용 형식은 바꾸지 않는다.
+- 옵시디언 서브모듈은 별도 원격 저장소(`jeakyoung/obsidian-database`)를 가진 독립 git 저장소이므로, 그 안에서의 커밋/푸시는 이 저장소의 커밋과 별개로 사용자에게 확인받는다.
 
 ---
 
