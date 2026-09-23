@@ -6,6 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { updatePlace } from "@/domains/place/api";
 import { useAuthStore } from "@/store/auth";
+import { toast } from "@/store/toast";
 import type { PlaceResponse } from "@/domains/place/api";
 import { C } from "@/lib/colors";
 import { card, row, radius, sp } from "@/lib/styles";
@@ -73,7 +74,7 @@ export function PlaceCorrectSection({ place, onUpdate }: PlaceCorrectSectionProp
       setSaved((p) => [...p, field.key]);
       setExpanded(null);
     } catch {
-      /* TODO: show error toast */
+      toast.error("정보 저장에 실패했습니다");
     } finally {
       setSaving(false);
     }

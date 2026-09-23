@@ -6,6 +6,7 @@ import { useHomeData } from "./hooks/useHomeData";
 import { Header } from "./components/Header";
 import { SpaceCard } from "./components/SpaceCard";
 import { EventCard } from "./components/EventCard";
+import { TodoPanel } from "./components/TodoPanel";
 import { CreateSpaceModal } from "./components/CreateSpaceModal";
 import { NotificationModal } from "./components/NotificationModal";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -17,9 +18,10 @@ import { card, row, sectionHeader, radius, sp } from "@/lib/styles";
 export function HomeScreen() {
   const router = useRouter();
   const {
-    username, spaces, todayEvents, notifications,
+    username, spaces, todayEvents, notifications, todos,
     loading, refreshing,
     handleRefresh, handleToggleEvent,
+    handleAddTodo, handleToggleTodo, handleDeleteTodo,
   } = useHomeData();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -81,6 +83,16 @@ export function HomeScreen() {
               <EventCard key={evt.id} event={evt} onToggle={() => handleToggleEvent(evt)} />
             ))
           )}
+        </View>
+
+        {/* 할 일 */}
+        <View style={s.section}>
+          <TodoPanel
+            todos={todos}
+            onAdd={handleAddTodo}
+            onToggle={handleToggleTodo}
+            onDelete={handleDeleteTodo}
+          />
         </View>
 
         {/* 최근 알림 */}

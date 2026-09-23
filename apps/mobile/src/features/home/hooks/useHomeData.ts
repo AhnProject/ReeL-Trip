@@ -3,6 +3,7 @@ import { useAuthStore } from "@/store/auth";
 import { useSpaces } from "@/hooks/useSpaces";
 import { useEvents, useToggleEvent } from "@/hooks/useEvents";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useTodos, useCreateTodo, useToggleTodo, useDeleteTodo } from "@/hooks/useTodos";
 
 function todayString() {
   const now = new Date();
@@ -25,6 +26,11 @@ export function useHomeData() {
   const notifsQuery      = useNotifications();
   const handleToggleEvent = useToggleEvent(firstSpaceId, monthStr);
 
+  const todosQuery   = useTodos(firstSpaceId);
+  const handleAddTodo    = useCreateTodo(firstSpaceId);
+  const handleToggleTodo = useToggleTodo(firstSpaceId);
+  const handleDeleteTodo = useDeleteTodo(firstSpaceId);
+
   const todayEvents = (eventsQuery.data ?? []).filter((e) => {
     const d = e.startDate.includes("T") ? e.startDate.split("T")[0] : e.startDate;
     return d === todayStr;
@@ -32,7 +38,7 @@ export function useHomeData() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([spacesQuery.refetch(), eventsQuery.refetch(), notifsQuery.refetch()]);
+    await Promise.all([spacesQuery.refetch(), eventsQuery.refetch(), notifsQuery.refetch(), todosQuery.refetch()]);
     setRefreshing(false);
   };
 
@@ -41,9 +47,13 @@ export function useHomeData() {
     spaces:        spacesQuery.data ?? [],
     todayEvents,
     notifications: (notifsQuery.data ?? []).slice(0, 5),
+    todos:         todosQuery.data ?? [],
     loading:       spacesQuery.isLoading,
     refreshing,
     handleRefresh,
     handleToggleEvent,
+    handleAddTodo,
+    handleToggleTodo,
+    handleDeleteTodo,
   };
 }

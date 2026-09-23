@@ -80,6 +80,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth/login"  options={{ title: "로그인", headerBackVisible: false }} />
             <Stack.Screen name="auth/signup" options={{ title: "회원가입" }} />
             <Stack.Screen name="place/[id]"  options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
+            <Stack.Screen name="chat/[spaceId]" options={{ title: "팀 채팅" }} />
           </Stack>
           <AuthGuard />
           <ShareHandler />
