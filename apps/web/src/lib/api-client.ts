@@ -10,7 +10,13 @@ async function attemptRefresh(): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
   const refreshToken = localStorage.getItem("refresh_token");
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("username");
+    window.location.href = "/auth/login";
+    return null;
+  }
 
   refreshPromise = (async (): Promise<string | null> => {
     try {
