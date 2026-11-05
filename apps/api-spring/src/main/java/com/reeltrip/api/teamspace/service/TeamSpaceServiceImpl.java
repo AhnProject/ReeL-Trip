@@ -123,6 +123,10 @@ public class TeamSpaceServiceImpl implements TeamSpaceService {
         TeamSpace space = getSpace(spaceId);
         checkOwner(space, requester.getId());
 
+        if (userId.equals(space.getOwnerId())) {
+            throw new AppException(ErrorCode.OWNER_CANNOT_BE_REMOVED);
+        }
+
         if (!teamSpaceMapper.existsMember(spaceId, userId)) {
             throw new AppException(ErrorCode.MEMBER_NOT_FOUND);
         }

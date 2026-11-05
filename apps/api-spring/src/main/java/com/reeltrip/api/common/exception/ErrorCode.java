@@ -43,6 +43,7 @@ public enum ErrorCode {
     TEAM_SPACE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this team space"),
     ALREADY_MEMBER(HttpStatus.BAD_REQUEST, "User is already a member"),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "Member not found"),
+    OWNER_CANNOT_BE_REMOVED(HttpStatus.BAD_REQUEST, "Owner cannot be removed from the team space"),
 
     // Event
     EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Event not found"),
