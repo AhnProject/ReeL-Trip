@@ -4,15 +4,24 @@ import { useSpaces } from "@/hooks/useSpaces";
 import { usePlaces } from "@/hooks/usePlaces";
 import { updatePlace } from "@/domains/place/api";
 import { toast } from "@/store/toast";
+import { useSpaceStore } from "@/store/space";
 
 export function useTravelData() {
   const token    = useAuthStore((s) => s.token);
-  const [selectedIdx,  setSelectedIdx]  = useState(0);
   const [confirmedIds, setConfirmedIds] = useState<Set<number>>(new Set());
 
   const spacesQuery  = useSpaces();
   const spaces       = spacesQuery.data ?? [];
+
+  const { selectedSpaceId, setSelectedSpaceId } = useSpaceStore();
+  const currentSpaceId = spaces.some((s) => s.id === selectedSpaceId) ? selectedSpaceId : (spaces[0]?.id ?? null);
+  const selectedIdx  = Math.max(0, spaces.findIndex((s) => s.id === currentSpaceId));
   const currentSpace = spaces[selectedIdx] ?? null;
+
+  const setSelectedIdx = (idx: number) => {
+    const space = spaces[idx];
+    if (space) setSelectedSpaceId(space.id);
+  };
 
   const placesQuery  = usePlaces(currentSpace?.id ?? null);
   const places       = placesQuery.data ?? [];

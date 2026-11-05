@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useShareIntentContext } from "expo-share-intent";
 import { useAuthStore } from "@/store/auth";
+import { useSpaceStore } from "@/store/space";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import { addPlace } from "@/domains/place/api";
 import { parseUrl } from "@/domains/url-parser/api";
@@ -10,6 +11,7 @@ import { useInvalidatePlaces } from "@/hooks/usePlaces";
 export function ShareHandler() {
   const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
   const token = useAuthStore((s) => s.token);
+  const selectedSpaceId = useSpaceStore((s) => s.selectedSpaceId);
   const invalidatePlaces = useInvalidatePlaces();
 
   useEffect(() => {
@@ -47,7 +49,9 @@ export function ShareHandler() {
         return;
       }
 
-      const spaceId = spacesRes.data[0].id;
+      const spaceId = spacesRes.data.some((s) => s.id === selectedSpaceId)
+        ? (selectedSpaceId as number)
+        : spacesRes.data[0].id;
 
       const saveRes = await addPlace({
         spaceId,
