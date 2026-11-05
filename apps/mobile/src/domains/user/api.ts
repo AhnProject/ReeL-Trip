@@ -12,3 +12,10 @@ export interface UserProfile {
 export function getProfile(token: string) {
   return apiRequest<UserProfile>("/api/user/profile", {}, token);
 }
+
+export function updateProfile(payload: { email?: string }, token: string) {
+  return apiRequest<UserProfile>("/api/user/profile", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }, token);
+}

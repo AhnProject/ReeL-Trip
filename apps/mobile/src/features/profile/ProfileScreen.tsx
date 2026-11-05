@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useProfileData } from "./hooks/useProfileData";
 import { ProfileHeader } from "./components/ProfileHeader";
 import { InfoCard } from "./components/InfoCard";
 import type { InfoRow } from "./components/InfoCard";
+import { EditProfileModal } from "./components/EditProfileModal";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { C } from "@/lib/colors";
 
 export function ProfileScreen() {
   const { profile, username, loading, refreshing, onRefresh, handleLogout } = useProfileData();
+  const [showEditModal, setShowEditModal] = useState(false);
 
   if (loading) return <LoadingScreen />;
 
@@ -31,11 +34,21 @@ export function ProfileScreen() {
     >
       <View style={s.header}>
         <Text style={s.headerTitle}>프로필</Text>
+        <TouchableOpacity onPress={() => setShowEditModal(true)} style={s.editBtn}>
+          <Ionicons name="pencil-outline" size={14} color={C.primary} />
+          <Text style={s.editBtnText}>수정</Text>
+        </TouchableOpacity>
       </View>
 
       <ProfileHeader profile={profile} username={username} />
 
       <InfoCard title="계정 정보" rows={accountRows} />
+
+      <EditProfileModal
+        visible={showEditModal}
+        initialEmail={profile?.email ?? ""}
+        onClose={() => setShowEditModal(false)}
+      />
 
       {/* 플랜 카드 */}
       <View style={s.card}>
@@ -73,8 +86,21 @@ const s = StyleSheet.create({
     backgroundColor: C.white,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   headerTitle: { fontSize: 22, fontWeight: "800", color: C.t1 },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: C.primaryLight,
+  },
+  editBtnText: { fontSize: 12, fontWeight: "700", color: C.primary },
   card: {
     marginHorizontal: 16,
     marginBottom: 12,
