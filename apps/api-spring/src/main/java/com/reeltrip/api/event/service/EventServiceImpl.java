@@ -9,7 +9,9 @@ import com.reeltrip.api.event.dto.EventResponse;
 import com.reeltrip.api.event.dto.UpdateEventRequest;
 import com.reeltrip.api.event.mapper.EventMapper;
 import com.reeltrip.api.event.model.Event;
+import com.reeltrip.api.notification.service.NotificationService;
 import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
+import com.reeltrip.api.teamspace.model.TeamSpaceMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,7 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final TeamSpaceMapper teamSpaceMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
     public EventResponse create(CreateEventRequest request, String username) {
@@ -42,6 +45,10 @@ public class EventServiceImpl implements EventService {
                 .build();
 
         eventMapper.insert(event);
+
+        String message = String.format("%s님이 '%s' 일정을 추가했습니다.", user.getUsername(), event.getTitle());
+        notifyOtherMembers(request.getSpaceId(), user.getId(), message);
+
         return toResponse(eventMapper.findById(event.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.EVENT_NOT_FOUND)));
     }
@@ -82,6 +89,10 @@ public class EventServiceImpl implements EventService {
         if (request.getStatus() != null) event.setStatus(request.getStatus());
 
         eventMapper.update(event);
+
+        String message = String.format("%s님이 '%s' 일정을 수정했습니다.", user.getUsername(), event.getTitle());
+        notifyOtherMembers(event.getSpaceId(), user.getId(), message);
+
         return toResponse(eventMapper.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EVENT_NOT_FOUND)));
     }
@@ -112,6 +123,13 @@ public class EventServiceImpl implements EventService {
         if (!teamSpaceMapper.existsMember(spaceId, userId)) {
             throw new AppException(ErrorCode.EVENT_ACCESS_DENIED);
         }
+    }
+
+    private void notifyOtherMembers(Long spaceId, Long actorId, String message) {
+        List<TeamSpaceMember> members = teamSpaceMapper.findMembersBySpaceId(spaceId);
+        members.stream()
+                .filter(m -> !m.getUserId().equals(actorId))
+                .forEach(m -> notificationService.create(m.getUserId(), message, "schedule", spaceId));
     }
 
     private EventResponse toResponse(Event e) {
