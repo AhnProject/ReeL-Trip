@@ -10,5 +10,5 @@ export interface UserProfile {
 }
 
 export function getProfile(token: string) {
-  return apiRequest<UserProfile>("/api/profile", {}, token);
+  return apiRequest<UserProfile>("/api/user/profile", {}, token);
 }
