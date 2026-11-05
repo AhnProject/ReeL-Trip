@@ -6,6 +6,7 @@ import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.PlaceResponse;
+import com.reeltrip.api.place.dto.UpdatePlaceRequest;
 import com.reeltrip.api.place.mapper.PlaceMapper;
 import com.reeltrip.api.place.model.Place;
 import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
@@ -68,6 +69,36 @@ public class PlaceServiceImpl implements PlaceService {
         Place place = getPlace(id);
         checkSpaceMember(place.getSpaceId(), user.getId());
         return toResponse(place);
+    }
+
+    @Override
+    public PlaceResponse update(Long id, UpdatePlaceRequest request, String username) {
+        User user = getUser(username);
+        Place place = getPlace(id);
+        checkSpaceMember(place.getSpaceId(), user.getId());
+
+        if (request.getName() != null) place.setName(request.getName());
+        if (request.getCategory() != null) place.setCategory(request.getCategory());
+        if (request.getAddress() != null) place.setAddress(request.getAddress());
+        if (request.getRegion() != null) place.setRegion(request.getRegion());
+        if (request.getCountry() != null) place.setCountry(request.getCountry());
+        if (request.getLatitude() != null) place.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) place.setLongitude(request.getLongitude());
+        if (request.getPriceDesc() != null) place.setPriceDesc(request.getPriceDesc());
+        if (request.getPriceMin() != null) place.setPriceMin(request.getPriceMin());
+        if (request.getPriceMax() != null) place.setPriceMax(request.getPriceMax());
+        if (request.getCurrency() != null) place.setCurrency(request.getCurrency());
+        if (request.getHours() != null) place.setHours(request.getHours());
+        if (request.getThumbnailUrl() != null) place.setThumbnailUrl(request.getThumbnailUrl());
+        if (request.getSourceUrl() != null) place.setSourceUrl(request.getSourceUrl());
+        if (request.getSourcePlatform() != null) place.setSourcePlatform(request.getSourcePlatform());
+        if (request.getTags() != null) place.setTags(request.getTags());
+        if (request.getMenu() != null) place.setMenu(request.getMenu());
+        if (request.getConfidence() != null) place.setConfidence(request.getConfidence());
+
+        placeMapper.update(place);
+        return toResponse(placeMapper.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PLACE_NOT_FOUND)));
     }
 
     @Override

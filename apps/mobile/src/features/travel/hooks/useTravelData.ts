@@ -3,6 +3,7 @@ import { useAuthStore } from "@/store/auth";
 import { useSpaces } from "@/hooks/useSpaces";
 import { usePlaces } from "@/hooks/usePlaces";
 import { updatePlace } from "@/domains/place/api";
+import { toast } from "@/store/toast";
 
 export function useTravelData() {
   const token    = useAuthStore((s) => s.token);
@@ -16,14 +17,27 @@ export function useTravelData() {
   const placesQuery  = usePlaces(currentSpace?.id ?? null);
   const places       = placesQuery.data ?? [];
 
-  const handleToggleConfirm = (placeId: number) => {
+  const toggleConfirmedId = (placeId: number) => {
     setConfirmedIds((prev) => {
       const next = new Set(prev);
       if (next.has(placeId)) next.delete(placeId);
       else next.add(placeId);
       return next;
     });
-    if (token) updatePlace(placeId, {}, token).catch(() => {});
+  };
+
+  const handleToggleConfirm = (placeId: number) => {
+    toggleConfirmedId(placeId);
+    if (!token) return;
+    updatePlace(placeId, {}, token).then((res) => {
+      if (!res.success) {
+        toggleConfirmedId(placeId);
+        toast.error("저장에 실패했습니다");
+      }
+    }).catch(() => {
+      toggleConfirmedId(placeId);
+      toast.error("저장에 실패했습니다");
+    });
   };
 
   return {

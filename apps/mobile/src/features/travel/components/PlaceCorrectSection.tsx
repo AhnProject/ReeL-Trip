@@ -69,7 +69,11 @@ export function PlaceCorrectSection({ place, onUpdate }: PlaceCorrectSectionProp
       } else {
         payload[field.key] = value.trim();
       }
-      await updatePlace(place.id, payload, token);
+      const res = await updatePlace(place.id, payload, token);
+      if (!res.success) {
+        toast.error("정보 저장에 실패했습니다");
+        return;
+      }
       onUpdate(payload as Partial<PlaceResponse>);
       setSaved((p) => [...p, field.key]);
       setExpanded(null);
