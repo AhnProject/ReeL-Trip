@@ -52,6 +52,18 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @Override
+    public void create(Long userId, String message, String type, Long relatedSpaceId) {
+        Notification notification = Notification.builder()
+                .userId(userId)
+                .message(message)
+                .type(type)
+                .relatedSpaceId(relatedSpaceId)
+                .isRead(false)
+                .build();
+        notificationMapper.insert(notification);
+    }
+
     /* ── private helpers ── */
 
     private User getUser(String username) {

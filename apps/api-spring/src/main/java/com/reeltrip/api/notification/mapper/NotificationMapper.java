@@ -10,6 +10,8 @@ import java.util.Optional;
 @Mapper
 public interface NotificationMapper {
 
+    void insert(Notification notification);
+
     List<Notification> findByUserId(@Param("userId") Long userId);
 
     Optional<Notification> findById(@Param("id") Long id);

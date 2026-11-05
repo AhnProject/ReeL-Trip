@@ -9,4 +9,5 @@ public interface NotificationService {
     NotificationResponse findById(Long id, String username);
     NotificationResponse markAsRead(Long id, String username);
     void delete(Long id, String username);
+    void create(Long userId, String message, String type, Long relatedSpaceId);
 }
