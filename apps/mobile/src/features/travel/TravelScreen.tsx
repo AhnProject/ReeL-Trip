@@ -9,6 +9,7 @@ import { SpaceTabs, SpaceInfo } from "./components/SpaceInfo";
 import { UrlParserModal } from "./components/UrlParserModal";
 import { InviteModal } from "./components/InviteModal";
 import { MemberModal } from "./components/MemberModal";
+import { SpaceSettingsModal } from "./components/SpaceSettingsModal";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { FAB } from "@/components/ui/FAB";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,6 +31,7 @@ export function TravelScreen() {
   const [showUrlModal, setShowUrlModal]     = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const handlePlacePress = (place: PlaceResponse) => {
     setPlace(place);
@@ -48,6 +50,9 @@ export function TravelScreen() {
       </TouchableOpacity>
       <TouchableOpacity onPress={() => setShowInviteModal(true)} style={s.inviteBtn}>
         <Ionicons name="person-add-outline" size={18} color={C.primary} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => setShowSettingsModal(true)} style={s.inviteBtn}>
+        <Ionicons name="settings-outline" size={18} color={C.primary} />
       </TouchableOpacity>
     </View>
   ) : undefined;
@@ -112,6 +117,14 @@ export function TravelScreen() {
           visible={showMemberModal}
           space={currentSpace}
           onClose={() => setShowMemberModal(false)}
+        />
+      )}
+
+      {showSettingsModal && currentSpace && (
+        <SpaceSettingsModal
+          visible={showSettingsModal}
+          space={currentSpace}
+          onClose={() => setShowSettingsModal(false)}
         />
       )}
     </SafeAreaView>
