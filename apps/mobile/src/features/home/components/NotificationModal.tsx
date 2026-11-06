@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import type { NotificationResponse } from "@/domains/notification/api";
@@ -9,9 +9,18 @@ interface NotificationModalProps {
   visible: boolean;
   notifications: NotificationResponse[];
   onClose: () => void;
+  onRead: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
-export function NotificationModal({ visible, notifications, onClose }: NotificationModalProps) {
+export function NotificationModal({ visible, notifications, onClose, onRead, onDelete }: NotificationModalProps) {
+  const handleDelete = (id: number) => {
+    Alert.alert("알림 삭제", "이 알림을 삭제할까요?", [
+      { text: "취소", style: "cancel" },
+      { text: "삭제", style: "destructive", onPress: () => onDelete(id) },
+    ]);
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
@@ -26,7 +35,12 @@ export function NotificationModal({ visible, notifications, onClose }: Notificat
             <Text style={s.empty}>알림이 없습니다</Text>
           ) : (
             notifications.map((notif) => (
-              <View key={notif.id} style={s.item}>
+              <TouchableOpacity
+                key={notif.id}
+                style={s.item}
+                activeOpacity={0.7}
+                onPress={() => !notif.isRead && onRead(notif.id)}
+              >
                 <View style={s.iconWrap}>
                   <Ionicons name="notifications" size={14} color={C.primary} />
                 </View>
@@ -35,7 +49,10 @@ export function NotificationModal({ visible, notifications, onClose }: Notificat
                   <Text style={s.time}>{new Date(notif.createdAt).toLocaleDateString("ko-KR")}</Text>
                 </View>
                 {!notif.isRead && <View style={s.dot} />}
-              </View>
+                <TouchableOpacity onPress={() => handleDelete(notif.id)} style={s.deleteBtn}>
+                  <Ionicons name="close" size={16} color={C.t4} />
+                </TouchableOpacity>
+              </TouchableOpacity>
             ))
           )}
         </ScrollView>
@@ -54,4 +71,5 @@ const s = StyleSheet.create({
   msg:      { fontSize: 13, color: C.t2, lineHeight: 18, marginBottom: 3 },
   time:     { fontSize: 11, color: C.t4 },
   dot:      { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.primary, marginTop: 4, flexShrink: 0 },
+  deleteBtn:{ marginLeft: sp.sm, padding: 4 },
 });

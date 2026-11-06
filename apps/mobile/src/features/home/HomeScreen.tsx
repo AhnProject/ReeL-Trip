@@ -22,6 +22,7 @@ export function HomeScreen() {
     loading, refreshing,
     handleRefresh, handleToggleEvent,
     handleAddTodo, handleToggleTodo, handleDeleteTodo,
+    handleReadNotification, handleDeleteNotification,
   } = useHomeData();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -125,6 +126,8 @@ export function HomeScreen() {
         visible={showNotifModal}
         notifications={notifications}
         onClose={() => setShowNotifModal(false)}
+        onRead={handleReadNotification}
+        onDelete={handleDeleteNotification}
       />
     </SafeAreaView>
   );

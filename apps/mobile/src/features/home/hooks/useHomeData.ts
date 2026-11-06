@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/auth";
 import { useSpaces } from "@/hooks/useSpaces";
 import { useSpaceStore } from "@/store/space";
 import { useEvents, useToggleEvent } from "@/hooks/useEvents";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications, useMarkNotificationRead, useDeleteNotification } from "@/hooks/useNotifications";
 import { useTodos, useCreateTodo, useToggleTodo, useDeleteTodo } from "@/hooks/useTodos";
 
 function todayString() {
@@ -27,6 +27,8 @@ export function useHomeData() {
 
   const eventsQuery      = useEvents(currentSpaceId, monthStr);
   const notifsQuery      = useNotifications();
+  const handleReadNotification   = useMarkNotificationRead();
+  const handleDeleteNotification = useDeleteNotification();
   const handleToggleEvent = useToggleEvent(currentSpaceId, monthStr);
 
   const todosQuery   = useTodos(currentSpaceId);
@@ -58,5 +60,7 @@ export function useHomeData() {
     handleAddTodo,
     handleToggleTodo,
     handleDeleteTodo,
+    handleReadNotification,
+    handleDeleteNotification,
   };
 }
