@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import { useSpaces } from "@/hooks/useSpaces";
+import { useSpaceStore } from "@/store/space";
 import { useEvents, useToggleEvent } from "@/hooks/useEvents";
 
 export function padZ(n: number) { return String(n).padStart(2, "0"); }
@@ -17,11 +18,13 @@ export function useCalendarData() {
   );
 
   const spacesQuery  = useSpaces();
-  const firstSpaceId = spacesQuery.data?.[0]?.id ?? null;
+  const spaces       = spacesQuery.data ?? [];
+  const selectedSpaceId = useSpaceStore((s) => s.selectedSpaceId);
+  const currentSpaceId = spaces.some((s) => s.id === selectedSpaceId) ? selectedSpaceId : (spaces[0]?.id ?? null);
   const monthStr     = `${viewYear}-${padZ(viewMonth + 1)}`;
 
-  const eventsQuery  = useEvents(firstSpaceId, monthStr);
-  const handleToggle = useToggleEvent(firstSpaceId, monthStr);
+  const eventsQuery  = useEvents(currentSpaceId, monthStr);
+  const handleToggle = useToggleEvent(currentSpaceId, monthStr);
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
@@ -40,7 +43,7 @@ export function useCalendarData() {
 
   return {
     username,
-    spaceId: firstSpaceId,
+    spaceId: currentSpaceId,
     viewYear,
     viewMonth,
     selectedDate,

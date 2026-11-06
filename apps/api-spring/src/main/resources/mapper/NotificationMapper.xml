@@ -15,6 +15,11 @@
         <result property="readAt"         column="read_at"/>
     </resultMap>
 
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO notifications (user_id, message, type, related_space_id, is_read, created_at)
+        VALUES (#{userId}, #{message}, #{type}, #{relatedSpaceId}, #{isRead}, NOW())
+    </insert>
+
     <select id="findByUserId" resultMap="notificationResultMap">
         SELECT id, user_id, message, type, related_space_id, is_read, created_at, read_at
         FROM notifications

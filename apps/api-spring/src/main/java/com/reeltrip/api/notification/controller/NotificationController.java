@@ -2,10 +2,13 @@ package com.reeltrip.api.notification.controller;
 
 import com.reeltrip.api.common.response.ApiResponse;
 import com.reeltrip.api.notification.dto.NotificationResponse;
+import com.reeltrip.api.notification.dto.NotificationSettingsResponse;
+import com.reeltrip.api.notification.dto.UpdateNotificationSettingsRequest;
 import com.reeltrip.api.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +29,20 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> findAll(Principal principal) {
         return ResponseEntity.ok(ApiResponse.success(notificationService.findAll(principal.getName())));
+    }
+
+    @Operation(summary = "알림 설정 조회")
+    @GetMapping("/settings")
+    public ResponseEntity<ApiResponse<NotificationSettingsResponse>> getSettings(Principal principal) {
+        return ResponseEntity.ok(ApiResponse.success(notificationService.getSettings(principal.getName())));
+    }
+
+    @Operation(summary = "알림 설정 저장")
+    @PutMapping("/settings")
+    public ResponseEntity<ApiResponse<NotificationSettingsResponse>> updateSettings(
+            @Valid @RequestBody UpdateNotificationSettingsRequest request,
+            Principal principal) {
+        return ResponseEntity.ok(ApiResponse.success(notificationService.updateSettings(principal.getName(), request)));
     }
 
     @Operation(summary = "알림 단건 조회")

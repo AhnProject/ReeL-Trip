@@ -3,6 +3,7 @@ package com.reeltrip.api.place.controller;
 import com.reeltrip.api.common.response.ApiResponse;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.PlaceResponse;
+import com.reeltrip.api.place.dto.UpdatePlaceRequest;
 import com.reeltrip.api.place.service.PlaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -46,6 +47,15 @@ public class PlaceController {
             @PathVariable Long id,
             Principal principal) {
         return ResponseEntity.ok(ApiResponse.success(placeService.findById(id, principal.getName())));
+    }
+
+    @Operation(summary = "장소 수정")
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<PlaceResponse>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePlaceRequest request,
+            Principal principal) {
+        return ResponseEntity.ok(ApiResponse.success(placeService.update(id, request, principal.getName())));
     }
 
     @Operation(summary = "장소 삭제")

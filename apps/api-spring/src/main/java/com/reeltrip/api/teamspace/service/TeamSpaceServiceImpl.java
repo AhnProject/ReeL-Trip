@@ -4,6 +4,7 @@ import com.reeltrip.api.auth.mapper.UserMapper;
 import com.reeltrip.api.auth.model.User;
 import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
+import com.reeltrip.api.notification.service.NotificationService;
 import com.reeltrip.api.teamspace.dto.*;
 import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
 import com.reeltrip.api.teamspace.model.TeamSpace;
@@ -19,6 +20,7 @@ public class TeamSpaceServiceImpl implements TeamSpaceService {
 
     private final TeamSpaceMapper teamSpaceMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
     public TeamSpaceResponse create(CreateTeamSpaceRequest request, String username) {
@@ -96,6 +98,8 @@ public class TeamSpaceServiceImpl implements TeamSpaceService {
             throw new AppException(ErrorCode.ALREADY_MEMBER);
         }
 
+        List<TeamSpaceMember> existingMembers = teamSpaceMapper.findMembersBySpaceId(spaceId);
+
         TeamSpaceMember member = TeamSpaceMember.builder()
                 .spaceId(spaceId)
                 .userId(invitee.getId())
@@ -103,6 +107,11 @@ public class TeamSpaceServiceImpl implements TeamSpaceService {
                 .role("member")
                 .build();
         teamSpaceMapper.insertMember(member);
+
+        String message = String.format("%s님이 '%s' 스페이스에 참여했습니다.", invitee.getUsername(), space.getName());
+        existingMembers.stream()
+                .filter(m -> !m.getUserId().equals(requester.getId()))
+                .forEach(m -> notificationService.create(m.getUserId(), message, "member", spaceId));
 
         return toMemberResponse(member);
     }
@@ -123,10 +132,22 @@ public class TeamSpaceServiceImpl implements TeamSpaceService {
         TeamSpace space = getSpace(spaceId);
         checkOwner(space, requester.getId());
 
-        if (!teamSpaceMapper.existsMember(spaceId, userId)) {
-            throw new AppException(ErrorCode.MEMBER_NOT_FOUND);
+        if (userId.equals(space.getOwnerId())) {
+            throw new AppException(ErrorCode.OWNER_CANNOT_BE_REMOVED);
         }
+
+        List<TeamSpaceMember> membersBefore = teamSpaceMapper.findMembersBySpaceId(spaceId);
+        TeamSpaceMember removedMember = membersBefore.stream()
+                .filter(m -> m.getUserId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.MEMBER_NOT_FOUND));
+
         teamSpaceMapper.deleteMember(spaceId, userId);
+
+        String message = String.format("%s님이 '%s' 스페이스에서 내보내졌습니다.", removedMember.getUsername(), space.getName());
+        membersBefore.stream()
+                .filter(m -> !m.getUserId().equals(requester.getId()) && !m.getUserId().equals(userId))
+                .forEach(m -> notificationService.create(m.getUserId(), message, "member", spaceId));
     }
 
     /* ── private helpers ── */

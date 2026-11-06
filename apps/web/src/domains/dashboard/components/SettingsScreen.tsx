@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
-import { getProfile } from "@/domains/user/api";
+import { getProfile, updateProfile } from "@/domains/user/api";
+import { getNotificationSettings, updateNotificationSettings } from "@/domains/notification/api";
+import type { NotificationSettingsResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
 
@@ -21,18 +23,25 @@ const TABS: { key: TabKey; label: string }[] = [
 export function SettingsScreen() {
   const router = useRouter();
   const [username, setUsername]       = useState("");
+  const [token, setToken]             = useState("");
+  const [email, setEmail]             = useState("");
   const [spaceName, setSpaceName]     = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji]   = useState("✈️");
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
   const [activeTab, setActiveTab]     = useState<TabKey>("profile");
-  const [notifSettings, setNotifSettings] = useState({
+  const [notifSettings, setNotifSettings] = useState<NotificationSettingsResponse>({
     newPlace: true, scheduleChange: true, memberJoin: true, aiRecommend: false,
   });
+  const [notifError, setNotifError] = useState("");
+
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
     if (!storedToken) { router.replace("/"); return; }
+    setToken(storedToken);
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
@@ -44,9 +53,51 @@ export function SettingsScreen() {
     getProfile(storedToken).then((res) => {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
+        setEmail(res.data.email ?? "");
       }
     }).catch((err) => console.error("[SettingsScreen]", err));
+    getNotificationSettings(storedToken).then((res) => {
+      if (res.success && res.data) setNotifSettings(res.data);
+    }).catch((err) => console.error("[SettingsScreen]", err));
   }, [router]);
+
+  const handleToggleNotifSetting = async (key: keyof NotificationSettingsResponse) => {
+    if (!token) return;
+    const next = { ...notifSettings, [key]: !notifSettings[key] };
+    setNotifSettings(next);
+    setNotifError("");
+    try {
+      const res = await updateNotificationSettings(next, token);
+      if (!res.success) {
+        setNotifSettings(notifSettings);
+        setNotifError("알림 설정 저장에 실패했습니다.");
+      }
+    } catch {
+      setNotifSettings(notifSettings);
+      setNotifError("서버 오류가 발생했습니다.");
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!token) return;
+    setProfileSaving(true);
+    setProfileMessage(null);
+    try {
+      const res = await updateProfile({ email: email.trim() }, token);
+      if (res.success && res.data) {
+        setEmail(res.data.email ?? "");
+        setProfileMessage({ type: "success", text: "프로필을 저장했습니다." });
+      } else if (res.errorCode === "EMAIL_ALREADY_EXISTS") {
+        setProfileMessage({ type: "error", text: "이미 사용 중인 이메일입니다." });
+      } else {
+        setProfileMessage({ type: "error", text: "저장에 실패했습니다. 잠시 후 다시 시도해주세요." });
+      }
+    } catch {
+      setProfileMessage({ type: "error", text: "서버 오류가 발생했습니다." });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   if (!username) return <LoadingScreen />;
 
@@ -98,22 +149,36 @@ export function SettingsScreen() {
                 </button>
               </div>
               <div className="flex flex-col gap-4">
-                {[
-                  { label: "사용자명", value: username, type: "text" },
-                  { label: "이메일",   value: `${username.toLowerCase()}@reeltrip.com`, type: "email" },
-                ].map((field) => (
-                  <div key={field.label}>
-                    <label className="mb-1 block text-xs font-semibold text-slate-500">{field.label}</label>
-                    <input
-                      type={field.type}
-                      defaultValue={field.value}
-                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary"
-                    />
-                  </div>
-                ))}
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500">사용자명</label>
+                  <input
+                    type="text"
+                    value={username}
+                    disabled
+                    className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500">이메일</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary"
+                  />
+                </div>
               </div>
-              <button className="mt-5 rounded-xl bg-brand-primary px-5 py-2 text-sm font-semibold text-white hover:bg-brand-primaryHover">
-                저장
+              {profileMessage && (
+                <p className={cn("mt-3 text-xs", profileMessage.type === "error" ? "text-red-500" : "text-green-600")}>
+                  {profileMessage.text}
+                </p>
+              )}
+              <button
+                onClick={handleSaveProfile}
+                disabled={profileSaving}
+                className="mt-5 rounded-xl bg-brand-primary px-5 py-2 text-sm font-semibold text-white hover:bg-brand-primaryHover disabled:opacity-50"
+              >
+                {profileSaving ? "저장 중…" : "저장"}
               </button>
             </div>
           )}
@@ -169,7 +234,7 @@ export function SettingsScreen() {
                       <p className="text-xs text-slate-400">{item.desc}</p>
                     </div>
                     <button
-                      onClick={() => setNotifSettings((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
+                      onClick={() => handleToggleNotifSetting(item.key)}
                       className={cn(
                         "relative h-6 w-11 flex-shrink-0 rounded-full transition-colors",
                         notifSettings[item.key] ? "bg-brand-primary" : "bg-slate-200",
@@ -183,6 +248,7 @@ export function SettingsScreen() {
                   </div>
                 ))}
               </div>
+              {notifError && <p className="mt-3 text-xs text-red-500">{notifError}</p>}
             </div>
           )}
 

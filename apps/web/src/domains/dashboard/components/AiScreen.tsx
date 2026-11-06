@@ -7,16 +7,11 @@ import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
 import { listPlaces } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
+import { recommend } from "@/domains/recommend/api";
+import type { RecommendResult } from "@reel-trip/types";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
 import { CATEGORY_LABEL, categoryLabel } from "@/constants/categories";
-
-/* ── 더미 AI 추천 (팝업 하단 고정) ── */
-const DUMMY_AI_RECS = [
-  { id: 901, name: "우도 해변", region: "서귀포시 우도면", emoji: "🏖️", reason: "저장된 장소와 유사한 해변 스팟" },
-  { id: 902, name: "월정리 해수욕장", region: "제주시 구좌읍", emoji: "🌊", reason: "에메랄드 바다 카테고리 일치" },
-  { id: 903, name: "섭지코지", region: "서귀포시 성산읍", emoji: "🌅", reason: "자연 경관 추천 상위 일치" },
-];
 
 /* ── 플랫폼 배지 ── */
 function PlatformBadge({ platform }: { platform: string | null }) {
@@ -73,15 +68,36 @@ function PlaceThumbnail({ url, name, size = "md" }: { url: string | null; name: 
 ══════════════════════════════════════ */
 function PlaceDetailModal({
   place,
+  token,
   onClose,
   onAddRec,
 }: {
   place: PlaceResponse;
+  token: string;
   onClose: () => void;
   onAddRec: (name: string) => void;
 }) {
   const [maximized, setMaximized] = useState(false);
-  const [added, setAdded] = useState<number[]>([]);
+  const [added, setAdded] = useState<string[]>([]);
+  const [recs, setRecs] = useState<RecommendResult[]>([]);
+  const [recsLoading, setRecsLoading] = useState(true);
+  const [recsError, setRecsError] = useState("");
+
+  useEffect(() => {
+    setRecs([]);
+    setRecsError("");
+    setRecsLoading(true);
+    const query = `${place.name}${place.region ? ` ${place.region}` : ""}과 비슷한 분위기의 여행지`;
+    recommend(query, token).then((res) => {
+      if (res.success && res.data) {
+        setRecs(res.data.results);
+      } else {
+        setRecsError(res.message ?? "추천을 불러오지 못했습니다.");
+      }
+    }).catch(() => {
+      setRecsError("추천을 불러오지 못했습니다.");
+    }).finally(() => setRecsLoading(false));
+  }, [place.id, place.name, place.region, token]);
 
   /* 외부 클릭 닫기 */
   const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -273,34 +289,42 @@ function PlaceDetailModal({
               <span className="text-base">✨</span>
               <span className="text-sm font-bold text-brand-primary">비슷한 여행지 (AI 추천)</span>
             </div>
-            <div className="flex flex-col gap-2">
-              {DUMMY_AI_RECS.map((rec) => (
-                <div key={rec.id} className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{rec.emoji}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{rec.name}</p>
-                      <p className="text-xs text-slate-400">{rec.region}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-300">{rec.reason}</p>
+            {recsLoading ? (
+              <p className="py-2 text-center text-xs text-slate-400">추천을 불러오는 중…</p>
+            ) : recsError ? (
+              <p className="py-2 text-center text-xs text-red-400">{recsError}</p>
+            ) : recs.length === 0 ? (
+              <p className="py-2 text-center text-xs text-slate-400">아직 추천할 만한 비슷한 여행지가 없어요</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {recs.map((rec) => (
+                  <div key={rec.id} className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">✨</span>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{rec.title}</p>
+                        <p className="line-clamp-1 text-xs text-slate-400">{rec.content}</p>
+                        <p className="mt-0.5 text-[10px] text-slate-300">유사도 {(rec.similarity * 100).toFixed(0)}%</p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => {
+                        setAdded((prev) => prev.includes(rec.id) ? prev : [...prev, rec.id]);
+                        onAddRec(rec.title);
+                      }}
+                      className={cn(
+                        "flex-shrink-0 cursor-pointer rounded-full border-none px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                        added.includes(rec.id)
+                          ? "bg-green-100 text-green-600"
+                          : "bg-brand-primary text-white hover:bg-brand-primaryHover",
+                      )}
+                    >
+                      {added.includes(rec.id) ? "추가됨" : "+ 내 여행지 추가"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      setAdded((prev) => prev.includes(rec.id) ? prev : [...prev, rec.id]);
-                      onAddRec(rec.name);
-                    }}
-                    className={cn(
-                      "flex-shrink-0 cursor-pointer rounded-full border-none px-3 py-1.5 text-[11px] font-semibold transition-colors",
-                      added.includes(rec.id)
-                        ? "bg-green-100 text-green-600"
-                        : "bg-brand-primary text-white hover:bg-brand-primaryHover",
-                    )}
-                  >
-                    {added.includes(rec.id) ? "추가됨" : "+ 내 여행지 추가"}
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -322,6 +346,7 @@ export function AiScreen() {
   const router = useRouter();
 
   const [username, setUsername]     = useState("");
+  const [token, setToken]           = useState("");
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
   const [places, setPlaces]         = useState<PlaceResponse[]>([]);
@@ -336,6 +361,7 @@ export function AiScreen() {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
     if (!storedToken) { router.replace("/"); return; }
+    setToken(storedToken);
     setUsername(name ?? "");
 
     listTeamSpaces(storedToken).then((res) => {
@@ -501,6 +527,7 @@ export function AiScreen() {
       {selected && (
         <PlaceDetailModal
           place={selected}
+          token={token}
           onClose={() => setSelected(null)}
           onAddRec={(name) => {
             /* 실제 추가 로직 연결 포인트 — 현재는 콘솔만 */

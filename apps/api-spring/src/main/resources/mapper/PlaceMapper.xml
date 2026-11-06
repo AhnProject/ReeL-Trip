@@ -67,6 +67,32 @@
         ORDER BY created_at DESC
     </select>
 
+    <update id="update">
+        UPDATE places
+        <set>
+            name = #{name},
+            category = #{category},
+            address = #{address},
+            region = #{region},
+            country = #{country},
+            latitude = #{latitude},
+            longitude = #{longitude},
+            price_desc = #{priceDesc},
+            price_min = #{priceMin},
+            price_max = #{priceMax},
+            currency = #{currency},
+            hours = #{hours},
+            thumbnail_url = #{thumbnailUrl},
+            source_url = #{sourceUrl},
+            source_platform = #{sourcePlatform},
+            tags = #{tags, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
+            menu = #{menu, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
+            confidence = #{confidence},
+            updated_at = NOW(),
+        </set>
+        WHERE id = #{id}
+    </update>
+
     <delete id="delete">
         DELETE FROM places WHERE id = #{id}
     </delete>
