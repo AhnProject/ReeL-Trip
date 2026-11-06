@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/cn";
@@ -54,6 +55,13 @@ export function DashboardLayout({
   rightPanel,
 }: Props) {
   const router = useRouter();
+  const [search, setSearch] = useState("");
+
+  const handleSearchSubmit = () => {
+    const term = search.trim();
+    if (!term) return;
+    router.push(`/dashboard/travel?q=${encodeURIComponent(term)}`);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden font-sans">
@@ -140,6 +148,9 @@ export function DashboardLayout({
             <input
               type="text"
               placeholder="장소, 일정 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(); }}
               className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
             />
           </div>

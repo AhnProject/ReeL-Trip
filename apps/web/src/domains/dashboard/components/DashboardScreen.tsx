@@ -454,6 +454,7 @@ function DashboardInner() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUrlModal, setShowUrlModal]       = useState(false);
+  const [search, setSearch]                   = useState("");
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -672,6 +673,8 @@ function DashboardInner() {
               <input
                 type="text"
                 placeholder="장소, 일정 검색"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
               />
             </div>
@@ -704,8 +707,16 @@ function DashboardInner() {
 
             {/* 일정 + AI추천 2열 */}
             <div className="mt-4 grid grid-cols-2 gap-4">
-              <ScheduleTimeline events={selectedSpace?.events ?? []} />
-              <AiRecommendSection places={places.slice(0, 3)} />
+              <ScheduleTimeline
+                events={(selectedSpace?.events ?? []).filter(
+                  (e) => !search.trim() || e.title.toLowerCase().includes(search.trim().toLowerCase()),
+                )}
+              />
+              <AiRecommendSection
+                places={places
+                  .filter((p) => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
+                  .slice(0, 3)}
+              />
             </div>
 
             {/* 멤버 현황 */}
