@@ -20,6 +20,10 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "Access denied"),
 
+    // User
+    AVATAR_TOO_LARGE(HttpStatus.BAD_REQUEST, "Avatar image exceeds the maximum size"),
+    INVALID_AVATAR_FORMAT(HttpStatus.BAD_REQUEST, "Avatar is not a valid base64 image"),
+
     // Document
     DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Document not found"),
     INVALID_VECTOR_DIMENSION(HttpStatus.BAD_REQUEST, "Invalid vector dimension"),

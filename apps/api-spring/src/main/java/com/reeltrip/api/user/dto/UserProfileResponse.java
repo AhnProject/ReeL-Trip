@@ -13,5 +13,6 @@ public class UserProfileResponse {
     private String email;
     private String role;
     private String plan;
+    private String avatar;
     private LocalDateTime createdAt;
 }

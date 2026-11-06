@@ -1,6 +1,7 @@
 package com.reeltrip.api.user.controller;
 
 import com.reeltrip.api.common.response.ApiResponse;
+import com.reeltrip.api.user.dto.UpdateAvatarRequest;
 import com.reeltrip.api.user.dto.UpdateProfileRequest;
 import com.reeltrip.api.user.dto.UserProfileResponse;
 import com.reeltrip.api.user.service.UserService;
@@ -35,5 +36,13 @@ public class UserController {
             Principal principal,
             @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userService.updateProfile(principal.getName(), request)));
+    }
+
+    @Operation(summary = "프로필 사진 변경", description = "base64로 인코딩된 이미지(데이터 URL 형식 가능)를 받아 저장합니다. 원본 이미지 기준 2MB를 초과하면 실패합니다.")
+    @PutMapping("/avatar")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> updateAvatar(
+            Principal principal,
+            @Valid @RequestBody UpdateAvatarRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(userService.updateAvatar(principal.getName(), request)));
     }
 }

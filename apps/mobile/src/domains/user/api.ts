@@ -6,6 +6,7 @@ export interface UserProfile {
   email: string;
   role: string;
   plan: string;
+  avatar: string | null;
   createdAt: string;
 }
 
@@ -17,5 +18,12 @@ export function updateProfile(payload: { email?: string }, token: string) {
   return apiRequest<UserProfile>("/api/user/profile", {
     method: "PUT",
     body: JSON.stringify(payload),
+  }, token);
+}
+
+export function updateAvatar(avatar: string, token: string) {
+  return apiRequest<UserProfile>("/api/user/avatar", {
+    method: "PUT",
+    body: JSON.stringify({ avatar }),
   }, token);
 }

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces, updateTeamSpace, deleteTeamSpace } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
-import { getProfile, updateProfile } from "@/domains/user/api";
+import { getProfile, updateProfile, updateAvatar } from "@/domains/user/api";
 import { getNotificationSettings, updateNotificationSettings } from "@/domains/notification/api";
 import type { NotificationSettingsResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
@@ -27,6 +27,9 @@ function SettingsInner() {
   const [username, setUsername]       = useState("");
   const [token, setToken]             = useState("");
   const [email, setEmail]             = useState("");
+  const [avatar, setAvatar]           = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
   const [spaces, setSpaces]           = useState<TeamSpaceResponse[]>([]);
   const [spaceId, setSpaceId]         = useState<number | null>(null);
   const [spaceName, setSpaceName]     = useState("여행 없음");
@@ -71,6 +74,7 @@ function SettingsInner() {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
         setEmail(res.data.email ?? "");
+        setAvatar(res.data.avatar ?? null);
         setJoinedAt(res.data.createdAt.slice(0, 10).replaceAll("-", "."));
       }
     }).catch((err) => console.error("[SettingsScreen]", err));
@@ -167,6 +171,44 @@ function SettingsInner() {
     }
   };
 
+  const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !token) return;
+    setAvatarError("");
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError("이미지 용량은 2MB 이하만 가능합니다.");
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const res = await updateAvatar(dataUrl, token);
+      if (res.success && res.data) {
+        setAvatar(res.data.avatar ?? null);
+      } else if (res.errorCode === "AVATAR_TOO_LARGE") {
+        setAvatarError("이미지 용량은 2MB 이하만 가능합니다.");
+      } else if (res.errorCode === "INVALID_AVATAR_FORMAT") {
+        setAvatarError("올바른 이미지 파일이 아닙니다.");
+      } else {
+        setAvatarError("사진 변경에 실패했습니다.");
+      }
+    } catch {
+      setAvatarError("사진 변경에 실패했습니다.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!token) return;
     setProfileSaving(true);
@@ -236,14 +278,26 @@ function SettingsInner() {
           {activeTab === "profile" && (
             <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
               <h2 className="mb-5 text-base font-bold text-slate-900">프로필 설정</h2>
-              <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-primary text-xl font-bold text-white">
-                  {username[0]?.toUpperCase() ?? "?"}
+              <div className="mb-2 flex items-center gap-4">
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-primary text-xl font-bold text-white">
+                  {avatar ? (
+                    <img src={avatar} alt={username} className="h-full w-full object-cover" />
+                  ) : (
+                    username[0]?.toUpperCase() ?? "?"
+                  )}
                 </div>
-                <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
-                  사진 변경
-                </button>
+                <label className="cursor-pointer rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50">
+                  {avatarUploading ? "업로드 중…" : "사진 변경"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    disabled={avatarUploading}
+                    className="hidden"
+                  />
+                </label>
               </div>
+              {avatarError && <p className="mb-4 text-xs text-red-500">{avatarError}</p>}
               <div className="flex flex-col gap-4">
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-500">사용자명</label>
