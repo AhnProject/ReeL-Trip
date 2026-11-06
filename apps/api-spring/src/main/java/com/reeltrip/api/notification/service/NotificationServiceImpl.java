@@ -62,6 +62,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void create(Long userId, String message, String type, Long relatedSpaceId) {
         try {
+            if (isSuppressedByUserSettings(userId, type)) {
+                return;
+            }
             Notification notification = Notification.builder()
                     .userId(userId)
                     .message(message)
@@ -75,6 +78,27 @@ public class NotificationServiceImpl implements NotificationService {
             // 영향을 주면 안 되므로 예외를 전파하지 않고 로그만 남긴다.
             log.error("알림 생성 실패 (userId={}, type={}, relatedSpaceId={})", userId, type, relatedSpaceId, e);
         }
+    }
+
+    /**
+     * member/schedule/place 알림은 사용자의 알림 설정(memberJoin/scheduleChange/newPlace)이
+     * false면 생성을 건너뛴다. chat은 설정 화면에 토글이 없어 항상 생성하고,
+     * aiRecommend는 애초에 알림을 만들지 않는 기존 설계이므로 여기서 다루지 않는다.
+     */
+    private boolean isSuppressedByUserSettings(Long userId, String type) {
+        if (!"member".equals(type) && !"schedule".equals(type) && !"place".equals(type)) {
+            return false;
+        }
+        NotificationSettings settings = notificationSettingsMapper.findByUserId(userId).orElse(null);
+        if (settings == null) {
+            return false; // 설정 행이 없으면 기본값(true)과 동일하게 생성
+        }
+        return switch (type) {
+            case "member" -> !settings.isMemberJoin();
+            case "schedule" -> !settings.isScheduleChange();
+            case "place" -> !settings.isNewPlace();
+            default -> false;
+        };
     }
 
     @Override
