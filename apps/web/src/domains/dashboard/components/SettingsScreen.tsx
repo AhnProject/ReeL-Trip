@@ -43,7 +43,7 @@ function SettingsInner() {
     return (TABS.some((t) => t.key === tabParam) ? tabParam : "profile") as TabKey;
   });
   const [notifSettings, setNotifSettings] = useState<NotificationSettingsResponse>({
-    newPlace: true, scheduleChange: true, memberJoin: true, aiRecommend: false,
+    newPlace: true, scheduleChange: true, memberJoin: true, aiRecommend: false, chat: true,
   });
   const [notifError, setNotifError] = useState("");
 
@@ -345,6 +345,7 @@ function SettingsInner() {
                   { key: "newPlace" as const,       label: "새 장소 추가",    desc: "팀원이 장소를 추가하면 알려드려요"    },
                   { key: "scheduleChange" as const,  label: "일정 변경",      desc: "일정이 수정되거나 삭제되면 알려드려요" },
                   { key: "memberJoin" as const,      label: "멤버 참여",      desc: "새 멤버가 스페이스에 참여하면 알려드려요" },
+                  { key: "chat" as const,            label: "채팅 메시지",    desc: "새 채팅 메시지가 오면 알려드려요" },
                   { key: "aiRecommend" as const,     label: "AI 추천 도착",   desc: "AI 추천 장소가 준비되면 알려드려요"  },
                 ]).map((item) => (
                   <div key={item.key} className="flex items-center justify-between rounded-lg border border-slate-100 p-4">

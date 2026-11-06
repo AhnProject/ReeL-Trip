@@ -18,6 +18,7 @@ const ITEMS: { key: keyof NotificationSettingsResponse; label: string; desc: str
   { key: "newPlace",       label: "새 장소 추가",  desc: "팀원이 장소를 추가하면 알려드려요" },
   { key: "scheduleChange", label: "일정 변경",    desc: "일정이 수정되거나 삭제되면 알려드려요" },
   { key: "memberJoin",     label: "멤버 참여",    desc: "새 멤버가 스페이스에 참여하면 알려드려요" },
+  { key: "chat",           label: "채팅 메시지",  desc: "새 채팅 메시지가 오면 알려드려요" },
   { key: "aiRecommend",    label: "AI 추천 도착", desc: "AI 추천 장소가 준비되면 알려드려요" },
 ];
 

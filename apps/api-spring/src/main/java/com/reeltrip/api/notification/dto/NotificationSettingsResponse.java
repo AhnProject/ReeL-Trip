@@ -10,4 +10,5 @@ public class NotificationSettingsResponse {
     private boolean scheduleChange;
     private boolean memberJoin;
     private boolean aiRecommend;
+    private boolean chat;
 }
