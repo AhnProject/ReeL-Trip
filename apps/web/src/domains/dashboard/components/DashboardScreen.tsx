@@ -52,6 +52,7 @@ const NAV_ITEMS: { key: DashboardNavKey; label: string; icon: React.ReactNode }[
 /* ── 서브 컴포넌트 ── */
 
 function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; placesCount: number }) {
+  const router = useRouter();
   if (!space) return (
     <div className="col-span-2 rounded-xl border border-slate-100 bg-white p-5 py-10 text-center text-sm text-slate-400 shadow-sm">
       여행 스페이스가 없습니다. 새 여행을 만들어보세요.
@@ -79,7 +80,10 @@ function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; 
       <div className="flex flex-1 flex-col">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-slate-900">{space.name}</h2>
-          <button className="cursor-pointer border-none bg-transparent text-slate-300 hover:text-slate-500">
+          <button
+            onClick={() => router.push("/dashboard/settings?tab=space")}
+            className="cursor-pointer border-none bg-transparent text-slate-300 hover:text-slate-500"
+          >
             <IconGearSmall />
           </button>
         </div>

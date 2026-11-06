@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces, updateTeamSpace, deleteTeamSpace } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
@@ -21,8 +21,9 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "account",      label: "계정"     },
 ];
 
-export function SettingsScreen() {
+function SettingsInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [username, setUsername]       = useState("");
   const [token, setToken]             = useState("");
   const [email, setEmail]             = useState("");
@@ -37,7 +38,10 @@ export function SettingsScreen() {
   const [spaceMessage, setSpaceMessage]   = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
   const [joinedAt, setJoinedAt]       = useState("");
-  const [activeTab, setActiveTab]     = useState<TabKey>("profile");
+  const [activeTab, setActiveTab]     = useState<TabKey>(() => {
+    const tabParam = searchParams.get("tab");
+    return (TABS.some((t) => t.key === tabParam) ? tabParam : "profile") as TabKey;
+  });
   const [notifSettings, setNotifSettings] = useState<NotificationSettingsResponse>({
     newPlace: true, scheduleChange: true, memberJoin: true, aiRecommend: false,
   });
@@ -402,5 +406,13 @@ export function SettingsScreen() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export function SettingsScreen() {
+  return (
+    <Suspense>
+      <SettingsInner />
+    </Suspense>
   );
 }
