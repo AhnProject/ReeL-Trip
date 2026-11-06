@@ -6,12 +6,14 @@ import { ProfileHeader } from "./components/ProfileHeader";
 import { InfoCard } from "./components/InfoCard";
 import type { InfoRow } from "./components/InfoCard";
 import { EditProfileModal } from "./components/EditProfileModal";
+import { NotificationSettingsModal } from "./components/NotificationSettingsModal";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { C } from "@/lib/colors";
 
 export function ProfileScreen() {
   const { profile, username, loading, refreshing, onRefresh, handleLogout } = useProfileData();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
 
   if (loading) return <LoadingScreen />;
 
@@ -44,10 +46,23 @@ export function ProfileScreen() {
 
       <InfoCard title="계정 정보" rows={accountRows} />
 
+      <TouchableOpacity style={s.card} onPress={() => setShowNotifModal(true)} activeOpacity={0.8}>
+        <View style={s.settingsRow}>
+          <View style={s.settingsIcon}><Ionicons name="notifications-outline" size={16} color={C.primary} /></View>
+          <Text style={s.settingsLabel}>알림 설정</Text>
+          <Ionicons name="chevron-forward" size={16} color={C.t4} />
+        </View>
+      </TouchableOpacity>
+
       <EditProfileModal
         visible={showEditModal}
         initialEmail={profile?.email ?? ""}
         onClose={() => setShowEditModal(false)}
+      />
+
+      <NotificationSettingsModal
+        visible={showNotifModal}
+        onClose={() => setShowNotifModal(false)}
       />
 
       {/* 플랜 카드 */}
@@ -114,6 +129,9 @@ const s = StyleSheet.create({
     fontSize: 13, fontWeight: "700", color: C.t3,
     marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5,
   },
+  settingsRow:   { flexDirection: "row", alignItems: "center", gap: 10 },
+  settingsIcon:  { width: 32, height: 32, borderRadius: 8, backgroundColor: C.primaryLight, alignItems: "center", justifyContent: "center" },
+  settingsLabel: { flex: 1, fontSize: 14, fontWeight: "600", color: C.t1 },
   planRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   planInfo: { flexDirection: "row", alignItems: "center", gap: 8 },
   planName: { fontSize: 15, fontWeight: "600", color: C.t1 },
