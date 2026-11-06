@@ -707,7 +707,10 @@ function DashboardInner() {
                 className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
               />
             </div>
-            <button className="relative cursor-pointer border-none bg-transparent p-1.5 text-slate-500 hover:text-slate-700">
+            <button
+              onClick={() => router.push("/dashboard/notification")}
+              className="relative cursor-pointer border-none bg-transparent p-1.5 text-slate-500 hover:text-slate-700"
+            >
               <IconBell />
               {unreadCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
