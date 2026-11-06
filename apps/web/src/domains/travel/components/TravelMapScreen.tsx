@@ -12,6 +12,8 @@ import type { MemberResponse } from "@/domains/teamspace/api";
 import { UrlParserModal } from "@/domains/place/components/UrlParserModal";
 import type { ParsedResult } from "@/domains/place/types";
 import { CreateEventModal } from "@/domains/event/components/CreateEventModal";
+import { TravelPlaceDetailModal } from "./TravelPlaceDetailModal";
+import type { MapMarkerPlace } from "./TravelPlaceDetailModal";
 import { Logo } from "@/components/Logo";
 
 /* Leaflet은 SSR 불가 → dynamic import */
@@ -43,6 +45,7 @@ export function TravelMapScreen() {
   const [confirmedIds, setConfirmedIds] = useState<Set<number>>(new Set());
   const [showUrlModal, setShowUrlModal]     = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [detailPlace, setDetailPlace] = useState<MapMarkerPlace | null>(null);
   const [search, setSearch]                 = useState("");
 
   useEffect(() => {
@@ -212,7 +215,10 @@ export function TravelMapScreen() {
 
         {/* ── 중앙 지도 ── */}
         <main className="relative flex-1 overflow-hidden">
-          <TravelMapView onAddToSchedule={() => setShowCreateModal(true)} />
+          <TravelMapView
+            onAddToSchedule={() => setShowCreateModal(true)}
+            onViewDetail={(place) => setDetailPlace(place)}
+          />
         </main>
 
         {/* ── 우측 패널 ── */}
@@ -339,6 +345,13 @@ export function TravelMapScreen() {
           defaultDate={todayStr()}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {detailPlace && (
+        <TravelPlaceDetailModal
+          place={detailPlace}
+          onClose={() => setDetailPlace(null)}
         />
       )}
     </div>
