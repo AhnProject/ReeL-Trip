@@ -128,6 +128,7 @@ function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; 
 }
 
 function ScheduleTimeline({ events }: { events: TripEvent[] }) {
+  const router = useRouter();
   // startDate ~ endDate 범위를 하루씩 펼쳐 날짜별 이벤트 Map 생성
   const dateMap = new Map<string, TripEvent[]>();
   for (const event of events) {
@@ -145,7 +146,12 @@ function ScheduleTimeline({ events }: { events: TripEvent[] }) {
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">이번 여행 일정</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 일정 보기</button>
+        <button
+          onClick={() => router.push("/dashboard/calendar")}
+          className="cursor-pointer border-none bg-transparent text-sm text-brand-primary"
+        >
+          전체 일정 보기
+        </button>
       </div>
       <div className="mt-3 flex flex-col">
         {dates.length === 0 ? (
@@ -183,11 +189,17 @@ function ScheduleTimeline({ events }: { events: TripEvent[] }) {
 }
 
 function AiRecommendSection({ places }: { places: PlaceResponse[] }) {
+  const router = useRouter();
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">저장된 장소</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">더보기</button>
+        <button
+          onClick={() => router.push("/dashboard/travel")}
+          className="cursor-pointer border-none bg-transparent text-sm text-brand-primary"
+        >
+          더보기
+        </button>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3">
         {places.length === 0 ? (
@@ -220,11 +232,17 @@ function AiRecommendSection({ places }: { places: PlaceResponse[] }) {
 }
 
 function MemberStatus({ space, onInvite }: { space: TeamSpace | undefined; onInvite: () => void }) {
+  const router = useRouter();
   return (
     <div className="flex-1 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">멤버 현황</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 멤버 보기</button>
+        <button
+          onClick={() => router.push("/dashboard/member")}
+          className="cursor-pointer border-none bg-transparent text-sm text-brand-primary"
+        >
+          전체 멤버 보기
+        </button>
       </div>
       <div className="mt-3 flex flex-wrap gap-4">
         {(space?.members ?? []).map((m) => (
@@ -411,11 +429,17 @@ function TodoPanel({
 }
 
 function ActivityPanel({ notifications }: { notifications: NotificationResponse[] }) {
+  const router = useRouter();
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-900">최근 활동</h3>
-        <button className="cursor-pointer border-none bg-transparent text-xs text-brand-primary">전체 보기</button>
+        <button
+          onClick={() => router.push("/dashboard/notification")}
+          className="cursor-pointer border-none bg-transparent text-xs text-brand-primary"
+        >
+          전체 보기
+        </button>
       </div>
       {notifications.length === 0 ? (
         <p className="py-4 text-center text-sm text-slate-400">최근 활동이 없습니다</p>
