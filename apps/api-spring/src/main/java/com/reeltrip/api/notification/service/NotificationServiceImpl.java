@@ -5,8 +5,12 @@ import com.reeltrip.api.auth.model.User;
 import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
 import com.reeltrip.api.notification.dto.NotificationResponse;
+import com.reeltrip.api.notification.dto.NotificationSettingsResponse;
+import com.reeltrip.api.notification.dto.UpdateNotificationSettingsRequest;
 import com.reeltrip.api.notification.mapper.NotificationMapper;
+import com.reeltrip.api.notification.mapper.NotificationSettingsMapper;
 import com.reeltrip.api.notification.model.Notification;
+import com.reeltrip.api.notification.model.NotificationSettings;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,7 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
+    private final NotificationSettingsMapper notificationSettingsMapper;
     private final UserMapper userMapper;
 
     @Override
@@ -72,6 +77,34 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @Override
+    public NotificationSettingsResponse getSettings(String username) {
+        User user = getUser(username);
+        NotificationSettings settings = notificationSettingsMapper.findByUserId(user.getId())
+                .orElseGet(() -> NotificationSettings.builder()
+                        .userId(user.getId())
+                        .newPlace(true)
+                        .scheduleChange(true)
+                        .memberJoin(true)
+                        .aiRecommend(false)
+                        .build());
+        return toSettingsResponse(settings);
+    }
+
+    @Override
+    public NotificationSettingsResponse updateSettings(String username, UpdateNotificationSettingsRequest request) {
+        User user = getUser(username);
+        NotificationSettings settings = NotificationSettings.builder()
+                .userId(user.getId())
+                .newPlace(request.getNewPlace())
+                .scheduleChange(request.getScheduleChange())
+                .memberJoin(request.getMemberJoin())
+                .aiRecommend(request.getAiRecommend())
+                .build();
+        notificationSettingsMapper.upsert(settings);
+        return toSettingsResponse(settings);
+    }
+
     /* ── private helpers ── */
 
     private User getUser(String username) {
@@ -86,6 +119,15 @@ public class NotificationServiceImpl implements NotificationService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
         return notification;
+    }
+
+    private NotificationSettingsResponse toSettingsResponse(NotificationSettings s) {
+        return NotificationSettingsResponse.builder()
+                .newPlace(s.isNewPlace())
+                .scheduleChange(s.isScheduleChange())
+                .memberJoin(s.isMemberJoin())
+                .aiRecommend(s.isAiRecommend())
+                .build();
     }
 
     private NotificationResponse toResponse(Notification n) {
