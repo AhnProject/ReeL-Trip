@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { listTeamSpaces } from "@/domains/teamspace/api";
+import { listTeamSpaces, updateTeamSpace, deleteTeamSpace } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
 import { getProfile, updateProfile } from "@/domains/user/api";
 import { getNotificationSettings, updateNotificationSettings } from "@/domains/notification/api";
@@ -27,8 +27,14 @@ export function SettingsScreen() {
   const [token, setToken]             = useState("");
   const [email, setEmail]             = useState("");
   const [spaces, setSpaces]           = useState<TeamSpaceResponse[]>([]);
+  const [spaceId, setSpaceId]         = useState<number | null>(null);
   const [spaceName, setSpaceName]     = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji]   = useState("✈️");
+  const [spaceNameDraft, setSpaceNameDraft]   = useState("");
+  const [spaceEmojiDraft, setSpaceEmojiDraft] = useState("");
+  const [spaceSaving, setSpaceSaving]     = useState(false);
+  const [spaceDeleting, setSpaceDeleting] = useState(false);
+  const [spaceMessage, setSpaceMessage]   = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
   const [joinedAt, setJoinedAt]       = useState("");
   const [activeTab, setActiveTab]     = useState<TabKey>("profile");
@@ -50,8 +56,11 @@ export function SettingsScreen() {
       if (res.success && res.data && res.data.length > 0) {
         setSpaces(res.data);
         const sp = pickSpace(res.data) as TeamSpaceResponse;
+        setSpaceId(sp.id);
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
+        setSpaceNameDraft(sp.name);
+        setSpaceEmojiDraft(sp.emoji ?? "✈️");
       }
     }).catch((err) => console.error("[SettingsScreen]", err));
     getProfile(storedToken).then((res) => {
@@ -69,9 +78,72 @@ export function SettingsScreen() {
   const handleSelectSpace = (id: string | number) => {
     const sp = spaces.find((s) => String(s.id) === String(id));
     if (!sp) return;
+    setSpaceId(sp.id);
     setSpaceName(sp.name);
     setSpaceEmoji(sp.emoji ?? "✈️");
+    setSpaceNameDraft(sp.name);
+    setSpaceEmojiDraft(sp.emoji ?? "✈️");
+    setSpaceMessage(null);
     setSelectedSpaceId(sp.id);
+  };
+
+  const selectedSpace = spaces.find((s) => s.id === spaceId);
+  const owner         = selectedSpace?.members.find((m) => m.role === "owner");
+  const isSpaceOwner   = !!owner && owner.username === username;
+
+  const handleSaveSpace = async () => {
+    if (!token || !spaceId || !spaceNameDraft.trim()) return;
+    setSpaceSaving(true);
+    setSpaceMessage(null);
+    try {
+      const res = await updateTeamSpace(spaceId, {
+        name:    spaceNameDraft.trim(),
+        emoji:   spaceEmojiDraft.trim() || undefined,
+        bgColor: selectedSpace?.bgColor ?? undefined,
+      }, token);
+      if (res.success && res.data) {
+        setSpaceName(res.data.name);
+        setSpaceEmoji(res.data.emoji ?? "✈️");
+        setSpaces((prev) => prev.map((s) => (s.id === spaceId ? res.data! : s)));
+        setSpaceMessage({ type: "success", text: "스페이스 정보를 저장했습니다." });
+      } else {
+        setSpaceMessage({ type: "error", text: "저장에 실패했습니다." });
+      }
+    } catch {
+      setSpaceMessage({ type: "error", text: "서버 오류가 발생했습니다." });
+    } finally {
+      setSpaceSaving(false);
+    }
+  };
+
+  const handleDeleteSpace = async () => {
+    if (!token || !spaceId || !selectedSpace) return;
+    if (!window.confirm(`"${selectedSpace.name}" 스페이스를 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
+    setSpaceDeleting(true);
+    setSpaceMessage(null);
+    try {
+      const res = await deleteTeamSpace(spaceId, token);
+      if (res.success) {
+        const remaining = spaces.filter((s) => s.id !== spaceId);
+        setSpaces(remaining);
+        if (remaining.length > 0) {
+          handleSelectSpace(remaining[0].id);
+        } else {
+          setSpaceId(null);
+          setSpaceName("여행 없음");
+          setSpaceEmoji("✈️");
+          setSpaceNameDraft("");
+          setSpaceEmojiDraft("");
+        }
+        setSpaceMessage({ type: "success", text: "스페이스를 삭제했습니다." });
+      } else {
+        setSpaceMessage({ type: "error", text: "삭제에 실패했습니다." });
+      }
+    } catch {
+      setSpaceMessage({ type: "error", text: "서버 오류가 발생했습니다." });
+    } finally {
+      setSpaceDeleting(false);
+    }
   };
 
   const handleToggleNotifSetting = async (key: keyof NotificationSettingsResponse) => {
@@ -212,28 +284,51 @@ export function SettingsScreen() {
                   <label className="mb-1 block text-xs font-semibold text-slate-500">스페이스 이름</label>
                   <input
                     type="text"
-                    defaultValue={spaceName}
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary"
+                    value={spaceNameDraft}
+                    onChange={(e) => setSpaceNameDraft(e.target.value)}
+                    disabled={!isSpaceOwner}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-500">이모지</label>
                   <input
                     type="text"
-                    defaultValue={spaceEmoji}
-                    className="w-32 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary"
+                    value={spaceEmojiDraft}
+                    onChange={(e) => setSpaceEmojiDraft(e.target.value)}
+                    disabled={!isSpaceOwner}
+                    className="w-32 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-primary disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </div>
               </div>
-              <button className="mt-5 rounded-xl bg-brand-primary px-5 py-2 text-sm font-semibold text-white hover:bg-brand-primaryHover">
-                저장
-              </button>
-              <div className="mt-6 border-t border-slate-100 pt-5">
-                <p className="mb-2 text-sm font-bold text-red-500">위험 구역</p>
-                <button className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-50">
-                  스페이스 삭제
-                </button>
-              </div>
+              {spaceMessage && (
+                <p className={cn("mt-3 text-xs", spaceMessage.type === "error" ? "text-red-500" : "text-green-600")}>
+                  {spaceMessage.text}
+                </p>
+              )}
+              {isSpaceOwner ? (
+                <>
+                  <button
+                    onClick={handleSaveSpace}
+                    disabled={spaceSaving || !spaceNameDraft.trim()}
+                    className="mt-5 rounded-xl bg-brand-primary px-5 py-2 text-sm font-semibold text-white hover:bg-brand-primaryHover disabled:opacity-50"
+                  >
+                    {spaceSaving ? "저장 중…" : "저장"}
+                  </button>
+                  <div className="mt-6 border-t border-slate-100 pt-5">
+                    <p className="mb-2 text-sm font-bold text-red-500">위험 구역</p>
+                    <button
+                      onClick={handleDeleteSpace}
+                      disabled={spaceDeleting}
+                      className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {spaceDeleting ? "삭제 중…" : "스페이스 삭제"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-5 text-xs text-slate-400">스페이스 이름/이모지 수정과 삭제는 소유자만 할 수 있어요.</p>
+              )}
             </div>
           )}
 
