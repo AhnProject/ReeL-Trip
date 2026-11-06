@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { listTeamSpaces } from "@/domains/teamspace/api";
+import { listTeamSpaces, inviteMember, removeMember } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse, MemberResponse } from "@/domains/teamspace/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
@@ -16,19 +16,26 @@ const AVATAR_COLORS = [
 export function MemberScreen() {
   const router = useRouter();
   const [username, setUsername]     = useState("");
+  const [token, setToken]           = useState("");
+  const [spaceId, setSpaceId]       = useState<number | null>(null);
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
   const [members, setMembers]       = useState<MemberResponse[]>([]);
   const [inviteInput, setInviteInput] = useState("");
+  const [inviting, setInviting]     = useState(false);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const [message, setMessage]       = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const name        = localStorage.getItem("username");
     if (!storedToken) { router.replace("/"); return; }
+    setToken(storedToken);
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
         const sp = res.data[0] as TeamSpaceResponse;
+        setSpaceId(sp.id);
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
         setMembers(sp.members);
@@ -39,6 +46,50 @@ export function MemberScreen() {
   if (!username) return <LoadingScreen />;
 
   const owner  = members.find((m) => m.role === "owner");
+
+  const handleInvite = async () => {
+    if (!spaceId || !token || !inviteInput.trim()) return;
+    setInviting(true);
+    setMessage(null);
+    try {
+      const res = await inviteMember(spaceId, inviteInput.trim(), token);
+      if (res.success && res.data) {
+        setMembers((prev) => [...prev, res.data as MemberResponse]);
+        setInviteInput("");
+        setMessage({ type: "success", text: "멤버를 초대했습니다." });
+      } else if (res.errorCode === "USER_NOT_FOUND") {
+        setMessage({ type: "error", text: "해당 사용자를 찾을 수 없습니다. 사용자 이름을 확인해주세요." });
+      } else if (res.errorCode === "ALREADY_MEMBER") {
+        setMessage({ type: "error", text: "이미 이 스페이스의 멤버입니다." });
+      } else {
+        setMessage({ type: "error", text: "초대에 실패했습니다. 잠시 후 다시 시도해주세요." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "서버 오류가 발생했습니다." });
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemove = async (member: MemberResponse) => {
+    if (!spaceId || !token) return;
+    if (!window.confirm(`${member.username}님을 팀스페이스에서 내보낼까요?`)) return;
+    setRemovingId(member.userId);
+    setMessage(null);
+    try {
+      const res = await removeMember(spaceId, member.userId, token);
+      if (res.success) {
+        setMembers((prev) => prev.filter((m) => m.userId !== member.userId));
+        setMessage({ type: "success", text: `${member.username}님을 내보냈습니다.` });
+      } else {
+        setMessage({ type: "error", text: "멤버 내보내기에 실패했습니다." });
+      }
+    } catch {
+      setMessage({ type: "error", text: "서버 오류가 발생했습니다." });
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   return (
     <DashboardLayout activeNav="member" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji}>
@@ -57,13 +108,23 @@ export function MemberScreen() {
             type="text"
             value={inviteInput}
             onChange={(e) => setInviteInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleInvite(); }}
             placeholder="사용자명을 입력하세요"
             className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-brand-primary"
           />
-          <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-primaryHover">
-            초대하기
+          <button
+            onClick={handleInvite}
+            disabled={inviting || !inviteInput.trim()}
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-primaryHover disabled:opacity-50"
+          >
+            {inviting ? "초대 중…" : "초대하기"}
           </button>
         </div>
+        {message && (
+          <p className={cn("mt-2 text-xs", message.type === "error" ? "text-red-500" : "text-green-600")}>
+            {message.text}
+          </p>
+        )}
       </div>
 
       {/* 멤버 목록 */}
@@ -93,7 +154,13 @@ export function MemberScreen() {
                 {m.role === "owner" ? "소유자" : "멤버"}
               </span>
               {m.role !== "owner" && username === owner?.username && (
-                <button className="text-xs text-red-400 hover:text-red-500">내보내기</button>
+                <button
+                  onClick={() => handleRemove(m)}
+                  disabled={removingId === m.userId}
+                  className="text-xs text-red-400 hover:text-red-500 disabled:opacity-50"
+                >
+                  {removingId === m.userId ? "내보내는 중…" : "내보내기"}
+                </button>
               )}
             </div>
           ))}

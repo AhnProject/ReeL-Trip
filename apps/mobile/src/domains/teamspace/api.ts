@@ -32,6 +32,25 @@ export function createTeamSpace(
   }, token);
 }
 
+export function updateTeamSpace(
+  id: number,
+  payload: { name: string; emoji?: string; bgColor?: string },
+  token: string,
+) {
+  return apiRequest<TeamSpaceResponse>(`/api/teamspaces/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }, token);
+}
+
+export function deleteTeamSpace(id: number, token: string) {
+  return apiRequest<void>(`/api/teamspaces/${id}`, { method: "DELETE" }, token);
+}
+
+export function listMembers(spaceId: number, token: string) {
+  return apiRequest<MemberResponse[]>(`/api/teamspaces/${spaceId}/members`, {}, token);
+}
+
 export function inviteMember(spaceId: number, username: string, token: string) {
   return apiRequest<MemberResponse>(`/api/teamspaces/${spaceId}/members`, {
     method: "POST",

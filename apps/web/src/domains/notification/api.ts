@@ -25,3 +25,21 @@ export function markAsRead(id: number, token: string) {
 export function deleteNotification(id: number, token: string) {
   return apiRequest<void>(`/api/notifications/${id}`, { method: "DELETE" }, token);
 }
+
+export interface NotificationSettingsResponse {
+  newPlace: boolean;
+  scheduleChange: boolean;
+  memberJoin: boolean;
+  aiRecommend: boolean;
+}
+
+export function getNotificationSettings(token: string) {
+  return apiRequest<NotificationSettingsResponse>("/api/notifications/settings", {}, token);
+}
+
+export function updateNotificationSettings(payload: NotificationSettingsResponse, token: string) {
+  return apiRequest<NotificationSettingsResponse>("/api/notifications/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }, token);
+}

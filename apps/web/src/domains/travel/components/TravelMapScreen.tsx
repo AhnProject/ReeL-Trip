@@ -78,15 +78,27 @@ export function TravelMapScreen() {
   };
 
   /* ── 장소 확정 토글 ── */
-  const handleToggleConfirm = (placeId: number) => {
+  const toggleConfirmedId = (placeId: number) => {
     setConfirmedIds((prev) => {
       const next = new Set(prev);
       if (next.has(placeId)) next.delete(placeId);
       else next.add(placeId);
       return next;
     });
+  };
+
+  const handleToggleConfirm = (placeId: number) => {
+    toggleConfirmedId(placeId);
     if (token) {
-      updatePlace(placeId, {}, token).catch(() => {});
+      updatePlace(placeId, {}, token).then((res) => {
+        if (!res.success) {
+          toggleConfirmedId(placeId);
+          showToast();
+        }
+      }).catch(() => {
+        toggleConfirmedId(placeId);
+        showToast();
+      });
     }
   };
 

@@ -16,5 +16,7 @@ public interface PlaceMapper {
 
     List<Place> findBySpaceId(@Param("spaceId") Long spaceId);
 
+    int update(Place place);
+
     int delete(@Param("id") Long id);
 }

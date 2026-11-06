@@ -16,7 +16,7 @@ import { listNotifications } from "@/domains/notification/api";
 import type { NotificationResponse } from "@/domains/notification/api";
 import { addPlace, listPlaces } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
-import { listTodos, createTodo, deleteTodo } from "@/domains/todo/api";
+import { listTodos, createTodo, updateTodo, deleteTodo } from "@/domains/todo/api";
 import type { TodoResponse } from "@/domains/todo/api";
 import type { TeamSpace, TripEvent } from "@/domains/teamspace/types";
 import { calcDday, timeAgo, formatMonthDay, getKoreanDay } from "@/lib/date";
@@ -261,15 +261,19 @@ function TodoPanel({
   spaceId,
   token,
   onAdd,
+  onToggle,
   onDelete,
 }: {
   todos: TodoResponse[];
   spaceId: number;
   token: string;
   onAdd: (todo: TodoResponse) => void;
+  onToggle: (todo: TodoResponse) => void;
   onDelete: (id: number) => void;
 }) {
   const [inputValue, setInputValue] = useState("");
+  const [priority, setPriority]     = useState<"high" | "medium" | "low">("medium");
+  const [dueDate, setDueDate]       = useState("");
   const [adding, setAdding]         = useState(false);
 
   const handleAdd = async () => {
@@ -277,14 +281,26 @@ function TodoPanel({
     if (!title) return;
     setAdding(true);
     try {
-      const res = await createTodo({ spaceId, title, priority: "medium" }, token);
+      const res = await createTodo({ spaceId, title, priority, dueDate: dueDate || undefined }, token);
       if (res.success && res.data) {
         onAdd(res.data);
         setInputValue("");
+        setPriority("medium");
+        setDueDate("");
       }
     } finally {
       setAdding(false);
     }
+  };
+
+  const handleToggle = async (todo: TodoResponse) => {
+    const res = await updateTodo(todo.id, {
+      title:    todo.title,
+      priority: todo.priority,
+      dueDate:  todo.dueDate,
+      isDone:   !todo.isDone,
+    }, token);
+    if (res.success && res.data) onToggle(res.data);
   };
 
   const handleDelete = async (id: number) => {
@@ -321,6 +337,23 @@ function TodoPanel({
           추가
         </button>
       </div>
+      <div className="mt-2 flex gap-2">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as "high" | "medium" | "low")}
+          className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 outline-none focus:border-brand-primary"
+        >
+          <option value="high">우선순위 높음</option>
+          <option value="medium">우선순위 중간</option>
+          <option value="low">우선순위 낮음</option>
+        </select>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 outline-none focus:border-brand-primary"
+        />
+      </div>
 
       {/* 목록 */}
       <div className="mt-3 flex flex-col gap-3">
@@ -332,12 +365,24 @@ function TodoPanel({
             const dday = todo.dueDate ? calcDday(todo.dueDate) : null;
             return (
               <div key={todo.id} className="flex items-start justify-between gap-2">
-                <div className="flex-1">
+                <button
+                  onClick={() => handleToggle(todo)}
+                  className="flex-1 cursor-pointer border-none bg-transparent p-0 text-left"
+                >
                   <div className="flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                    </svg>
-                    <span className="text-sm text-slate-700">{todo.title}</span>
+                    {todo.isDone ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A6CF7" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" fill="#4A6CF7" />
+                        <polyline points="7 12 10 15 17 8" stroke="white" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                      </svg>
+                    )}
+                    <span className={cn("text-sm text-slate-700", todo.isDone && "text-slate-400 line-through")}>
+                      {todo.title}
+                    </span>
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
                     <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", p.color)}>
@@ -347,7 +392,7 @@ function TodoPanel({
                       <span className="text-xs text-slate-400">마감까지 {dday}일</span>
                     )}
                   </div>
-                </div>
+                </button>
                 <button
                   onClick={() => handleDelete(todo.id)}
                   className="mt-0.5 cursor-pointer border-none bg-transparent text-slate-300 hover:text-red-400"
@@ -676,6 +721,7 @@ function DashboardInner() {
               spaceId={Number(selectedSpaceId)}
               token={token}
               onAdd={(todo) => setTodos((prev) => [...prev, todo])}
+              onToggle={(todo) => setTodos((prev) => prev.map((t) => (t.id === todo.id ? todo : t)))}
               onDelete={(id) => setTodos((prev) => prev.filter((t) => t.id !== id))}
             />
             <ActivityPanel notifications={notifications.slice(0, 4)} />

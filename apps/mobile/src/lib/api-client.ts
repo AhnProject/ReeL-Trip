@@ -22,7 +22,10 @@ async function attemptRefresh(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
 
   const { refreshToken } = useAuthStore.getState();
-  if (!refreshToken) return null;
+  if (!refreshToken) {
+    useAuthStore.getState().clearAuth();
+    return null;
+  }
 
   refreshPromise = (async (): Promise<string | null> => {
     try {
