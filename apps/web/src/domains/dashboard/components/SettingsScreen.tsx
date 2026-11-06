@@ -30,6 +30,7 @@ export function SettingsScreen() {
   const [spaceName, setSpaceName]     = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji]   = useState("✈️");
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
+  const [joinedAt, setJoinedAt]       = useState("");
   const [activeTab, setActiveTab]     = useState<TabKey>("profile");
   const [notifSettings, setNotifSettings] = useState<NotificationSettingsResponse>({
     newPlace: true, scheduleChange: true, memberJoin: true, aiRecommend: false,
@@ -57,6 +58,7 @@ export function SettingsScreen() {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
         setEmail(res.data.email ?? "");
+        setJoinedAt(res.data.createdAt.slice(0, 10).replaceAll("-", "."));
       }
     }).catch((err) => console.error("[SettingsScreen]", err));
     getNotificationSettings(storedToken).then((res) => {
@@ -281,7 +283,7 @@ export function SettingsScreen() {
                 </div>
                 <div className="flex justify-between rounded-lg bg-slate-50 px-4 py-3">
                   <span className="text-sm text-slate-500">가입일</span>
-                  <span className="text-sm font-semibold text-slate-900">2025.01.01</span>
+                  <span className="text-sm font-semibold text-slate-900">{joinedAt || "-"}</span>
                 </div>
               </div>
               {planLabel === "Free 플랜" && (
