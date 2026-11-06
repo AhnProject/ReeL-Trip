@@ -12,6 +12,7 @@ import type { RecommendResult } from "@reel-trip/types";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
 import { CATEGORY_LABEL, categoryLabel } from "@/constants/categories";
+import { pickSpace, setSelectedSpaceId } from "@/lib/space";
 
 /* ── 플랫폼 배지 ── */
 function PlatformBadge({ platform }: { platform: string | null }) {
@@ -347,6 +348,7 @@ export function AiScreen() {
 
   const [username, setUsername]     = useState("");
   const [token, setToken]           = useState("");
+  const [spaces, setSpaces]         = useState<TeamSpaceResponse[]>([]);
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
   const [places, setPlaces]         = useState<PlaceResponse[]>([]);
@@ -366,7 +368,8 @@ export function AiScreen() {
 
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
-        const sp = res.data[0] as TeamSpaceResponse;
+        setSpaces(res.data);
+        const sp = pickSpace(res.data) as TeamSpaceResponse;
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
 
@@ -380,6 +383,17 @@ export function AiScreen() {
     }).catch((err) => { console.error("[AiScreen]", err); setLoading(false); });
   }, [router]);
 
+  const handleSelectSpace = (id: string | number) => {
+    const sp = spaces.find((s) => String(s.id) === String(id));
+    if (!sp || !token) return;
+    setSpaceName(sp.name);
+    setSpaceEmoji(sp.emoji ?? "✈️");
+    setSelectedSpaceId(sp.id);
+    listPlaces(sp.id, token).then((pRes) => {
+      if (pRes.success && pRes.data) setPlaces(pRes.data);
+    }).catch((err) => console.error("[AiScreen]", err));
+  };
+
   if (!username) return <LoadingScreen />;
 
   /* ── 필터 적용 ── */
@@ -392,7 +406,14 @@ export function AiScreen() {
   });
 
   return (
-    <DashboardLayout activeNav="ai" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji}>
+    <DashboardLayout
+      activeNav="ai"
+      username={username}
+      spaceName={spaceName}
+      spaceEmoji={spaceEmoji}
+      spaces={spaces}
+      onSelectSpace={handleSelectSpace}
+    >
       {/* ── 페이지 헤더 ── */}
       <div className="mb-5 flex items-end justify-between">
         <div>

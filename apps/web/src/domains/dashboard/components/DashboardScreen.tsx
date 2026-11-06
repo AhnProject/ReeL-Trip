@@ -21,6 +21,7 @@ import type { TodoResponse } from "@/domains/todo/api";
 import type { TeamSpace, TripEvent } from "@/domains/teamspace/types";
 import { calcDday, timeAgo, formatMonthDay, getKoreanDay } from "@/lib/date";
 import { cn } from "@/lib/cn";
+import { pickSpace, setSelectedSpaceId as persistSelectedSpaceId } from "@/lib/space";
 import {
   IconHome, IconCalendar, IconMapPin, IconSparkles, IconUsers, IconChat,
   IconBell, IconSettings, IconSearch, IconChevronDown, IconChevronRight,
@@ -455,6 +456,7 @@ function DashboardInner() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUrlModal, setShowUrlModal]       = useState(false);
   const [search, setSearch]                   = useState("");
+  const [showSpaceMenu, setShowSpaceMenu]     = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -468,8 +470,9 @@ function DashboardInner() {
         const converted = res.data.map(toTeamSpace);
         setSpaces(converted);
         const paramId = searchParams.get("space");
-        const found   = converted.find((s) => s.id === paramId);
-        setSelectedSpaceId(found ? found.id : converted[0].id);
+        const found   = paramId ? converted.find((s) => s.id === paramId) : undefined;
+        const initial = found ?? pickSpace(converted) ?? converted[0];
+        setSelectedSpaceId(initial.id);
       }
     }).catch((err) => console.error("[DashboardScreen]", err));
 
@@ -502,6 +505,12 @@ function DashboardInner() {
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? spaces[0];
   const unreadCount   = notifications.filter((n) => !n.isRead).length;
+
+  const handleSelectSpace = (id: string) => {
+    setSelectedSpaceId(id);
+    persistSelectedSpaceId(id);
+    setShowSpaceMenu(false);
+  };
 
   const handleAddPlace = async (parsed: ParsedResult) => {
     if (!selectedSpace || !token) return;
@@ -548,8 +557,11 @@ function DashboardInner() {
       <aside className="flex h-full w-[200px] flex-shrink-0 flex-col border-r border-slate-100 bg-white">
 
         {/* 여행 드롭다운 */}
-        <div className="border-b border-slate-100 p-3">
-          <button className="flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+        <div className="relative border-b border-slate-100 p-3">
+          <button
+            onClick={() => spaces.length > 0 && setShowSpaceMenu((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2"
+          >
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200 text-sm">
               {selectedSpace?.emoji ?? "✈️"}
             </div>
@@ -558,6 +570,23 @@ function DashboardInner() {
             </span>
             <span className="text-slate-400"><IconChevronDown /></span>
           </button>
+
+          {showSpaceMenu && spaces.length > 0 && (
+            <div className="absolute left-3 right-3 top-[calc(100%-4px)] z-10 overflow-hidden rounded-lg border border-slate-100 bg-white shadow-lg">
+              {spaces.map((sp) => (
+                <button
+                  key={sp.id}
+                  onClick={() => handleSelectSpace(sp.id)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50"
+                >
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-slate-100 text-xs">
+                    {sp.emoji}
+                  </span>
+                  <span className="flex-1 truncate text-slate-700">{sp.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 네비 */}
@@ -612,7 +641,7 @@ function DashboardInner() {
               {spaces.filter((s) => s.id !== selectedSpaceId).slice(0, 2).map((sp) => (
                 <button
                   key={sp.id}
-                  onClick={() => setSelectedSpaceId(sp.id)}
+                  onClick={() => handleSelectSpace(sp.id)}
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
                 >
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-200 text-sm">
@@ -748,7 +777,7 @@ function DashboardInner() {
           onCreated={(created) => {
             const newSpace = toTeamSpace(created);
             setSpaces((prev) => [...prev, newSpace]);
-            setSelectedSpaceId(newSpace.id);
+            handleSelectSpace(newSpace.id);
             setShowCreateModal(false);
           }}
         />

@@ -10,6 +10,7 @@ import { getNotificationSettings, updateNotificationSettings } from "@/domains/n
 import type { NotificationSettingsResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
+import { pickSpace, setSelectedSpaceId } from "@/lib/space";
 
 type TabKey = "profile" | "space" | "notification" | "account";
 
@@ -25,6 +26,7 @@ export function SettingsScreen() {
   const [username, setUsername]       = useState("");
   const [token, setToken]             = useState("");
   const [email, setEmail]             = useState("");
+  const [spaces, setSpaces]           = useState<TeamSpaceResponse[]>([]);
   const [spaceName, setSpaceName]     = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji]   = useState("✈️");
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
@@ -45,7 +47,8 @@ export function SettingsScreen() {
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
-        const sp = res.data[0] as TeamSpaceResponse;
+        setSpaces(res.data);
+        const sp = pickSpace(res.data) as TeamSpaceResponse;
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
       }
@@ -60,6 +63,14 @@ export function SettingsScreen() {
       if (res.success && res.data) setNotifSettings(res.data);
     }).catch((err) => console.error("[SettingsScreen]", err));
   }, [router]);
+
+  const handleSelectSpace = (id: string | number) => {
+    const sp = spaces.find((s) => String(s.id) === String(id));
+    if (!sp) return;
+    setSpaceName(sp.name);
+    setSpaceEmoji(sp.emoji ?? "✈️");
+    setSelectedSpaceId(sp.id);
+  };
 
   const handleToggleNotifSetting = async (key: keyof NotificationSettingsResponse) => {
     if (!token) return;
@@ -108,7 +119,14 @@ export function SettingsScreen() {
   };
 
   return (
-    <DashboardLayout activeNav="settings" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji}>
+    <DashboardLayout
+      activeNav="settings"
+      username={username}
+      spaceName={spaceName}
+      spaceEmoji={spaceEmoji}
+      spaces={spaces}
+      onSelectSpace={handleSelectSpace}
+    >
       <div className="mb-6">
         <h1 className="text-xl font-bold text-slate-900">설정</h1>
       </div>
