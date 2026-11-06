@@ -8,10 +8,12 @@ import com.reeltrip.api.notification.dto.NotificationResponse;
 import com.reeltrip.api.notification.mapper.NotificationMapper;
 import com.reeltrip.api.notification.model.Notification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
@@ -54,14 +56,20 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void create(Long userId, String message, String type, Long relatedSpaceId) {
-        Notification notification = Notification.builder()
-                .userId(userId)
-                .message(message)
-                .type(type)
-                .relatedSpaceId(relatedSpaceId)
-                .isRead(false)
-                .build();
-        notificationMapper.insert(notification);
+        try {
+            Notification notification = Notification.builder()
+                    .userId(userId)
+                    .message(message)
+                    .type(type)
+                    .relatedSpaceId(relatedSpaceId)
+                    .isRead(false)
+                    .build();
+            notificationMapper.insert(notification);
+        } catch (Exception e) {
+            // 알림 생성은 best-effort — 실패해도 호출자의 본 작업(초대/일정/장소/채팅 등)에
+            // 영향을 주면 안 되므로 예외를 전파하지 않고 로그만 남긴다.
+            log.error("알림 생성 실패 (userId={}, type={}, relatedSpaceId={})", userId, type, relatedSpaceId, e);
+        }
     }
 
     /* ── private helpers ── */
