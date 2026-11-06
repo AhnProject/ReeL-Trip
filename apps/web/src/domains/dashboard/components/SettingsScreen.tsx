@@ -6,6 +6,8 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
 import { getProfile, updateProfile } from "@/domains/user/api";
+import { getNotificationSettings, updateNotificationSettings } from "@/domains/notification/api";
+import type { NotificationSettingsResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
 
@@ -27,9 +29,10 @@ export function SettingsScreen() {
   const [spaceEmoji, setSpaceEmoji]   = useState("✈️");
   const [planLabel, setPlanLabel]     = useState("Free 플랜");
   const [activeTab, setActiveTab]     = useState<TabKey>("profile");
-  const [notifSettings, setNotifSettings] = useState({
+  const [notifSettings, setNotifSettings] = useState<NotificationSettingsResponse>({
     newPlace: true, scheduleChange: true, memberJoin: true, aiRecommend: false,
   });
+  const [notifError, setNotifError] = useState("");
 
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
@@ -53,7 +56,27 @@ export function SettingsScreen() {
         setEmail(res.data.email ?? "");
       }
     }).catch((err) => console.error("[SettingsScreen]", err));
+    getNotificationSettings(storedToken).then((res) => {
+      if (res.success && res.data) setNotifSettings(res.data);
+    }).catch((err) => console.error("[SettingsScreen]", err));
   }, [router]);
+
+  const handleToggleNotifSetting = async (key: keyof NotificationSettingsResponse) => {
+    if (!token) return;
+    const next = { ...notifSettings, [key]: !notifSettings[key] };
+    setNotifSettings(next);
+    setNotifError("");
+    try {
+      const res = await updateNotificationSettings(next, token);
+      if (!res.success) {
+        setNotifSettings(notifSettings);
+        setNotifError("알림 설정 저장에 실패했습니다.");
+      }
+    } catch {
+      setNotifSettings(notifSettings);
+      setNotifError("서버 오류가 발생했습니다.");
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!token) return;
@@ -211,7 +234,7 @@ export function SettingsScreen() {
                       <p className="text-xs text-slate-400">{item.desc}</p>
                     </div>
                     <button
-                      onClick={() => setNotifSettings((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
+                      onClick={() => handleToggleNotifSetting(item.key)}
                       className={cn(
                         "relative h-6 w-11 flex-shrink-0 rounded-full transition-colors",
                         notifSettings[item.key] ? "bg-brand-primary" : "bg-slate-200",
@@ -225,6 +248,7 @@ export function SettingsScreen() {
                   </div>
                 ))}
               </div>
+              {notifError && <p className="mt-3 text-xs text-red-500">{notifError}</p>}
             </div>
           )}
 
