@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces, updateTeamSpace, deleteTeamSpace } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
-import { getProfile, updateProfile, updateAvatar } from "@/domains/user/api";
+import { getProfile, updateProfile, getAvatar, updateAvatar } from "@/domains/user/api";
 import { getNotificationSettings, updateNotificationSettings } from "@/domains/notification/api";
 import type { NotificationSettingsResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
@@ -74,9 +74,11 @@ function SettingsInner() {
       if (res.success && res.data) {
         setPlanLabel(res.data.plan === "FREE" ? "Free 플랜" : "Pro 플랜");
         setEmail(res.data.email ?? "");
-        setAvatar(res.data.avatar ?? null);
         setJoinedAt(res.data.createdAt.slice(0, 10).replaceAll("-", "."));
       }
+    }).catch((err) => console.error("[SettingsScreen]", err));
+    getAvatar(storedToken).then((res) => {
+      if (res.success && res.data) setAvatar(res.data.avatar ?? null);
     }).catch((err) => console.error("[SettingsScreen]", err));
     getNotificationSettings(storedToken).then((res) => {
       if (res.success && res.data) setNotifSettings(res.data);

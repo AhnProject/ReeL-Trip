@@ -6,6 +6,7 @@ import { C } from "@/lib/colors";
 interface ProfileHeaderProps {
   profile: UserProfile | null;
   username: string;
+  avatar?: string | null;
   onEditAvatar?: () => void;
   avatarUploading?: boolean;
 }
@@ -22,7 +23,7 @@ function PlanBadge({ plan }: { plan?: string }) {
   );
 }
 
-export function ProfileHeader({ profile, username, onEditAvatar, avatarUploading }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, username, avatar, onEditAvatar, avatarUploading }: ProfileHeaderProps) {
   const displayName = profile?.username || username || "?";
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -35,8 +36,8 @@ export function ProfileHeader({ profile, username, onEditAvatar, avatarUploading
         activeOpacity={0.8}
       >
         <View style={s.avatarInner}>
-          {profile?.avatar ? (
-            <Image source={{ uri: profile.avatar }} style={s.avatarImage} />
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={s.avatarImage} />
           ) : (
             <Text style={s.avatarText}>{initial}</Text>
           )}

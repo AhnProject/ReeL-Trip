@@ -6,8 +6,11 @@ export interface UserProfile {
   email: string;
   role: string;
   plan: string;
-  avatar: string | null;
   createdAt: string;
+}
+
+export interface AvatarResponse {
+  avatar: string | null;
 }
 
 export function getProfile(token: string) {
@@ -21,8 +24,12 @@ export function updateProfile(payload: { email?: string }, token: string) {
   }, token);
 }
 
+export function getAvatar(token: string) {
+  return apiRequest<AvatarResponse>("/api/user/avatar", {}, token);
+}
+
 export function updateAvatar(avatar: string, token: string) {
-  return apiRequest<UserProfile>("/api/user/avatar", {
+  return apiRequest<AvatarResponse>("/api/user/avatar", {
     method: "PUT",
     body: JSON.stringify({ avatar }),
   }, token);

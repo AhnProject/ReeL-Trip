@@ -18,7 +18,7 @@ import { C } from "@/lib/colors";
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 export function ProfileScreen() {
-  const { profile, username, loading, refreshing, onRefresh, handleLogout } = useProfileData();
+  const { profile, avatar, username, loading, refreshing, onRefresh, handleLogout } = useProfileData();
   const token = useAuthStore((s) => s.token);
   const qc = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
@@ -53,7 +53,7 @@ export function ProfileScreen() {
       const dataUrl = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
       const res = await updateAvatar(dataUrl, token);
       if (res.success && res.data) {
-        qc.setQueryData(["profile"], res.data);
+        qc.setQueryData(["avatar"], res.data);
         toast.success("프로필 사진을 변경했습니다");
       } else if (res.errorCode === "AVATAR_TOO_LARGE") {
         toast.error("이미지 용량은 2MB 이하만 가능합니다");
@@ -97,6 +97,7 @@ export function ProfileScreen() {
       <ProfileHeader
         profile={profile}
         username={username}
+        avatar={avatar}
         onEditAvatar={handleEditAvatar}
         avatarUploading={avatarUploading}
       />
