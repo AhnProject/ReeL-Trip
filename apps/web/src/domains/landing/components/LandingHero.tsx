@@ -75,9 +75,12 @@ export function LandingHero() {
               >
                 무료로 시작하기 <IconArrowRight />
               </Link>
-              <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-600 transition hover:border-brand-primary hover:text-brand-primary">
+              <a
+                href="#features"
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-medium text-slate-600 transition hover:border-brand-primary hover:text-brand-primary"
+              >
                 <IconPlay /> 서비스 둘러보기
-              </button>
+              </a>
             </div>
             <div className="mt-8 flex items-center gap-3">
               <div className="flex">
