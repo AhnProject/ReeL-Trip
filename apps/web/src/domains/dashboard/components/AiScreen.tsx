@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
-import { listPlaces } from "@/domains/place/api";
+import { listPlaces, addPlace } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
 import { recommend } from "@/domains/recommend/api";
 import type { RecommendResult } from "@reel-trip/types";
@@ -76,13 +76,28 @@ function PlaceDetailModal({
   place: PlaceResponse;
   token: string;
   onClose: () => void;
-  onAddRec: (name: string) => void;
+  onAddRec: (name: string) => Promise<boolean>;
 }) {
   const [maximized, setMaximized] = useState(false);
   const [added, setAdded] = useState<string[]>([]);
+  const [addingIds, setAddingIds] = useState<string[]>([]);
+  const [addError, setAddError] = useState("");
   const [recs, setRecs] = useState<RecommendResult[]>([]);
   const [recsLoading, setRecsLoading] = useState(true);
   const [recsError, setRecsError] = useState("");
+
+  const handleAddRec = async (rec: RecommendResult) => {
+    if (added.includes(rec.id) || addingIds.includes(rec.id)) return;
+    setAddingIds((prev) => [...prev, rec.id]);
+    setAddError("");
+    const ok = await onAddRec(rec.title);
+    setAddingIds((prev) => prev.filter((id) => id !== rec.id));
+    if (ok) {
+      setAdded((prev) => [...prev, rec.id]);
+    } else {
+      setAddError("장소 추가에 실패했습니다.");
+    }
+  };
 
   useEffect(() => {
     setRecs([]);
@@ -309,23 +324,22 @@ function PlaceDetailModal({
                       </div>
                     </div>
                     <button
-                      onClick={() => {
-                        setAdded((prev) => prev.includes(rec.id) ? prev : [...prev, rec.id]);
-                        onAddRec(rec.title);
-                      }}
+                      onClick={() => handleAddRec(rec)}
+                      disabled={added.includes(rec.id) || addingIds.includes(rec.id)}
                       className={cn(
-                        "flex-shrink-0 cursor-pointer rounded-full border-none px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                        "flex-shrink-0 cursor-pointer rounded-full border-none px-3 py-1.5 text-[11px] font-semibold transition-colors disabled:cursor-default",
                         added.includes(rec.id)
                           ? "bg-green-100 text-green-600"
                           : "bg-brand-primary text-white hover:bg-brand-primaryHover",
                       )}
                     >
-                      {added.includes(rec.id) ? "추가됨" : "+ 내 여행지 추가"}
+                      {added.includes(rec.id) ? "추가됨" : addingIds.includes(rec.id) ? "추가 중…" : "+ 내 여행지 추가"}
                     </button>
                   </div>
                 ))}
               </div>
             )}
+            {addError && <p className="mt-2 text-center text-xs text-red-400">{addError}</p>}
           </div>
         </div>
       </div>
@@ -349,6 +363,7 @@ export function AiScreen() {
   const [username, setUsername]     = useState("");
   const [token, setToken]           = useState("");
   const [spaces, setSpaces]         = useState<TeamSpaceResponse[]>([]);
+  const [spaceId, setSpaceId]       = useState<number | null>(null);
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
   const [places, setPlaces]         = useState<PlaceResponse[]>([]);
@@ -370,6 +385,7 @@ export function AiScreen() {
       if (res.success && res.data && res.data.length > 0) {
         setSpaces(res.data);
         const sp = pickSpace(res.data) as TeamSpaceResponse;
+        setSpaceId(sp.id);
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
 
@@ -386,12 +402,27 @@ export function AiScreen() {
   const handleSelectSpace = (id: string | number) => {
     const sp = spaces.find((s) => String(s.id) === String(id));
     if (!sp || !token) return;
+    setSpaceId(sp.id);
     setSpaceName(sp.name);
     setSpaceEmoji(sp.emoji ?? "✈️");
     setSelectedSpaceId(sp.id);
     listPlaces(sp.id, token).then((pRes) => {
       if (pRes.success && pRes.data) setPlaces(pRes.data);
     }).catch((err) => console.error("[AiScreen]", err));
+  };
+
+  const handleAddRec = async (name: string): Promise<boolean> => {
+    if (!spaceId || !token) return false;
+    try {
+      const res = await addPlace({ spaceId, name }, token);
+      if (res.success && res.data) {
+        setPlaces((prev) => [res.data!, ...prev]);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   if (!username) return <LoadingScreen />;
@@ -550,10 +581,7 @@ export function AiScreen() {
           place={selected}
           token={token}
           onClose={() => setSelected(null)}
-          onAddRec={(name) => {
-            /* 실제 추가 로직 연결 포인트 — 현재는 콘솔만 */
-            console.log("[AiScreen] AI 추천 장소 추가:", name);
-          }}
+          onAddRec={handleAddRec}
         />
       )}
     </DashboardLayout>
