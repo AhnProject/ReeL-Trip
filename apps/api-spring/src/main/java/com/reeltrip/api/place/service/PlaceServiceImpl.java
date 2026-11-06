@@ -7,9 +7,11 @@ import com.reeltrip.api.common.exception.ErrorCode;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.PlaceResponse;
 import com.reeltrip.api.place.dto.UpdatePlaceRequest;
+import com.reeltrip.api.notification.service.NotificationService;
 import com.reeltrip.api.place.mapper.PlaceMapper;
 import com.reeltrip.api.place.model.Place;
 import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
+import com.reeltrip.api.teamspace.model.TeamSpaceMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,7 @@ public class PlaceServiceImpl implements PlaceService {
     private final PlaceMapper placeMapper;
     private final TeamSpaceMapper teamSpaceMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     @Override
     public PlaceResponse add(AddPlaceRequest request, String username) {
@@ -52,6 +55,10 @@ public class PlaceServiceImpl implements PlaceService {
                 .build();
 
         placeMapper.insert(place);
+
+        String addMessage = String.format("%s님이 '%s'을 추가했습니다.", user.getUsername(), place.getName());
+        notifyOtherMembers(request.getSpaceId(), user.getId(), addMessage);
+
         return toResponse(placeMapper.findById(place.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.PLACE_NOT_FOUND)));
     }
@@ -97,6 +104,10 @@ public class PlaceServiceImpl implements PlaceService {
         if (request.getConfidence() != null) place.setConfidence(request.getConfidence());
 
         placeMapper.update(place);
+
+        String updateMessage = String.format("%s님이 '%s' 장소를 확정했습니다.", user.getUsername(), place.getName());
+        notifyOtherMembers(place.getSpaceId(), user.getId(), updateMessage);
+
         return toResponse(placeMapper.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PLACE_NOT_FOUND)));
     }
@@ -127,6 +138,13 @@ public class PlaceServiceImpl implements PlaceService {
         if (!teamSpaceMapper.existsMember(spaceId, userId)) {
             throw new AppException(ErrorCode.PLACE_ACCESS_DENIED);
         }
+    }
+
+    private void notifyOtherMembers(Long spaceId, Long actorId, String message) {
+        List<TeamSpaceMember> members = teamSpaceMapper.findMembersBySpaceId(spaceId);
+        members.stream()
+                .filter(m -> !m.getUserId().equals(actorId))
+                .forEach(m -> notificationService.create(m.getUserId(), message, "place", spaceId));
     }
 
     private PlaceResponse toResponse(Place p) {
