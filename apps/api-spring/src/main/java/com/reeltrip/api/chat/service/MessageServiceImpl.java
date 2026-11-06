@@ -8,7 +8,9 @@ import com.reeltrip.api.chat.mapper.MessageMapper;
 import com.reeltrip.api.chat.model.Message;
 import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
+import com.reeltrip.api.notification.service.NotificationService;
 import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
+import com.reeltrip.api.teamspace.model.TeamSpaceMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageMapper messageMapper;
     private final UserMapper userMapper;
     private final TeamSpaceMapper teamSpaceMapper;
+    private final NotificationService notificationService;
 
     @Override
     public List<MessageResponse> findBySpaceId(Long spaceId, String username) {
@@ -63,6 +66,16 @@ public class MessageServiceImpl implements MessageService {
                 .build();
 
         messageMapper.insert(message);
+
+        String preview = request.getContent().length() > 30
+                ? request.getContent().substring(0, 30) + "…"
+                : request.getContent();
+        String notifyMessage = String.format("%s님: %s", user.getUsername(), preview);
+        List<TeamSpaceMember> members = teamSpaceMapper.findMembersBySpaceId(request.getSpaceId());
+        members.stream()
+                .filter(m -> !m.getUserId().equals(user.getId()))
+                .forEach(m -> notificationService.create(m.getUserId(), notifyMessage, "chat", request.getSpaceId()));
+
         return toResponse(message, user.getUsername());
     }
 
