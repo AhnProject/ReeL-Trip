@@ -4,3 +4,7 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# 네이티브 프로젝트는 EAS Build/prebuild가 app.config.js 기준으로 생성 - 커밋하지 않음
+/android
+/ios
