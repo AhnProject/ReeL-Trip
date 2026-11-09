@@ -14,12 +14,14 @@ module.exports = {
     orientation: "portrait",
     scheme,
     userInterfaceStyle: "automatic",
+    icon:        "./assets/icon.png",
     ios: {
       supportsTablet:   true,
       bundleIdentifier: appId,
     },
     android: {
       adaptiveIcon: {
+        foregroundImage:  "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
       package: appId,
