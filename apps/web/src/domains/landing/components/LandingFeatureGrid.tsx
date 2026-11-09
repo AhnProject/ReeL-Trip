@@ -47,7 +47,7 @@ export function LandingFeatureGrid() {
   return (
     <>
       {/* ── 기능 4열 그리드 ── */}
-      <section className="border-t border-slate-100 bg-white px-8 py-16">
+      <section id="features" className="border-t border-slate-100 bg-white px-8 py-16">
         <div className="mx-auto grid max-w-[1280px] grid-cols-4 gap-6">
           {FEATURES.map((f) => (
             <div key={f.title} className="flex gap-4">

@@ -31,6 +31,7 @@ export interface NotificationSettingsResponse {
   scheduleChange: boolean;
   memberJoin: boolean;
   aiRecommend: boolean;
+  chat: boolean;
 }
 
 export function getNotificationSettings(token: string) {

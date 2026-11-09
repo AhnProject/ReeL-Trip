@@ -19,4 +19,7 @@ public class UpdateNotificationSettingsRequest {
 
     @NotNull
     private Boolean aiRecommend;
+
+    @NotNull
+    private Boolean chat;
 }

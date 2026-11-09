@@ -75,6 +75,9 @@ export function CalendarScreen() {
   /* ── 모달 ── */
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  /* ── 검색 ── */
+  const [search, setSearch] = useState("");
+
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedName  = localStorage.getItem("username");
@@ -115,8 +118,10 @@ export function CalendarScreen() {
     }).catch((err) => console.error("[CalendarScreen]", err));
   }, [token, spaceId, viewYear, viewMonth]);
 
-  /* ── raw → CalendarEvent 변환 ── */
-  const events: CalendarEvent[] = rawEvents.map(rawToCalendarEvent);
+  /* ── raw → CalendarEvent 변환 (검색어로 필터링) ── */
+  const events: CalendarEvent[] = rawEvents
+    .map(rawToCalendarEvent)
+    .filter((e) => !search.trim() || e.title.toLowerCase().includes(search.trim().toLowerCase()));
 
   /* ── 상태 토글 ── */
   const handleToggleStatus = async (eventId: string) => {
@@ -222,6 +227,8 @@ export function CalendarScreen() {
           <input
             type="text"
             placeholder="장소, 일정 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
           />
         </div>

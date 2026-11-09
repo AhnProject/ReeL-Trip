@@ -2,20 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import { TravelMapMarkerPopup } from "./TravelMapMarkerPopup";
+import type { MapMarkerPlace } from "./TravelPlaceDetailModal";
 
 /* 서울 성수동 중심 좌표 */
 const CENTER: [number, number] = [37.5446, 127.0569];
 
-const MARKERS = [
-  { id: "jazz",   pos: [37.5470, 127.0550] as [number, number], color: "#4A6CF7", size: 22 },
-  { id: "cafe",   pos: [37.5430, 127.0590] as [number, number], color: "#7C3AED", size: 16 },
+const MARKERS: (MapMarkerPlace & { pos: [number, number]; color: string; size: number })[] = [
+  {
+    id: "jazz", pos: [37.5470, 127.0550], color: "#4A6CF7", size: 22,
+    name: "성수 재즈 페스티벌", tag: "번", address: "서울 성동구 연무장길", hours: "19:00 ~ 21:00",
+  },
+  {
+    id: "cafe", pos: [37.5430, 127.0590], color: "#7C3AED", size: 16,
+    name: "성수 카페거리", tag: "번", address: "서울 성동구 아차산로", hours: "10:00 ~ 22:00",
+  },
 ];
 
 interface Props {
   onAddToSchedule?: () => void;
+  onViewDetail?: (place: MapMarkerPlace) => void;
 }
 
-export function TravelMapView({ onAddToSchedule }: Props) {
+export function TravelMapView({ onAddToSchedule, onViewDetail }: Props) {
   const mapRef   = useRef<HTMLDivElement>(null);
   const mapInst  = useRef<import("leaflet").Map | null>(null);
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
@@ -90,22 +98,28 @@ export function TravelMapView({ onAddToSchedule }: Props) {
       <div ref={mapRef} className="h-full w-full" />
 
       {/* 마커 팝업 말풍선 */}
-      {activeMarker && popupPos && (
-        <div
-          style={{
-            position: "absolute",
-            left: popupPos.x,
-            top:  popupPos.y,
-            zIndex: 1000,
-            pointerEvents: "auto",
-          }}
-        >
-          <TravelMapMarkerPopup
-            onClose={() => setActiveMarker(null)}
-            onAddToSchedule={onAddToSchedule}
-          />
-        </div>
-      )}
+      {activeMarker && popupPos && (() => {
+        const marker = MARKERS.find((m) => m.id === activeMarker);
+        if (!marker) return null;
+        return (
+          <div
+            style={{
+              position: "absolute",
+              left: popupPos.x,
+              top:  popupPos.y,
+              zIndex: 1000,
+              pointerEvents: "auto",
+            }}
+          >
+            <TravelMapMarkerPopup
+              place={marker}
+              onClose={() => setActiveMarker(null)}
+              onAddToSchedule={onAddToSchedule}
+              onViewDetail={() => onViewDetail?.(marker)}
+            />
+          </div>
+        );
+      })()}
 
       {/* 현재 위치 버튼 */}
       <button

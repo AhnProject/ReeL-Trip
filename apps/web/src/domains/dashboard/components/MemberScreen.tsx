@@ -7,6 +7,7 @@ import { listTeamSpaces, inviteMember, removeMember } from "@/domains/teamspace/
 import type { TeamSpaceResponse, MemberResponse } from "@/domains/teamspace/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
+import { pickSpace, setSelectedSpaceId } from "@/lib/space";
 
 const AVATAR_COLORS = [
   "bg-brand-primary", "bg-purple-400", "bg-pink-400",
@@ -17,6 +18,7 @@ export function MemberScreen() {
   const router = useRouter();
   const [username, setUsername]     = useState("");
   const [token, setToken]           = useState("");
+  const [spaces, setSpaces]         = useState<TeamSpaceResponse[]>([]);
   const [spaceId, setSpaceId]       = useState<number | null>(null);
   const [spaceName, setSpaceName]   = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
@@ -34,7 +36,8 @@ export function MemberScreen() {
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
-        const sp = res.data[0] as TeamSpaceResponse;
+        setSpaces(res.data);
+        const sp = pickSpace(res.data) as TeamSpaceResponse;
         setSpaceId(sp.id);
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
@@ -42,6 +45,16 @@ export function MemberScreen() {
       }
     }).catch((err) => console.error("[MemberScreen]", err));
   }, [router]);
+
+  const handleSelectSpace = (id: string | number) => {
+    const sp = spaces.find((s) => String(s.id) === String(id));
+    if (!sp) return;
+    setSpaceId(sp.id);
+    setSpaceName(sp.name);
+    setSpaceEmoji(sp.emoji ?? "✈️");
+    setMembers(sp.members);
+    setSelectedSpaceId(sp.id);
+  };
 
   if (!username) return <LoadingScreen />;
 
@@ -92,7 +105,14 @@ export function MemberScreen() {
   };
 
   return (
-    <DashboardLayout activeNav="member" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji}>
+    <DashboardLayout
+      activeNav="member"
+      username={username}
+      spaceName={spaceName}
+      spaceEmoji={spaceEmoji}
+      spaces={spaces}
+      onSelectSpace={handleSelectSpace}
+    >
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">멤버</h1>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProfileData } from "./hooks/useProfileData";
 import { ProfileHeader } from "./components/ProfileHeader";
 import { InfoCard } from "./components/InfoCard";
@@ -8,14 +10,64 @@ import type { InfoRow } from "./components/InfoCard";
 import { EditProfileModal } from "./components/EditProfileModal";
 import { NotificationSettingsModal } from "./components/NotificationSettingsModal";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { updateAvatar } from "@/domains/user/api";
+import { useAuthStore } from "@/store/auth";
+import { toast } from "@/store/toast";
 import { C } from "@/lib/colors";
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 export function ProfileScreen() {
-  const { profile, username, loading, refreshing, onRefresh, handleLogout } = useProfileData();
+  const { profile, avatar, username, loading, refreshing, onRefresh, handleLogout } = useProfileData();
+  const token = useAuthStore((s) => s.token);
+  const qc = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   if (loading) return <LoadingScreen />;
+
+  const handleEditAvatar = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      toast.error("사진 접근 권한이 필요합니다");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      base64: true,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]?.base64) return;
+
+    const asset = result.assets[0];
+    const estimatedBytes = Math.ceil((asset.base64!.length * 3) / 4);
+    if (estimatedBytes > MAX_AVATAR_BYTES) {
+      toast.error("이미지 용량은 2MB 이하만 가능합니다");
+      return;
+    }
+    if (!token) return;
+
+    setAvatarUploading(true);
+    try {
+      const dataUrl = `data:${asset.mimeType ?? "image/jpeg"};base64,${asset.base64}`;
+      const res = await updateAvatar(dataUrl, token);
+      if (res.success && res.data) {
+        qc.setQueryData(["avatar"], res.data);
+        toast.success("프로필 사진을 변경했습니다");
+      } else if (res.errorCode === "AVATAR_TOO_LARGE") {
+        toast.error("이미지 용량은 2MB 이하만 가능합니다");
+      } else if (res.errorCode === "INVALID_AVATAR_FORMAT") {
+        toast.error("올바른 이미지 파일이 아닙니다");
+      } else {
+        toast.error("사진 변경에 실패했습니다");
+      }
+    } catch {
+      toast.error("사진 변경에 실패했습니다");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const accountRows: InfoRow[] = [
     { icon: "person-outline", label: "아이디", value: profile?.username || username },
@@ -42,7 +94,13 @@ export function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <ProfileHeader profile={profile} username={username} />
+      <ProfileHeader
+        profile={profile}
+        username={username}
+        avatar={avatar}
+        onEditAvatar={handleEditAvatar}
+        avatarUploading={avatarUploading}
+      />
 
       <InfoCard title="계정 정보" rows={accountRows} />
 

@@ -1,11 +1,15 @@
 "use client";
 
+import type { MapMarkerPlace } from "./TravelPlaceDetailModal";
+
 interface Props {
+  place: MapMarkerPlace;
   onClose: () => void;
   onAddToSchedule?: () => void;
+  onViewDetail?: () => void;
 }
 
-export function TravelMapMarkerPopup({ onClose, onAddToSchedule }: Props) {
+export function TravelMapMarkerPopup({ place, onClose, onAddToSchedule, onViewDetail }: Props) {
   return (
     <div
       className="absolute z-[1000] w-[260px] font-sans"
@@ -48,12 +52,12 @@ export function TravelMapMarkerPopup({ onClose, onAddToSchedule }: Props) {
       {/* 헤더 */}
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-[13px] font-bold text-slate-900">성수 재즈 페스티벌</span>
+          <span className="text-[13px] font-bold text-slate-900">{place.name}</span>
           <span
             className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
             style={{ background: "#F1F3F6" }}
           >
-            번
+            {place.tag}
           </span>
         </div>
         <button
@@ -68,9 +72,9 @@ export function TravelMapMarkerPopup({ onClose, onAddToSchedule }: Props) {
       </div>
 
       {/* 장소 */}
-      <div className="mb-1 text-[12px] text-slate-500">📍 서울 성동구 연무장길</div>
+      <div className="mb-1 text-[12px] text-slate-500">📍 {place.address}</div>
       {/* 시간 */}
-      <div className="mb-3 text-[12px] text-slate-500">🕐 19:00 ~ 21:00</div>
+      <div className="mb-3 text-[12px] text-slate-500">🕐 {place.hours}</div>
 
       {/* 버튼 2개 */}
       <div className="flex gap-2">
@@ -82,6 +86,7 @@ export function TravelMapMarkerPopup({ onClose, onAddToSchedule }: Props) {
           일정에 추가
         </button>
         <button
+          onClick={onViewDetail}
           className="flex-1 cursor-pointer rounded-[24px] bg-white py-2 text-[12px] font-semibold text-slate-700"
           style={{ border: "1.5px solid #D1D5DB" }}
         >

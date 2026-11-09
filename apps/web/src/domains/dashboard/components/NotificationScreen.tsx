@@ -10,6 +10,7 @@ import type { NotificationResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
 import { timeAgo } from "@/lib/date";
+import { pickSpace, setSelectedSpaceId } from "@/lib/space";
 
 const TYPE_META: Record<string, { icon: string; label: string; bg: string; color: string }> = {
   place:    { icon: "📍", label: "장소",   bg: "bg-blue-50",   color: "text-blue-500"   },
@@ -23,6 +24,7 @@ export function NotificationScreen() {
   const router = useRouter();
   const [username, setUsername]         = useState("");
   const [token, setToken]               = useState("");
+  const [spaces, setSpaces]             = useState<TeamSpaceResponse[]>([]);
   const [spaceName, setSpaceName]       = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji]     = useState("✈️");
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
@@ -35,7 +37,8 @@ export function NotificationScreen() {
     setUsername(name ?? "");
     listTeamSpaces(storedToken).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
-        const sp = res.data[0] as TeamSpaceResponse;
+        setSpaces(res.data);
+        const sp = pickSpace(res.data) as TeamSpaceResponse;
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
       }
@@ -44,6 +47,14 @@ export function NotificationScreen() {
       if (res.success && res.data) setNotifications(res.data);
     }).catch((err) => console.error("[NotificationScreen]", err));
   }, [router]);
+
+  const handleSelectSpace = (id: string | number) => {
+    const sp = spaces.find((s) => String(s.id) === String(id));
+    if (!sp) return;
+    setSpaceName(sp.name);
+    setSpaceEmoji(sp.emoji ?? "✈️");
+    setSelectedSpaceId(sp.id);
+  };
 
   if (!username) return <LoadingScreen />;
 
@@ -61,7 +72,15 @@ export function NotificationScreen() {
   };
 
   return (
-    <DashboardLayout activeNav="notification" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji} unreadCount={unread}>
+    <DashboardLayout
+      activeNav="notification"
+      username={username}
+      spaceName={spaceName}
+      spaceEmoji={spaceEmoji}
+      unreadCount={unread}
+      spaces={spaces}
+      onSelectSpace={handleSelectSpace}
+    >
       {/* 헤더 */}
       <div className="mb-6 flex items-center justify-between">
         <div>
