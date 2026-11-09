@@ -81,12 +81,12 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * member/schedule/place 알림은 사용자의 알림 설정(memberJoin/scheduleChange/newPlace)이
-     * false면 생성을 건너뛴다. chat은 설정 화면에 토글이 없어 항상 생성하고,
-     * aiRecommend는 애초에 알림을 만들지 않는 기존 설계이므로 여기서 다루지 않는다.
+     * member/schedule/place/chat 알림은 사용자의 알림 설정(memberJoin/scheduleChange/
+     * newPlace/chat)이 false면 생성을 건너뛴다. aiRecommend는 애초에 알림을 만들지
+     * 않는 기존 설계이므로 여기서 다루지 않는다.
      */
     private boolean isSuppressedByUserSettings(Long userId, String type) {
-        if (!"member".equals(type) && !"schedule".equals(type) && !"place".equals(type)) {
+        if (!"member".equals(type) && !"schedule".equals(type) && !"place".equals(type) && !"chat".equals(type)) {
             return false;
         }
         NotificationSettings settings = notificationSettingsMapper.findByUserId(userId).orElse(null);
@@ -97,6 +97,7 @@ public class NotificationServiceImpl implements NotificationService {
             case "member" -> !settings.isMemberJoin();
             case "schedule" -> !settings.isScheduleChange();
             case "place" -> !settings.isNewPlace();
+            case "chat" -> !settings.isChat();
             default -> false;
         };
     }
@@ -111,6 +112,7 @@ public class NotificationServiceImpl implements NotificationService {
                         .scheduleChange(true)
                         .memberJoin(true)
                         .aiRecommend(false)
+                        .chat(true)
                         .build());
         return toSettingsResponse(settings);
     }
@@ -124,6 +126,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .scheduleChange(request.getScheduleChange())
                 .memberJoin(request.getMemberJoin())
                 .aiRecommend(request.getAiRecommend())
+                .chat(request.getChat())
                 .build();
         notificationSettingsMapper.upsert(settings);
         return toSettingsResponse(settings);
@@ -151,6 +154,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .scheduleChange(s.isScheduleChange())
                 .memberJoin(s.isMemberJoin())
                 .aiRecommend(s.isAiRecommend())
+                .chat(s.isChat())
                 .build();
     }
 

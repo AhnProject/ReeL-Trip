@@ -12,6 +12,8 @@ import type { MemberResponse } from "@/domains/teamspace/api";
 import { UrlParserModal } from "@/domains/place/components/UrlParserModal";
 import type { ParsedResult } from "@/domains/place/types";
 import { CreateEventModal } from "@/domains/event/components/CreateEventModal";
+import { TravelPlaceDetailModal } from "./TravelPlaceDetailModal";
+import type { MapMarkerPlace } from "./TravelPlaceDetailModal";
 import { Logo } from "@/components/Logo";
 
 /* Leaflet은 SSR 불가 → dynamic import */
@@ -43,6 +45,8 @@ export function TravelMapScreen() {
   const [confirmedIds, setConfirmedIds] = useState<Set<number>>(new Set());
   const [showUrlModal, setShowUrlModal]     = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [detailPlace, setDetailPlace] = useState<MapMarkerPlace | null>(null);
+  const [search, setSearch]                 = useState("");
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -50,6 +54,9 @@ export function TravelMapScreen() {
     if (!storedToken) { router.replace("/"); return; }
     setToken(storedToken);
     setUsername(name ?? "");
+
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setSearch(q);
 
     listTeamSpaces(storedToken).then((res) => {
       if (!res.success || !res.data || res.data.length === 0) return;
@@ -146,6 +153,8 @@ export function TravelMapScreen() {
           <input
             type="text"
             placeholder="장소, 일정 검색"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
           />
         </div>
@@ -206,7 +215,10 @@ export function TravelMapScreen() {
 
         {/* ── 중앙 지도 ── */}
         <main className="relative flex-1 overflow-hidden">
-          <TravelMapView onAddToSchedule={() => setShowCreateModal(true)} />
+          <TravelMapView
+            onAddToSchedule={() => setShowCreateModal(true)}
+            onViewDetail={(place) => setDetailPlace(place)}
+          />
         </main>
 
         {/* ── 우측 패널 ── */}
@@ -217,10 +229,18 @@ export function TravelMapScreen() {
           {/* 장소 리스트 */}
           <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-5">
             <h3 className="mb-1 text-[14px] font-bold text-slate-800">장소 목록</h3>
-            {places.length === 0 ? (
-              <div className="py-6 text-center text-[12px] text-slate-400">저장된 장소가 없습니다</div>
-            ) : (
-              places.map((place) => {
+            {(() => {
+              const filteredPlaces = places.filter(
+                (p) => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()),
+              );
+              if (filteredPlaces.length === 0) {
+                return (
+                  <div className="py-6 text-center text-[12px] text-slate-400">
+                    {places.length === 0 ? "저장된 장소가 없습니다" : "검색 결과가 없습니다"}
+                  </div>
+                );
+              }
+              return filteredPlaces.map((place) => {
                 const isConfirmed = confirmedIds.has(place.id);
                 return (
                   <div
@@ -248,8 +268,8 @@ export function TravelMapScreen() {
                     </button>
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
 
             {/* 여행 정보 섹션 */}
             <div
@@ -325,6 +345,13 @@ export function TravelMapScreen() {
           defaultDate={todayStr()}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => setShowCreateModal(false)}
+        />
+      )}
+
+      {detailPlace && (
+        <TravelPlaceDetailModal
+          place={detailPlace}
+          onClose={() => setDetailPlace(null)}
         />
       )}
     </div>

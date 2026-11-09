@@ -15,6 +15,7 @@ public class NotificationSettings {
     private boolean scheduleChange;
     private boolean memberJoin;
     private boolean aiRecommend;
+    private boolean chat;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

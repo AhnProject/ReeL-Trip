@@ -9,6 +9,7 @@ import { listMessages, sendMessage } from "@/domains/chat/api";
 import type { MessageResponse } from "@/domains/chat/api";
 import { DashboardLayout } from "./DashboardLayout";
 import { cn } from "@/lib/cn";
+import { pickSpace, setSelectedSpaceId } from "@/lib/space";
 
 const AVATAR_COLORS: Record<string, string> = {
   default: "bg-slate-400",
@@ -44,6 +45,7 @@ export function ChatScreen() {
 
   const [username, setUsername]   = useState("");
   const [token, setToken]         = useState("");
+  const [spaces, setSpaces]       = useState<TeamSpaceResponse[]>([]);
   const [spaceId, setSpaceId]     = useState<number | null>(null);
   const [spaceName, setSpaceName] = useState("여행 없음");
   const [spaceEmoji, setSpaceEmoji] = useState("✈️");
@@ -60,13 +62,23 @@ export function ChatScreen() {
     setUsername(u ?? "");
     listTeamSpaces(t).then((res) => {
       if (res.success && res.data && res.data.length > 0) {
-        const sp = res.data[0] as TeamSpaceResponse;
+        setSpaces(res.data);
+        const sp = pickSpace(res.data) as TeamSpaceResponse;
         setSpaceName(sp.name);
         setSpaceEmoji(sp.emoji ?? "✈️");
         setSpaceId(sp.id);
       }
     }).catch((err) => console.error("[ChatScreen] teamspace load:", err));
   }, [router]);
+
+  const handleSelectSpace = (id: string | number) => {
+    const sp = spaces.find((s) => String(s.id) === String(id));
+    if (!sp) return;
+    setSpaceName(sp.name);
+    setSpaceEmoji(sp.emoji ?? "✈️");
+    setSpaceId(sp.id);
+    setSelectedSpaceId(sp.id);
+  };
 
   // 메시지 목록 fetch
   const fetchMessages = useCallback(() => {
@@ -108,7 +120,14 @@ export function ChatScreen() {
   };
 
   return (
-    <DashboardLayout activeNav="chat" username={username} spaceName={spaceName} spaceEmoji={spaceEmoji}>
+    <DashboardLayout
+      activeNav="chat"
+      username={username}
+      spaceName={spaceName}
+      spaceEmoji={spaceEmoji}
+      spaces={spaces}
+      onSelectSpace={handleSelectSpace}
+    >
       <div className="flex h-full flex-col rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden">
 
         {/* 채팅방 헤더 */}

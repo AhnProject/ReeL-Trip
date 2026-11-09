@@ -10,24 +10,26 @@
         <result property="scheduleChange" column="schedule_change"/>
         <result property="memberJoin"     column="member_join"/>
         <result property="aiRecommend"    column="ai_recommend"/>
+        <result property="chat"           column="chat"/>
         <result property="createdAt"      column="created_at"/>
         <result property="updatedAt"      column="updated_at"/>
     </resultMap>
 
     <select id="findByUserId" resultMap="notificationSettingsResultMap">
-        SELECT user_id, new_place, schedule_change, member_join, ai_recommend, created_at, updated_at
+        SELECT user_id, new_place, schedule_change, member_join, ai_recommend, chat, created_at, updated_at
         FROM notification_settings
         WHERE user_id = #{userId}
     </select>
 
     <insert id="upsert">
-        INSERT INTO notification_settings (user_id, new_place, schedule_change, member_join, ai_recommend, created_at, updated_at)
-        VALUES (#{userId}, #{newPlace}, #{scheduleChange}, #{memberJoin}, #{aiRecommend}, NOW(), NOW())
+        INSERT INTO notification_settings (user_id, new_place, schedule_change, member_join, ai_recommend, chat, created_at, updated_at)
+        VALUES (#{userId}, #{newPlace}, #{scheduleChange}, #{memberJoin}, #{aiRecommend}, #{chat}, NOW(), NOW())
         ON CONFLICT (user_id) DO UPDATE SET
             new_place       = #{newPlace},
             schedule_change = #{scheduleChange},
             member_join     = #{memberJoin},
             ai_recommend    = #{aiRecommend},
+            chat            = #{chat},
             updated_at      = NOW()
     </insert>
 

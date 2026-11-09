@@ -14,12 +14,14 @@ module.exports = {
     orientation: "portrait",
     scheme,
     userInterfaceStyle: "automatic",
+    icon:        "./assets/icon.png",
     ios: {
       supportsTablet:   true,
       bundleIdentifier: appId,
     },
     android: {
       adaptiveIcon: {
+        foregroundImage:  "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
       package: appId,
@@ -27,6 +29,12 @@ module.exports = {
     plugins: [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          photosPermission: "프로필 사진을 선택하기 위해 사진 보관함 접근 권한이 필요합니다.",
+        },
+      ],
       [
         "expo-share-intent",
         {

@@ -21,6 +21,7 @@ import type { TodoResponse } from "@/domains/todo/api";
 import type { TeamSpace, TripEvent } from "@/domains/teamspace/types";
 import { calcDday, timeAgo, formatMonthDay, getKoreanDay } from "@/lib/date";
 import { cn } from "@/lib/cn";
+import { pickSpace, setSelectedSpaceId as persistSelectedSpaceId } from "@/lib/space";
 import {
   IconHome, IconCalendar, IconMapPin, IconSparkles, IconUsers, IconChat,
   IconBell, IconSettings, IconSearch, IconChevronDown, IconChevronRight,
@@ -51,6 +52,7 @@ const NAV_ITEMS: { key: DashboardNavKey; label: string; icon: React.ReactNode }[
 /* ── 서브 컴포넌트 ── */
 
 function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; placesCount: number }) {
+  const router = useRouter();
   if (!space) return (
     <div className="col-span-2 rounded-xl border border-slate-100 bg-white p-5 py-10 text-center text-sm text-slate-400 shadow-sm">
       여행 스페이스가 없습니다. 새 여행을 만들어보세요.
@@ -78,7 +80,10 @@ function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; 
       <div className="flex flex-1 flex-col">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-bold text-slate-900">{space.name}</h2>
-          <button className="cursor-pointer border-none bg-transparent text-slate-300 hover:text-slate-500">
+          <button
+            onClick={() => router.push("/dashboard/settings?tab=space")}
+            className="cursor-pointer border-none bg-transparent text-slate-300 hover:text-slate-500"
+          >
             <IconGearSmall />
           </button>
         </div>
@@ -127,6 +132,7 @@ function TravelHeroCard({ space, placesCount }: { space: TeamSpace | undefined; 
 }
 
 function ScheduleTimeline({ events }: { events: TripEvent[] }) {
+  const router = useRouter();
   // startDate ~ endDate 범위를 하루씩 펼쳐 날짜별 이벤트 Map 생성
   const dateMap = new Map<string, TripEvent[]>();
   for (const event of events) {
@@ -144,7 +150,12 @@ function ScheduleTimeline({ events }: { events: TripEvent[] }) {
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">이번 여행 일정</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 일정 보기</button>
+        <button
+          onClick={() => router.push("/dashboard/calendar")}
+          className="cursor-pointer border-none bg-transparent text-sm text-brand-primary"
+        >
+          전체 일정 보기
+        </button>
       </div>
       <div className="mt-3 flex flex-col">
         {dates.length === 0 ? (
@@ -182,11 +193,17 @@ function ScheduleTimeline({ events }: { events: TripEvent[] }) {
 }
 
 function AiRecommendSection({ places }: { places: PlaceResponse[] }) {
+  const router = useRouter();
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">저장된 장소</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">더보기</button>
+        <button
+          onClick={() => router.push("/dashboard/travel")}
+          className="cursor-pointer border-none bg-transparent text-sm text-brand-primary"
+        >
+          더보기
+        </button>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3">
         {places.length === 0 ? (
@@ -219,11 +236,17 @@ function AiRecommendSection({ places }: { places: PlaceResponse[] }) {
 }
 
 function MemberStatus({ space, onInvite }: { space: TeamSpace | undefined; onInvite: () => void }) {
+  const router = useRouter();
   return (
     <div className="flex-1 rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">멤버 현황</h3>
-        <button className="cursor-pointer border-none bg-transparent text-sm text-brand-primary">전체 멤버 보기</button>
+        <button
+          onClick={() => router.push("/dashboard/member")}
+          className="cursor-pointer border-none bg-transparent text-sm text-brand-primary"
+        >
+          전체 멤버 보기
+        </button>
       </div>
       <div className="mt-3 flex flex-wrap gap-4">
         {(space?.members ?? []).map((m) => (
@@ -410,11 +433,17 @@ function TodoPanel({
 }
 
 function ActivityPanel({ notifications }: { notifications: NotificationResponse[] }) {
+  const router = useRouter();
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-900">최근 활동</h3>
-        <button className="cursor-pointer border-none bg-transparent text-xs text-brand-primary">전체 보기</button>
+        <button
+          onClick={() => router.push("/dashboard/notification")}
+          className="cursor-pointer border-none bg-transparent text-xs text-brand-primary"
+        >
+          전체 보기
+        </button>
       </div>
       {notifications.length === 0 ? (
         <p className="py-4 text-center text-sm text-slate-400">최근 활동이 없습니다</p>
@@ -454,6 +483,8 @@ function DashboardInner() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showUrlModal, setShowUrlModal]       = useState(false);
+  const [search, setSearch]                   = useState("");
+  const [showSpaceMenu, setShowSpaceMenu]     = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -467,8 +498,9 @@ function DashboardInner() {
         const converted = res.data.map(toTeamSpace);
         setSpaces(converted);
         const paramId = searchParams.get("space");
-        const found   = converted.find((s) => s.id === paramId);
-        setSelectedSpaceId(found ? found.id : converted[0].id);
+        const found   = paramId ? converted.find((s) => s.id === paramId) : undefined;
+        const initial = found ?? pickSpace(converted) ?? converted[0];
+        setSelectedSpaceId(initial.id);
       }
     }).catch((err) => console.error("[DashboardScreen]", err));
 
@@ -501,6 +533,12 @@ function DashboardInner() {
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId) ?? spaces[0];
   const unreadCount   = notifications.filter((n) => !n.isRead).length;
+
+  const handleSelectSpace = (id: string) => {
+    setSelectedSpaceId(id);
+    persistSelectedSpaceId(id);
+    setShowSpaceMenu(false);
+  };
 
   const handleAddPlace = async (parsed: ParsedResult) => {
     if (!selectedSpace || !token) return;
@@ -547,8 +585,11 @@ function DashboardInner() {
       <aside className="flex h-full w-[200px] flex-shrink-0 flex-col border-r border-slate-100 bg-white">
 
         {/* 여행 드롭다운 */}
-        <div className="border-b border-slate-100 p-3">
-          <button className="flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
+        <div className="relative border-b border-slate-100 p-3">
+          <button
+            onClick={() => spaces.length > 0 && setShowSpaceMenu((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-lg bg-slate-50 px-3 py-2"
+          >
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-200 text-sm">
               {selectedSpace?.emoji ?? "✈️"}
             </div>
@@ -557,6 +598,23 @@ function DashboardInner() {
             </span>
             <span className="text-slate-400"><IconChevronDown /></span>
           </button>
+
+          {showSpaceMenu && spaces.length > 0 && (
+            <div className="absolute left-3 right-3 top-[calc(100%-4px)] z-10 overflow-hidden rounded-lg border border-slate-100 bg-white shadow-lg">
+              {spaces.map((sp) => (
+                <button
+                  key={sp.id}
+                  onClick={() => handleSelectSpace(sp.id)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50"
+                >
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-slate-100 text-xs">
+                    {sp.emoji}
+                  </span>
+                  <span className="flex-1 truncate text-slate-700">{sp.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 네비 */}
@@ -611,7 +669,7 @@ function DashboardInner() {
               {spaces.filter((s) => s.id !== selectedSpaceId).slice(0, 2).map((sp) => (
                 <button
                   key={sp.id}
-                  onClick={() => setSelectedSpaceId(sp.id)}
+                  onClick={() => handleSelectSpace(sp.id)}
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
                 >
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-200 text-sm">
@@ -672,10 +730,15 @@ function DashboardInner() {
               <input
                 type="text"
                 placeholder="장소, 일정 검색"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="flex-1 bg-transparent text-sm text-slate-600 outline-none placeholder:text-slate-400"
               />
             </div>
-            <button className="relative cursor-pointer border-none bg-transparent p-1.5 text-slate-500 hover:text-slate-700">
+            <button
+              onClick={() => router.push("/dashboard/notification")}
+              className="relative cursor-pointer border-none bg-transparent p-1.5 text-slate-500 hover:text-slate-700"
+            >
               <IconBell />
               {unreadCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
@@ -704,8 +767,16 @@ function DashboardInner() {
 
             {/* 일정 + AI추천 2열 */}
             <div className="mt-4 grid grid-cols-2 gap-4">
-              <ScheduleTimeline events={selectedSpace?.events ?? []} />
-              <AiRecommendSection places={places.slice(0, 3)} />
+              <ScheduleTimeline
+                events={(selectedSpace?.events ?? []).filter(
+                  (e) => !search.trim() || e.title.toLowerCase().includes(search.trim().toLowerCase()),
+                )}
+              />
+              <AiRecommendSection
+                places={places
+                  .filter((p) => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()))
+                  .slice(0, 3)}
+              />
             </div>
 
             {/* 멤버 현황 */}
@@ -737,7 +808,7 @@ function DashboardInner() {
           onCreated={(created) => {
             const newSpace = toTeamSpace(created);
             setSpaces((prev) => [...prev, newSpace]);
-            setSelectedSpaceId(newSpace.id);
+            handleSelectSpace(newSpace.id);
             setShowCreateModal(false);
           }}
         />

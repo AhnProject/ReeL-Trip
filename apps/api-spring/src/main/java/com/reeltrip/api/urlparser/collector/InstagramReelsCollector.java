@@ -45,7 +45,7 @@ public class InstagramReelsCollector implements ContentCollector {
 
             Map<String, Object> body = Map.of(
                     "directUrls", List.of(normalizedUrl),
-                    "resultsType", "posts"
+                    "resultsType", "reels"
             );
 
             String response = RestClient.builder()

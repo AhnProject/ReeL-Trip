@@ -9,6 +9,10 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface AvatarResponse {
+  avatar: string | null;
+}
+
 export function getProfile(token: string) {
   return apiRequest<UserProfile>("/api/user/profile", {}, token);
 }
@@ -17,5 +21,16 @@ export function updateProfile(payload: { email?: string }, token: string) {
   return apiRequest<UserProfile>("/api/user/profile", {
     method: "PUT",
     body: JSON.stringify(payload),
+  }, token);
+}
+
+export function getAvatar(token: string) {
+  return apiRequest<AvatarResponse>("/api/user/avatar", {}, token);
+}
+
+export function updateAvatar(avatar: string, token: string) {
+  return apiRequest<AvatarResponse>("/api/user/avatar", {
+    method: "PUT",
+    body: JSON.stringify({ avatar }),
   }, token);
 }
