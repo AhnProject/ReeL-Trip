@@ -19,6 +19,7 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Refresh token has expired"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "Access denied"),
+    ACCOUNT_DELETED(HttpStatus.FORBIDDEN, "This account has been deleted"),
 
     // User
     AVATAR_TOO_LARGE(HttpStatus.BAD_REQUEST, "Avatar image exceeds the maximum size"),

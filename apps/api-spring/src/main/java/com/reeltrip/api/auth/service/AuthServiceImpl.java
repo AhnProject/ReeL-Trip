@@ -85,6 +85,10 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        if (user.isDeleted()) {
+            throw new AppException(ErrorCode.ACCOUNT_DELETED);
+        }
+
         return buildAuthResponse(user);
     }
 
