@@ -19,4 +19,6 @@ public interface PlaceMapper {
     int update(Place place);
 
     int delete(@Param("id") Long id);
+
+    void updateEmbedding(@Param("id") Long id, @Param("embedding") String embedding);
 }

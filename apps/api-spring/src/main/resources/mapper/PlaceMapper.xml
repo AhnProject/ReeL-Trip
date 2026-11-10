@@ -101,4 +101,10 @@
         DELETE FROM places WHERE id = #{id}
     </delete>
 
+    <update id="updateEmbedding">
+        <![CDATA[
+        UPDATE places SET embedding = #{embedding}::vector WHERE id = #{id}
+        ]]>
+    </update>
+
 </mapper>

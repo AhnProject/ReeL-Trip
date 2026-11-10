@@ -1,5 +1,6 @@
 package com.reeltrip.api.place.service;
 
+import com.reeltrip.api.ai.service.AiService;
 import com.reeltrip.api.auth.mapper.UserMapper;
 import com.reeltrip.api.auth.model.User;
 import com.reeltrip.api.common.exception.AppException;
@@ -13,11 +14,14 @@ import com.reeltrip.api.place.model.Place;
 import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
 import com.reeltrip.api.teamspace.model.TeamSpaceMember;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlaceServiceImpl implements PlaceService {
@@ -26,6 +30,7 @@ public class PlaceServiceImpl implements PlaceService {
     private final TeamSpaceMapper teamSpaceMapper;
     private final UserMapper userMapper;
     private final NotificationService notificationService;
+    private final AiService aiService;
 
     @Override
     public PlaceResponse add(AddPlaceRequest request, String username) {
@@ -56,6 +61,7 @@ public class PlaceServiceImpl implements PlaceService {
                 .build();
 
         placeMapper.insert(place);
+        generateEmbeddingBestEffort(place);
 
         String addMessage = String.format("%s님이 '%s'을 추가했습니다.", user.getUsername(), place.getName());
         notifyOtherMembers(request.getSpaceId(), user.getId(), addMessage);
@@ -109,6 +115,7 @@ public class PlaceServiceImpl implements PlaceService {
         }
 
         placeMapper.update(place);
+        generateEmbeddingBestEffort(place);
 
         String updateMessage = String.format("%s님이 '%s' 장소를 확정했습니다.", user.getUsername(), place.getName());
         notifyOtherMembers(place.getSpaceId(), user.getId(), updateMessage);
@@ -143,6 +150,32 @@ public class PlaceServiceImpl implements PlaceService {
         if (!teamSpaceMapper.existsMember(spaceId, userId)) {
             throw new AppException(ErrorCode.PLACE_ACCESS_DENIED);
         }
+    }
+
+    /** "비슷한 장소" 추천용 임베딩 생성 — 실패해도 장소 저장 자체는 영향받지 않는 best-effort 처리 */
+    private void generateEmbeddingBestEffort(Place place) {
+        try {
+            String text = buildEmbeddingText(place);
+            if (text.isBlank()) return;
+
+            List<Double> embedding = aiService.createEmbedding(text);
+            String embeddingStr = "[" + embedding.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(",")) + "]";
+            placeMapper.updateEmbedding(place.getId(), embeddingStr);
+        } catch (Exception e) {
+            log.warn("Failed to generate embedding for place {}: {}", place.getId(), e.getMessage());
+        }
+    }
+
+    private String buildEmbeddingText(Place place) {
+        StringBuilder sb = new StringBuilder();
+        if (place.getName() != null) sb.append(place.getName()).append(" ");
+        if (place.getCategory() != null) sb.append(place.getCategory()).append(" ");
+        if (place.getRegion() != null) sb.append(place.getRegion()).append(" ");
+        if (place.getCountry() != null) sb.append(place.getCountry()).append(" ");
+        if (place.getTags() != null && !place.getTags().isEmpty()) sb.append(String.join(" ", place.getTags()));
+        return sb.toString().trim();
     }
 
     private void notifyOtherMembers(Long spaceId, Long actorId, String message) {
