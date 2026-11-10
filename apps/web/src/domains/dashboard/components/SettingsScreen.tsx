@@ -398,11 +398,11 @@ function SettingsInner() {
               <h2 className="mb-5 text-base font-bold text-slate-900">알림 설정</h2>
               <div className="flex flex-col gap-4">
                 {([
-                  { key: "newPlace" as const,       label: "새 장소 추가",    desc: "팀원이 장소를 추가하면 알려드려요"    },
-                  { key: "scheduleChange" as const,  label: "일정 변경",      desc: "일정이 수정되거나 삭제되면 알려드려요" },
-                  { key: "memberJoin" as const,      label: "멤버 참여",      desc: "새 멤버가 스페이스에 참여하면 알려드려요" },
-                  { key: "chat" as const,            label: "채팅 메시지",    desc: "새 채팅 메시지가 오면 알려드려요" },
-                  { key: "aiRecommend" as const,     label: "AI 추천 도착",   desc: "AI 추천 장소가 준비되면 알려드려요"  },
+                  { key: "newPlace" as const,       label: "새 장소 추가",    desc: "팀원이 장소를 추가하면 알려드려요",    disabled: false },
+                  { key: "scheduleChange" as const,  label: "일정 변경",      desc: "일정이 수정되거나 삭제되면 알려드려요", disabled: false },
+                  { key: "memberJoin" as const,      label: "멤버 참여",      desc: "새 멤버가 스페이스에 참여하면 알려드려요", disabled: false },
+                  { key: "chat" as const,            label: "채팅 메시지",    desc: "새 채팅 메시지가 오면 알려드려요",     disabled: false },
+                  { key: "aiRecommend" as const,     label: "AI 추천 도착",   desc: "AI 추천 장소가 준비되면 알려드려요 (준비중)", disabled: true },
                 ]).map((item) => (
                   <div key={item.key} className="flex items-center justify-between rounded-lg border border-slate-100 p-4">
                     <div>
@@ -410,10 +410,13 @@ function SettingsInner() {
                       <p className="text-xs text-slate-400">{item.desc}</p>
                     </div>
                     <button
-                      onClick={() => handleToggleNotifSetting(item.key)}
+                      onClick={() => !item.disabled && handleToggleNotifSetting(item.key)}
+                      disabled={item.disabled}
+                      title={item.disabled ? "준비중입니다" : undefined}
                       className={cn(
                         "relative h-6 w-11 flex-shrink-0 rounded-full transition-colors",
                         notifSettings[item.key] ? "bg-brand-primary" : "bg-slate-200",
+                        item.disabled && "cursor-not-allowed opacity-50",
                       )}
                     >
                       <span className={cn(

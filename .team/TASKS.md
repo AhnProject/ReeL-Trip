@@ -23,7 +23,7 @@ _(확정된 6개 항목을 묶음 A~D로 분해. 마이그레이션 파일 번�
 
 #### 묶음 A — 비활성화/축소 처리 (백엔드 변경 없음, 가장 단순)
 - [x] [A1] H3-10 "Pro로 업그레이드" 버튼 "준비중" 처리 — 대상: `apps/web/src/domains/dashboard/components/SettingsScreen.tsx:270-272`. 방향: 버튼 `disabled` + 라벨/툴팁에 "준비중" 표시로 변경(결제 로직 없음). 모바일에 동일 UI가 있는지 확인 후 있으면 동일 처리.
-- [ ] [A2] 설정-알림 aiRecommend 토글 "준비중" 처리 — 대상: 웹 `SettingsScreen.tsx`(알림설정 탭 aiRecommend 토글), 모바일 `NotificationSettingsModal.tsx`. 방향: 토글을 `disabled` + "준비중" 설명 추가(저장/조회 로직은 그대로 두고 UI만 비활성화 — 기존 값 변경 불가하게).
+- [x] [A2] 설정-알림 aiRecommend 토글 "준비중" 처리 — 대상: 웹 `SettingsScreen.tsx`(알림설정 탭 aiRecommend 토글), 모바일 `NotificationSettingsModal.tsx`. 방향: 토글을 `disabled` + "준비중" 설명 추가(저장/조회 로직은 그대로 두고 UI만 비활성화 — 기존 값 변경 불가하게).
 
 #### 묶음 B — 계정 탈퇴 (소프트 삭제)
 - [ ] [B1] DB 마이그레이션 — `users` 테이블에 `is_deleted`(boolean, default false), `deleted_at`(timestamp, nullable) 컬럼 추가. 대상: `apps/api-spring/src/main/resources/db/migration/V14__add_user_soft_delete.sql` (⚠️ 현재 최신은 V13`__enable_rls_remaining_tables.sql`(커밋 a13c07f) — 워커는 착수 시점에 `db/migration/` 디렉터리를 다시 확인해 실제 다음 번호로 파일명 조정)
