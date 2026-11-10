@@ -107,4 +107,43 @@
         ]]>
     </update>
 
+    <resultMap id="similarPlaceResultMap" type="com.reeltrip.api.place.dto.SimilarPlaceResponse">
+        <id     property="id"           column="id"/>
+        <result property="name"         column="name"/>
+        <result property="category"     column="category"/>
+        <result property="region"       column="region"/>
+        <result property="thumbnailUrl" column="thumbnail_url"/>
+        <result property="tags"         column="tags"
+                typeHandler="com.reeltrip.api.common.typehandler.StringListTypeHandler"/>
+        <result property="matchScore"   column="match_score"/>
+    </resultMap>
+
+    <!--
+        전체 장소 중 유사도 top N (팀스페이스 한정 아님) — PLAN.md/LOG.md에 기록된
+        제품 상식선 기본값: 비슷한 "여행지 경험"을 폭넓게 추천하는 게 목적이라
+        같은 스페이스로 좁히면 (보통 스페이스당 장소 수가 적어) 추천 후보가
+        거의 없어짐. consent_given=true인 장소만 후보로 포함(공개동의 안 한
+        장소는 추천 결과로도 노출되지 않음 — 묶음 C의 공개동의 의미와 일치).
+    -->
+    <select id="findSimilarPlaces" resultMap="similarPlaceResultMap">
+        <![CDATA[
+        SELECT
+            p.id,
+            p.name,
+            p.category,
+            p.region,
+            p.thumbnail_url,
+            p.tags,
+            ROUND(CAST(1 - (p.embedding <=> target.embedding) AS NUMERIC), 4) AS match_score
+        FROM places p,
+             (SELECT embedding FROM places WHERE id = #{placeId}) target
+        WHERE p.id != #{placeId}
+          AND p.embedding IS NOT NULL
+          AND target.embedding IS NOT NULL
+          AND p.consent_given = true
+        ORDER BY p.embedding <=> target.embedding
+        LIMIT #{limit}
+        ]]>
+    </select>
+
 </mapper>
