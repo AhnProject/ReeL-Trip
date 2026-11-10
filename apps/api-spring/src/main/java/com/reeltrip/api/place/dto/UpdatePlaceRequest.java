@@ -36,4 +36,5 @@ public class UpdatePlaceRequest {
     private List<String> tags;
     private List<String> menu;
     private String confidence;
+    private Boolean consentGiven;
 }

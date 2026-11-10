@@ -33,7 +33,7 @@ _(확정된 6개 항목을 묶음 A~D로 분해. 마이그레이션 파일 번�
 
 #### 묶음 C — 장소 공개동의 저장
 - [x] [C1] DB 마이그레이션 — `places` 테이블에 `consent_given`(boolean, default false), `consent_at`(timestamp, nullable) 컬럼 추가. 대상: `apps/api-spring/src/main/resources/db/migration/V15__add_place_consent.sql`(B1 이후 번호, 실제 번호는 착수 시점 디렉터리 기준 재확인)
-- [ ] [C2] 백엔드 연동 — 대상: `PlaceController`/`PlaceService`/`PlaceServiceImpl`(B1 사이클에서 신설된 `update` 엔드포인트). 방향: 기존 `PATCH /api/places/{id}`에 consent 필드 포함하거나 전용 서브 리소스로 분리(워커 판단), 기존 멤버십 체크 패턴 재사용.
+- [x] [C2] 백엔드 연동 — 대상: `PlaceController`/`PlaceService`/`PlaceServiceImpl`(B1 사이클에서 신설된 `update` 엔드포인트). 방향: 기존 `PATCH /api/places/{id}`에 consent 필드 포함하거나 전용 서브 리소스로 분리(워커 판단), 기존 멤버십 체크 패턴 재사용.
 - [ ] [C3] 모바일 연동 — 대상: `apps/mobile/src/features/travel/PlaceDetailScreen.tsx:230`(onConsent). 방향: TODO 콜백을 실제 API 호출로 연결, 동의 체크박스 UI 추가(약관 문구는 플레이스홀더 상수로 분리해 추후 교체 쉽게 — 예: `CONSENT_PLACEHOLDER_TEXT`).
 
 #### 묶음 D — "비슷한 장소" 추천 (옵션 B: places 전용 embedding, 범위가 커서 세분화)

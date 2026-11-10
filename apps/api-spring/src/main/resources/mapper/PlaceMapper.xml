@@ -28,6 +28,8 @@
                 typeHandler="com.reeltrip.api.common.typehandler.StringListTypeHandler"/>
         <result property="confidence"     column="confidence"/>
         <result property="createdBy"      column="created_by"/>
+        <result property="consentGiven"   column="consent_given"/>
+        <result property="consentAt"      column="consent_at"/>
         <result property="createdAt"      column="created_at"/>
         <result property="updatedAt"      column="updated_at"/>
     </resultMap>
@@ -52,7 +54,7 @@
         SELECT id, space_id, name, category, address, region, country,
                latitude, longitude, price_desc, price_min, price_max, currency,
                hours, thumbnail_url, source_url, source_platform,
-               tags, menu, confidence, created_by, created_at, updated_at
+               tags, menu, confidence, created_by, consent_given, consent_at, created_at, updated_at
         FROM places
         WHERE id = #{id}
     </select>
@@ -61,7 +63,7 @@
         SELECT id, space_id, name, category, address, region, country,
                latitude, longitude, price_desc, price_min, price_max, currency,
                hours, thumbnail_url, source_url, source_platform,
-               tags, menu, confidence, created_by, created_at, updated_at
+               tags, menu, confidence, created_by, consent_given, consent_at, created_at, updated_at
         FROM places
         WHERE space_id = #{spaceId}
         ORDER BY created_at DESC
@@ -88,6 +90,8 @@
             tags = #{tags, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
             menu = #{menu, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
             confidence = #{confidence},
+            consent_given = #{consentGiven},
+            consent_at = #{consentAt},
             updated_at = NOW(),
         </set>
         WHERE id = #{id}

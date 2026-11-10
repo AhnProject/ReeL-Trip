@@ -15,6 +15,7 @@ import com.reeltrip.api.teamspace.model.TeamSpaceMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -102,6 +103,10 @@ public class PlaceServiceImpl implements PlaceService {
         if (request.getTags() != null) place.setTags(request.getTags());
         if (request.getMenu() != null) place.setMenu(request.getMenu());
         if (request.getConfidence() != null) place.setConfidence(request.getConfidence());
+        if (request.getConsentGiven() != null) {
+            place.setConsentGiven(request.getConsentGiven());
+            place.setConsentAt(request.getConsentGiven() ? LocalDateTime.now() : null);
+        }
 
         placeMapper.update(place);
 
@@ -170,6 +175,8 @@ public class PlaceServiceImpl implements PlaceService {
                 .menu(p.getMenu())
                 .confidence(p.getConfidence())
                 .createdBy(p.getCreatedBy())
+                .consentGiven(p.isConsentGiven())
+                .consentAt(p.getConsentAt())
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
                 .build();
