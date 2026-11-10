@@ -29,7 +29,7 @@ _(확정된 6개 항목을 묶음 A~D로 분해. 마이그레이션 파일 번�
 - [x] [B1] DB 마이그레이션 — `users` 테이블에 `is_deleted`(boolean, default false), `deleted_at`(timestamp, nullable) 컬럼 추가. 대상: `apps/api-spring/src/main/resources/db/migration/V14__add_user_soft_delete.sql` (⚠️ 현재 최신은 V13`__enable_rls_remaining_tables.sql`(커밋 a13c07f) — 워커는 착수 시점에 `db/migration/` 디렉터리를 다시 확인해 실제 다음 번호로 파일명 조정)
 - [x] [B2] 백엔드 탈퇴 엔드포인트 — `DELETE /api/user/account`(또는 동급) 신설. 대상: `UserController`/`UserService`/`UserServiceImpl`. 방향: 본인 확인(JWT) 후 `is_deleted=true`,`deleted_at=now()` 세팅 + 해당 사용자의 refresh token 전체 무효화(기존 `RefreshTokenMapper` 삭제/만료 처리 재사용). "보관 후 실제 삭제" 배치 작업은 이번 사이클에서 실제 스케줄러까지 구현할지, 설계만 남길지 착수 전 비용 확인 후 플래너에게 보고.
 - [x] [B3] 로그인 가드 — 탈퇴 계정 로그인 차단. 대상: `AuthServiceImpl`(로그인 처리 로직). 방향: `is_deleted=true`인 계정은 로그인 시도 시 거부(적절한 ErrorCode 신규).
-- [ ] [B4] 프런트 연동 — 대상: 웹 `SettingsScreen.tsx:281-283`("계정 탈퇴" 버튼). 방향: 확인 모달(경고 문구는 플레이스홀더 텍스트) → 탈퇴 API 호출 → 로그아웃 처리(`clearAuth`/`clearSession`) + 로그인 페이지 리다이렉트. 모바일에 동일 UI 필요 여부 확인 후 있으면 동일 패턴 추가.
+- [x] [B4] 프런트 연동 — 대상: 웹 `SettingsScreen.tsx:281-283`("계정 탈퇴" 버튼). 방향: 확인 모달(경고 문구는 플레이스홀더 텍스트) → 탈퇴 API 호출 → 로그아웃 처리(`clearAuth`/`clearSession`) + 로그인 페이지 리다이렉트. 모바일에 동일 UI 필요 여부 확인 후 있으면 동일 패턴 추가.
 
 #### 묶음 C — 장소 공개동의 저장
 - [ ] [C1] DB 마이그레이션 — `places` 테이블에 `consent_given`(boolean, default false), `consent_at`(timestamp, nullable) 컬럼 추가. 대상: `apps/api-spring/src/main/resources/db/migration/V15__add_place_consent.sql`(B1 이후 번호, 실제 번호는 착수 시점 디렉터리 기준 재확인)

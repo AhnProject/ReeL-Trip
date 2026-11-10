@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { listTeamSpaces, updateTeamSpace, deleteTeamSpace } from "@/domains/teamspace/api";
 import type { TeamSpaceResponse } from "@/domains/teamspace/api";
-import { getProfile, updateProfile, getAvatar, updateAvatar } from "@/domains/user/api";
+import { getProfile, updateProfile, getAvatar, updateAvatar, deleteAccount } from "@/domains/user/api";
 import { getNotificationSettings, updateNotificationSettings } from "@/domains/notification/api";
 import type { NotificationSettingsResponse } from "@/domains/notification/api";
 import { DashboardLayout } from "./DashboardLayout";
@@ -52,6 +52,7 @@ function SettingsInner() {
 
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [accountDeleting, setAccountDeleting] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -238,6 +239,27 @@ function SettingsInner() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
     router.replace("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!token) return;
+    if (!window.confirm("정말로 계정을 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
+    setAccountDeleting(true);
+    try {
+      const res = await deleteAccount(token);
+      if (res.success) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("username");
+        router.replace("/");
+      } else {
+        window.alert(res.message || "탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } catch {
+      window.alert("서버 오류가 발생했습니다.");
+    } finally {
+      setAccountDeleting(false);
+    }
   };
 
   return (
@@ -461,8 +483,12 @@ function SettingsInner() {
                 >
                   로그아웃
                 </button>
-                <button className="w-full rounded-xl border border-red-200 py-2 text-sm font-semibold text-red-500 hover:bg-red-50">
-                  계정 탈퇴
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={accountDeleting}
+                  className="w-full rounded-xl border border-red-200 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {accountDeleting ? "탈퇴 처리 중…" : "계정 탈퇴"}
                 </button>
               </div>
             </div>
