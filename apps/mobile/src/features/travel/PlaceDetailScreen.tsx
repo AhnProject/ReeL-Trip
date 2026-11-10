@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
   Image, StyleSheet, StatusBar,
@@ -13,7 +13,8 @@ import { PlaceMapCard }       from "./components/PlaceMapCard";
 import { PlaceMenuSection }   from "./components/PlaceMenuSection";
 import { PlaceCorrectSection } from "./components/PlaceCorrectSection";
 import { PlaceSimilarSection } from "./components/PlaceSimilarSection";
-import { updatePlace } from "@/domains/place/api";
+import type { SimilarPlace } from "./components/PlaceSimilarSection";
+import { updatePlace, findSimilarPlaces } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
 import { C } from "@/lib/colors";
 import { row, radius, sp } from "@/lib/styles";
@@ -111,6 +112,19 @@ export function PlaceDetailScreen() {
       return next;
     });
   };
+
+  const [similar, setSimilar] = useState<SimilarPlace[]>([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
+
+  useEffect(() => {
+    if (!token || !p.consentGiven) { setSimilar([]); return; }
+    setSimilarLoading(true);
+    findSimilarPlaces(p.id, token)
+      .then((res) => setSimilar(res.success && res.data ? res.data : []))
+      .catch(() => setSimilar([]))
+      .finally(() => setSimilarLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.id, p.consentGiven, token]);
 
   const handleConsentChange = async (consented: boolean) => {
     if (!token) return;
@@ -243,8 +257,8 @@ export function PlaceDetailScreen() {
           {/* 비슷한 장소 */}
           <Text style={s.sectionTitle}>AI 추천</Text>
           <PlaceSimilarSection
-            similar={[]}
-            loading={false}
+            similar={similar}
+            loading={similarLoading}
             consented={p.consentGiven}
             onConsent={handleConsentChange}
           />

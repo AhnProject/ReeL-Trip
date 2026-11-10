@@ -6,22 +6,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { C } from "@/lib/colors";
 import { card, row, radius, sp } from "@/lib/styles";
+import type { SimilarPlaceResponse } from "@/domains/place/api";
 
 // 법무 검토 전 임시 문구 — 실제 약관이 확정되면 이 값만 교체하면 됨
 export const CONSENT_PLACEHOLDER_TEXT =
   "동의 시 내가 저장한 장소 정보(이름, 위치, 태그 등)가 다른 사용자에게 " +
   "익명으로 추천될 수 있습니다. 언제든지 동의를 철회할 수 있습니다.";
 
-// TODO: 실제 API 연결 시 PlaceResponse 기반의 SimilarPlace 타입으로 교체
-export interface SimilarPlace {
-  id:          number;
-  name:        string;
-  category:    string | null;
-  region:      string | null;
-  thumbnailUrl:string | null;
-  matchScore:  number;  // 0 ~ 1
-  tags:        string[];
-}
+export type SimilarPlace = SimilarPlaceResponse;
 
 interface PlaceSimilarSectionProps {
   similar:     SimilarPlace[];

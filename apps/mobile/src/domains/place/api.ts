@@ -72,3 +72,17 @@ export function updatePlace(id: number, payload: Partial<AddPlacePayload>, token
 export function deletePlace(id: number, token: string) {
   return apiRequest<void>(`/api/places/${id}`, { method: "DELETE" }, token);
 }
+
+export interface SimilarPlaceResponse {
+  id: number;
+  name: string;
+  category: string | null;
+  region: string | null;
+  thumbnailUrl: string | null;
+  tags: string[];
+  matchScore: number;
+}
+
+export function findSimilarPlaces(id: number, token: string) {
+  return apiRequest<SimilarPlaceResponse[]>(`/api/places/${id}/similar`, {}, token);
+}

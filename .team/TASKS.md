@@ -41,7 +41,7 @@ _(확정된 6개 항목을 묶음 A~D로 분해. 마이그레이션 파일 번�
 - [x] [D2] 임베딩 생성 로직 — 장소 추가(`add`)/수정(`update`) 시 이름+설명 등 텍스트로 임베딩 API(OpenAI/Gemini, 기존 `recommend`/`ai` 도메인에 이미 있는 임베딩 호출 클라이언트 재사용 가능한지 먼저 확인) 호출 후 `embedding` 컬럼에 저장. 대상: `PlaceServiceImpl.add/update`. 방향: 알림 생성([6-a]) 패턴처럼 best-effort로 처리(임베딩 실패해도 장소 저장 자체는 성공) — 동기/비동기 여부는 워커가 기존 OpenAI 클라이언트 응답 지연시간 확인 후 결정.
 - [x] [D3] 유사도 검색 쿼리 — pgvector cosine distance(`<=>`) 기반 `findSimilarPlaces(placeId, limit)` 신설. 대상: `PlaceMapper`(인터페이스)+`PlaceMapper.xml`. 방향: 자기 자신 제외, 임베딩이 없는 장소(NULL)는 결과/대상에서 제외, 검색 범위(같은 팀스페이스 한정 vs 전체 장소)는 워커가 제품 상식선에서 기본값(전체 장소 중 유사도 top N) 정하고 플래너에게 보고.
 - [x] [D4] 백엔드 엔드포인트 — `GET /api/places/{id}/similar` 신설. 대상: `PlaceController`/`PlaceService`/신규 응답 DTO(`SimilarPlaceResponse`). 방향: 기존 Place 조회와 동일한 멤버십 체크 패턴 적용.
-- [ ] [D5] 모바일 연결 — 대상: `apps/mobile/src/features/travel/components/PlaceSimilarSection.tsx:10`(`similar={[]}` 하드코딩 제거). 방향: `GET /api/places/{id}/similar` 실연동, 로딩/빈 상태(유사 장소 없음) 처리.
+- [x] [D5] 모바일 연결 — 대상: `apps/mobile/src/features/travel/components/PlaceSimilarSection.tsx:10`(`similar={[]}` 하드코딩 제거). 방향: `GET /api/places/{id}/similar` 실연동, 로딩/빈 상태(유사 장소 없음) 처리.
 
 ### 5. 검토 (Review)
 - [ ] 각 묶음에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
