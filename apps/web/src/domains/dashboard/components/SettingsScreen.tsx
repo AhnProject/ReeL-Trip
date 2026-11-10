@@ -443,8 +443,12 @@ function SettingsInner() {
                 </div>
               </div>
               {planLabel === "Free 플랜" && (
-                <button className="mt-4 w-full rounded-xl bg-brand-primary py-2.5 text-sm font-semibold text-white hover:bg-brand-primaryHover">
-                  Pro로 업그레이드
+                <button
+                  disabled
+                  title="준비중입니다"
+                  className="mt-4 w-full cursor-not-allowed rounded-xl bg-slate-200 py-2.5 text-sm font-semibold text-slate-400"
+                >
+                  Pro로 업그레이드 (준비중)
                 </button>
               )}
               <div className="mt-6 border-t border-slate-100 pt-5 flex flex-col gap-2">
