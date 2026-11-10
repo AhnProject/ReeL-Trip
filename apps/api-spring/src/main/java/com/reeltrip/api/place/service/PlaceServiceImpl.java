@@ -7,6 +7,7 @@ import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.PlaceResponse;
+import com.reeltrip.api.place.dto.SimilarPlaceResponse;
 import com.reeltrip.api.place.dto.UpdatePlaceRequest;
 import com.reeltrip.api.notification.service.NotificationService;
 import com.reeltrip.api.place.mapper.PlaceMapper;
@@ -25,6 +26,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PlaceServiceImpl implements PlaceService {
+
+    /** "비슷한 장소" 추천 개수 기본값 */
+    private static final int SIMILAR_PLACES_LIMIT = 10;
 
     private final PlaceMapper placeMapper;
     private final TeamSpaceMapper teamSpaceMapper;
@@ -132,6 +136,21 @@ public class PlaceServiceImpl implements PlaceService {
         if (placeMapper.delete(id) == 0) {
             throw new AppException(ErrorCode.PLACE_NOT_FOUND);
         }
+    }
+
+    @Override
+    public List<SimilarPlaceResponse> findSimilar(Long id, String username) {
+        User user = getUser(username);
+        Place place = getPlace(id);
+        checkSpaceMember(place.getSpaceId(), user.getId());
+
+        // 공개동의 안 한 장소는 추천 기능 자체를 쓸 수 없음(묶음 C 공개동의 의미와
+        // 대칭 — "내 장소가 추천에 쓰이는 데 동의해야 비슷한 장소도 볼 수 있다")
+        if (!place.isConsentGiven()) {
+            throw new AppException(ErrorCode.PLACE_CONSENT_REQUIRED);
+        }
+
+        return placeMapper.findSimilarPlaces(id, SIMILAR_PLACES_LIMIT);
     }
 
     /* ── private helpers ── */

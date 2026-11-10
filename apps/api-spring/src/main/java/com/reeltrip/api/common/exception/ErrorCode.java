@@ -57,6 +57,7 @@ public enum ErrorCode {
     // Place
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "Place not found"),
     PLACE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this place"),
+    PLACE_CONSENT_REQUIRED(HttpStatus.FORBIDDEN, "Consent is required to view similar places"),
 
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification not found"),
