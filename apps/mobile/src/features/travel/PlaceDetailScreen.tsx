@@ -7,10 +7,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { usePlaceDetailStore } from "@/store/place-detail";
+import { useAuthStore } from "@/store/auth";
+import { toast } from "@/store/toast";
 import { PlaceMapCard }       from "./components/PlaceMapCard";
 import { PlaceMenuSection }   from "./components/PlaceMenuSection";
 import { PlaceCorrectSection } from "./components/PlaceCorrectSection";
 import { PlaceSimilarSection } from "./components/PlaceSimilarSection";
+import { updatePlace } from "@/domains/place/api";
 import type { PlaceResponse } from "@/domains/place/api";
 import { C } from "@/lib/colors";
 import { row, radius, sp } from "@/lib/styles";
@@ -71,6 +74,7 @@ function Divider() {
 
 export function PlaceDetailScreen() {
   const router = useRouter();
+  const token = useAuthStore((s) => s.token);
   const { place, setPlace } = usePlaceDetailStore();
   const [localPlace, setLocalPlace] = useState<PlaceResponse | null>(place);
 
@@ -106,6 +110,20 @@ export function PlaceDetailScreen() {
       setPlace(next);
       return next;
     });
+  };
+
+  const handleConsentChange = async (consented: boolean) => {
+    if (!token) return;
+    try {
+      const res = await updatePlace(p.id, { consentGiven: consented }, token);
+      if (res.success && res.data) {
+        handlePlaceUpdate({ consentGiven: res.data.consentGiven, consentAt: res.data.consentAt });
+      } else {
+        toast.error(res.message || "동의 설정 저장에 실패했습니다.");
+      }
+    } catch {
+      toast.error("서버 오류가 발생했습니다.");
+    }
   };
 
   return (
@@ -227,7 +245,8 @@ export function PlaceDetailScreen() {
           <PlaceSimilarSection
             similar={[]}
             loading={false}
-            // TODO: onConsent → API 연결 후 서버에 동의 저장
+            consented={p.consentGiven}
+            onConsent={handleConsentChange}
           />
 
         </View>

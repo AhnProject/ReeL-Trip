@@ -22,6 +22,8 @@ export interface PlaceResponse {
   menu: string[];
   confidence: string | null;
   createdBy: number;
+  consentGiven: boolean;
+  consentAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +48,7 @@ export interface AddPlacePayload {
   tags?: string[];
   menu?: string[];
   confidence?: string;
+  consentGiven?: boolean;
 }
 
 export function listPlaces(spaceId: number, token: string) {

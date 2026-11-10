@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity,
   Image, StyleSheet, Switch,
@@ -6,6 +6,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { C } from "@/lib/colors";
 import { card, row, radius, sp } from "@/lib/styles";
+
+// 법무 검토 전 임시 문구 — 실제 약관이 확정되면 이 값만 교체하면 됨
+export const CONSENT_PLACEHOLDER_TEXT =
+  "동의 시 내가 저장한 장소 정보(이름, 위치, 태그 등)가 다른 사용자에게 " +
+  "익명으로 추천될 수 있습니다. 언제든지 동의를 철회할 수 있습니다.";
 
 // TODO: 실제 API 연결 시 PlaceResponse 기반의 SimilarPlace 타입으로 교체
 export interface SimilarPlace {
@@ -84,6 +89,12 @@ export function PlaceSimilarSection({
 }: PlaceSimilarSectionProps) {
   const [localConsent, setLocalConsent] = useState(consented);
 
+  // consented prop이 바뀌면(저장 성공/실패) 로컬 토글도 맞춰 동기화 — 저장 실패 시
+  // 스위치가 서버에 반영 안 된 상태로 켜져있는 것처럼 보이는 것을 방지
+  useEffect(() => {
+    setLocalConsent(consented);
+  }, [consented]);
+
   const handleToggle = (v: boolean) => {
     setLocalConsent(v);
     onConsent?.(v);
@@ -108,7 +119,7 @@ export function PlaceSimilarSection({
       <View style={s.consentRow}>
         <View style={{ flex: 1 }}>
           <Text style={s.consentTitle}>내 기록 공개 동의</Text>
-          <Text style={s.consentDesc}>동의 시 다른 사용자의 비슷한 장소를 볼 수 있습니다</Text>
+          <Text style={s.consentDesc}>{CONSENT_PLACEHOLDER_TEXT}</Text>
         </View>
         <Switch
           value={localConsent}
