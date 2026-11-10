@@ -105,6 +105,10 @@ public class AuthServiceImpl implements AuthService {
         User user = userMapper.findById(rt.getUserId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        if (user.isDeleted()) {
+            throw new AppException(ErrorCode.ACCOUNT_DELETED);
+        }
+
         return buildAuthResponse(user);
     }
 
