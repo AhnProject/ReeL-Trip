@@ -24,4 +24,6 @@ public interface UserMapper {
     Optional<String> findAvatarByUserId(@Param("id") Long id);
 
     void updateAvatar(@Param("id") Long id, @Param("avatar") String avatar);
+
+    void markAsDeleted(@Param("id") Long id);
 }

@@ -10,6 +10,7 @@
         <result property="password"  column="password"/>
         <result property="email"     column="email"/>
         <result property="role"      column="role"/>
+        <result property="isDeleted" column="is_deleted"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -20,13 +21,13 @@
     </insert>
 
     <select id="findById" resultMap="userResultMap">
-        SELECT id, username, password, email, role, created_at, updated_at
+        SELECT id, username, password, email, role, is_deleted, created_at, updated_at
         FROM users
         WHERE id = #{id}
     </select>
 
     <select id="findByUsername" resultMap="userResultMap">
-        SELECT id, username, password, email, role, created_at, updated_at
+        SELECT id, username, password, email, role, is_deleted, created_at, updated_at
         FROM users
         WHERE username = #{username}
     </select>
@@ -56,6 +57,12 @@
     <update id="updateAvatar">
         UPDATE users
         SET avatar = #{avatar}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="markAsDeleted">
+        UPDATE users
+        SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
         WHERE id = #{id}
     </update>
 

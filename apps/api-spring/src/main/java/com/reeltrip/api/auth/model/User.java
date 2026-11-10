@@ -19,6 +19,9 @@ public class User {
     @Builder.Default
     private String role = "USER";
 
+    @Builder.Default
+    private boolean isDeleted = false;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -10,4 +10,5 @@ public interface UserService {
     UserProfileResponse updateProfile(String username, UpdateProfileRequest request);
     AvatarResponse getAvatar(String username);
     AvatarResponse updateAvatar(String username, UpdateAvatarRequest request);
+    void deleteAccount(String username);
 }
