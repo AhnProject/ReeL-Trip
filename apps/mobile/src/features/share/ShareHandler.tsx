@@ -77,7 +77,7 @@ export function ShareHandler() {
         toast.success(`"${parsed.name ?? "장소"}" 저장됨`);
         invalidatePlaces();
       } else {
-        toast.error("저장에 실패했습니다.");
+        toast.error(saveRes.message || "저장에 실패했습니다.");
       }
     } catch {
       toast.error("오류가 발생했습니다.");
