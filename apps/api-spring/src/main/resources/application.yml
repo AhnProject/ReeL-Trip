@@ -58,6 +58,7 @@ mybatis:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    enabled: false
   swagger-ui:
     enabled: false
   default-produces-media-type: application/json

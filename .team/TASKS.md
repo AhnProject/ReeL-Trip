@@ -114,7 +114,7 @@ _(사용자 컨펌: 묶음 A + 묶음 C만 진행. 묶음 B/D는 백로그.)_
 - [x] [A2] M3-3 — 인덱스 누락 5곳. 대상: 신규 마이그레이션(착수 시점 `db/migration/` 디렉터리 재확인 후 다음 번호 배정). 방향: `team_space_members.user_id`, `notifications.user_id`, `places.space_id`, `events.space_id`, `todos.space_id`에 `CREATE INDEX` 추가.
 - [x] [A3] M1-3 — 로그인 brute-force 방어(계정 잠금). 대상: `AuthServiceImpl.login()` + 신규 마이그레이션(`users.failed_login_count`, `locked_until` 등). 방향: 실패 횟수 증가, 임계값 초과 시 일정 시간 잠금. IP 기반 확장은 범위 제외.
 - [x] [A4] M3-1 — N+1 쿼리 2건. 대상: `TeamSpaceServiceImpl.findAll()`, `MessageServiceImpl.findBySpaceId()`. 방향: `TeamSpaceMapper`/`UserMapper`에 `IN` 절 기반 배치 조회 메서드 추가.
-- [ ] [A5] M7-1 — `/v3/api-docs` 공개 설정 불일치. 대상: `application.yml`, `SecurityConfig.java`. 방향: `/v3/api-docs`, `/v3/api-docs/**`를 `permitAll()`에서 제외(또는 swagger-ui와 함께 완전 비활성화 — 워커 판단).
+- [x] [A5] M7-1 — `/v3/api-docs` 공개 설정 불일치. 대상: `application.yml`, `SecurityConfig.java`. 방향: `/v3/api-docs`, `/v3/api-docs/**`를 `permitAll()`에서 제외(또는 swagger-ui와 함께 완전 비활성화 — 워커 판단).
 - [ ] [A6] M4-2 — DTO 길이 제한 공백 3곳. 대상: `CreateTodoRequest`/`UpdateTodoRequest`(`@Size(max=255)`), `CreateEventRequest.description`, `SendMessageRequest.content`. 방향: DB 컬럼 타입과 일치하는 `@Size` 애너테이션 추가.
 - [ ] [A7] M2-3 — 헬스체크 표준화. 대상: `pom.xml`(`spring-boot-starter-actuator` 추가), `railway.toml`(`healthcheckPath` 지정). 방향: 표준 `/actuator/health`로 통일, 기존 `DocumentController`/`RecommendController`의 임시 health 엔드포인트는 유지(최소 변경 원칙).
 - [ ] [A8] M2-2 — 구조화 로깅. 대상: 신규 `OncePerRequestFilter`(요청ID를 MDC에 주입), `logback-spring.xml`(로그 패턴에 MDC 요청ID 포함). 방향: 기존 12곳의 `log.*` 호출 자체는 손대지 않고 공통 필터만 추가.
