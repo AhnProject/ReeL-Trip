@@ -34,3 +34,7 @@ export function updateAvatar(avatar: string, token: string) {
     body: JSON.stringify({ avatar }),
   }, token);
 }
+
+export function deleteAccount(token: string) {
+  return apiRequest<null>("/api/user/account", { method: "DELETE" }, token);
+}

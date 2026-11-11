@@ -3,6 +3,7 @@ package com.reeltrip.api.place.controller;
 import com.reeltrip.api.common.response.ApiResponse;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.PlaceResponse;
+import com.reeltrip.api.place.dto.SimilarPlaceResponse;
 import com.reeltrip.api.place.dto.UpdatePlaceRequest;
 import com.reeltrip.api.place.service.PlaceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -65,5 +66,13 @@ public class PlaceController {
             Principal principal) {
         placeService.delete(id, principal.getName());
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @Operation(summary = "비슷한 장소 추천", description = "이 장소가 공개동의(consentGiven)된 경우에만 조회 가능합니다.")
+    @GetMapping("/{id}/similar")
+    public ResponseEntity<ApiResponse<List<SimilarPlaceResponse>>> findSimilar(
+            @PathVariable Long id,
+            Principal principal) {
+        return ResponseEntity.ok(ApiResponse.success(placeService.findSimilar(id, principal.getName())));
     }
 }

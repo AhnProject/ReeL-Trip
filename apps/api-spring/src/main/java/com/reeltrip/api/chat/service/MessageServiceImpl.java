@@ -35,22 +35,19 @@ public class MessageServiceImpl implements MessageService {
         // 메시지 목록 + 작성자 username 조회
         List<Message> messages = messageMapper.findBySpaceId(spaceId);
 
-        // userId → username 매핑 (중복 조회 방지)
+        // userId → username 매핑 (IN 절 배치 조회로 N+1 방지)
         List<Long> userIds = messages.stream()
                 .map(Message::getUserId)
                 .distinct()
                 .toList();
 
-        Map<Long, String> usernameMap = userIds.stream()
-                .collect(Collectors.toMap(
-                        id -> id,
-                        id -> userMapper.findById(id)
-                                .map(User::getUsername)
-                                .orElse("알 수 없음")
-                ));
+        Map<Long, String> usernameMap = userIds.isEmpty()
+                ? Map.of()
+                : userMapper.findByIds(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getUsername));
 
         return messages.stream()
-                .map(m -> toResponse(m, usernameMap.get(m.getUserId())))
+                .map(m -> toResponse(m, usernameMap.getOrDefault(m.getUserId(), "알 수 없음")))
                 .toList();
     }
 

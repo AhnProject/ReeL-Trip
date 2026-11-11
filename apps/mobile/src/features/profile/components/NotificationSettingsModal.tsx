@@ -14,12 +14,12 @@ interface NotificationSettingsModalProps {
   onClose: () => void;
 }
 
-const ITEMS: { key: keyof NotificationSettingsResponse; label: string; desc: string }[] = [
+const ITEMS: { key: keyof NotificationSettingsResponse; label: string; desc: string; disabled?: boolean }[] = [
   { key: "newPlace",       label: "새 장소 추가",  desc: "팀원이 장소를 추가하면 알려드려요" },
   { key: "scheduleChange", label: "일정 변경",    desc: "일정이 수정되거나 삭제되면 알려드려요" },
   { key: "memberJoin",     label: "멤버 참여",    desc: "새 멤버가 스페이스에 참여하면 알려드려요" },
   { key: "chat",           label: "채팅 메시지",  desc: "새 채팅 메시지가 오면 알려드려요" },
-  { key: "aiRecommend",    label: "AI 추천 도착", desc: "AI 추천 장소가 준비되면 알려드려요" },
+  { key: "aiRecommend",    label: "AI 추천 도착", desc: "AI 추천 장소가 준비되면 알려드려요 (준비중)", disabled: true },
 ];
 
 export function NotificationSettingsModal({ visible, onClose }: NotificationSettingsModalProps) {
@@ -72,8 +72,9 @@ export function NotificationSettingsModal({ visible, onClose }: NotificationSett
                   <Text style={s.desc}>{item.desc}</Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => handleToggle(item.key)}
-                  style={[s.track, settings[item.key] && s.trackOn]}
+                  onPress={() => !item.disabled && handleToggle(item.key)}
+                  disabled={item.disabled}
+                  style={[s.track, settings[item.key] && s.trackOn, item.disabled && s.trackDisabled]}
                   activeOpacity={0.8}
                 >
                   <View style={[s.thumb, settings[item.key] && s.thumbOn]} />
@@ -96,6 +97,7 @@ const s = StyleSheet.create({
   desc:    { fontSize: 12, color: C.t4, marginTop: 2 },
   track:   { width: 44, height: 24, borderRadius: 12, backgroundColor: C.border, padding: 2, justifyContent: "center" },
   trackOn: { backgroundColor: C.primary },
+  trackDisabled: { opacity: 0.5 },
   thumb:   { width: 20, height: 20, borderRadius: 10, backgroundColor: C.white },
   thumbOn: { alignSelf: "flex-end" },
 });

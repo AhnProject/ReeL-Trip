@@ -84,7 +84,7 @@ export function UrlParserModal({ visible, spaceId, onClose }: UrlParserModalProp
         setUrl(""); setStatus("idle"); setResult(null);
         onClose();
       } else {
-        toast.error("저장에 실패했습니다. 다시 시도해 주세요.");
+        toast.error(res.message || "저장에 실패했습니다. 다시 시도해 주세요.");
       }
     } catch {
       toast.error("저장 중 오류가 발생했습니다.");

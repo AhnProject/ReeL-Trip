@@ -1,5 +1,6 @@
 package com.reeltrip.api.place.mapper;
 
+import com.reeltrip.api.place.dto.SimilarPlaceResponse;
 import com.reeltrip.api.place.model.Place;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -19,4 +20,8 @@ public interface PlaceMapper {
     int update(Place place);
 
     int delete(@Param("id") Long id);
+
+    void updateEmbedding(@Param("id") Long id, @Param("embedding") String embedding);
+
+    List<SimilarPlaceResponse> findSimilarPlaces(@Param("placeId") Long placeId, @Param("limit") int limit);
 }

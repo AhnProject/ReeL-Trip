@@ -5,6 +5,7 @@ import com.reeltrip.api.recommend.dto.RecommendRequest;
 import com.reeltrip.api.recommend.dto.RecommendResponse;
 import com.reeltrip.api.recommend.service.RecommendService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @Tag(name = "Recommend", description = "AI 기반 여행지 추천")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/recommend")
 @RequiredArgsConstructor

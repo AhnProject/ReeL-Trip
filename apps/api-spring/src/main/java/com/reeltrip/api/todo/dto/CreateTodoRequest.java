@@ -2,6 +2,7 @@ package com.reeltrip.api.todo.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ public class CreateTodoRequest {
     private Long spaceId;
 
     @NotBlank
+    @Size(max = 255)
     private String title;
 
     private String priority = "medium";

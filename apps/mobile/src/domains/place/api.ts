@@ -22,6 +22,8 @@ export interface PlaceResponse {
   menu: string[];
   confidence: string | null;
   createdBy: number;
+  consentGiven: boolean;
+  consentAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +48,7 @@ export interface AddPlacePayload {
   tags?: string[];
   menu?: string[];
   confidence?: string;
+  consentGiven?: boolean;
 }
 
 export function listPlaces(spaceId: number, token: string) {
@@ -68,4 +71,18 @@ export function updatePlace(id: number, payload: Partial<AddPlacePayload>, token
 
 export function deletePlace(id: number, token: string) {
   return apiRequest<void>(`/api/places/${id}`, { method: "DELETE" }, token);
+}
+
+export interface SimilarPlaceResponse {
+  id: number;
+  name: string;
+  category: string | null;
+  region: string | null;
+  thumbnailUrl: string | null;
+  tags: string[];
+  matchScore: number;
+}
+
+export function findSimilarPlaces(id: number, token: string) {
+  return apiRequest<SimilarPlaceResponse[]>(`/api/places/${id}/similar`, {}, token);
 }

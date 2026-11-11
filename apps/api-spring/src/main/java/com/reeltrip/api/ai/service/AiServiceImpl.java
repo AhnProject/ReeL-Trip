@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -39,6 +40,10 @@ public class AiServiceImpl implements AiService {
 
     @Value("${gemini.model:gemini-1.5-flash}")
     private String geminiModel;
+
+    // places.currency 컬럼이 VARCHAR(3)이라, 프롬프트 지시를 어긴 AI 응답이 그대로
+    // 들어오면 저장 단계에서 @Size(max=3) 검증에 막혀 버림 — 허용값이 아니면 null로 치환
+    private static final Set<String> ALLOWED_CURRENCIES = Set.of("KRW", "USD", "JPY", "EUR");
 
     // -------------------------------------------------------------------------
     // OpenAI Embeddings
@@ -191,13 +196,15 @@ public class AiServiceImpl implements AiService {
                     .path("text").asText();
 
             String jsonStr = extractJson(text);
-            return objectMapper.readValue(jsonStr, Map.class);
+            Map<String, Object> result = objectMapper.readValue(jsonStr, Map.class);
+            normalizeCurrency(result);
+            return result;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             log.error("Gemini extraction error", e);
             throw new AppException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
-                    "Failed to extract travel info: " + e.getMessage());
+                    "Failed to extract travel info.");
         }
     }
 
@@ -226,6 +233,18 @@ public class AiServiceImpl implements AiService {
     private void appendIfPresent(StringBuilder sb, String label, Object value) {
         if (value != null) {
             sb.append(label).append(": ").append(value).append("\n");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void normalizeCurrency(Map<String, Object> result) {
+        Object priceObj = result.get("price");
+        if (priceObj instanceof Map) {
+            Map<String, Object> price = (Map<String, Object>) priceObj;
+            Object currency = price.get("currency");
+            if (currency != null && !ALLOWED_CURRENCIES.contains(currency.toString())) {
+                price.put("currency", null);
+            }
         }
     }
 
