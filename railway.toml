@@ -5,3 +5,4 @@ dockerfilePath = "apps/api-spring/Dockerfile"
 [deploy]
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+healthcheckPath = "/actuator/health"

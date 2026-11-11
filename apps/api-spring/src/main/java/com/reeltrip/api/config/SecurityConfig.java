@@ -70,6 +70,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 루트 및 문서 (swagger-ui/api-docs는 springdoc 설정 자체에서 비활성화됨 — application.yml)
                 .requestMatchers("/", "/doc", "/docs", "/docs/**").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 // 인증 불필요 엔드포인트
                 .requestMatchers("/api/auth/signup", "/api/auth/login",
                                  "/api/auth/refresh", "/api/auth/logout").permitAll()
