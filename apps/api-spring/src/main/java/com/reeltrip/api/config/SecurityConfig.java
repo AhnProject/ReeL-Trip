@@ -1,6 +1,7 @@
 package com.reeltrip.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.reeltrip.api.common.logging.RequestIdFilter;
 import com.reeltrip.api.common.response.ApiResponse;
 import com.reeltrip.api.common.security.JwtAuthenticationFilter;
 import com.reeltrip.api.common.security.JwtUtil;
@@ -47,6 +48,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    public RequestIdFilter requestIdFilter() {
+        return new RequestIdFilter();
+    }
+
+    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         List<String> origins = new ArrayList<>(Arrays.asList(allowedOriginsEnv.split(",")));
@@ -68,16 +74,16 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 루트 및 문서
+                // 루트 및 문서 (swagger-ui/api-docs는 springdoc 설정 자체에서 비활성화됨 — application.yml)
                 .requestMatchers("/", "/doc", "/docs", "/docs/**").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/v3/api-docs").permitAll()
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 // 인증 불필요 엔드포인트
                 .requestMatchers("/api/auth/signup", "/api/auth/login",
                                  "/api/auth/refresh", "/api/auth/logout").permitAll()
                 .requestMatchers("/api/documents/health").permitAll()
-                .requestMatchers("/api/recommend", "/api/recommend/**").permitAll()
                 // 인증 필요 엔드포인트
                 .requestMatchers("/api/user/**").authenticated()
+                .requestMatchers("/api/recommend", "/api/recommend/**").authenticated()
                 .requestMatchers("/api/teamspaces/**").authenticated()
                 .requestMatchers("/api/events/**").authenticated()
                 .requestMatchers("/api/places/**").authenticated()
@@ -106,7 +112,8 @@ public class SecurityConfig {
                     );
                 })
             )
-            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(requestIdFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }

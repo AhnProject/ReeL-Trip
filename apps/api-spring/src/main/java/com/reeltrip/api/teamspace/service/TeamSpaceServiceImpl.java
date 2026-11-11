@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,8 +52,15 @@ public class TeamSpaceServiceImpl implements TeamSpaceService {
     @Override
     public List<TeamSpaceResponse> findAll(String username) {
         User user = getUser(username);
-        return teamSpaceMapper.findByUserId(user.getId()).stream()
-                .map(space -> toResponse(space, teamSpaceMapper.findMembersBySpaceId(space.getId())))
+        List<TeamSpace> spaces = teamSpaceMapper.findByUserId(user.getId());
+        if (spaces.isEmpty()) return List.of();
+
+        List<Long> spaceIds = spaces.stream().map(TeamSpace::getId).toList();
+        Map<Long, List<TeamSpaceMember>> membersBySpaceId = teamSpaceMapper.findMembersBySpaceIds(spaceIds).stream()
+                .collect(Collectors.groupingBy(TeamSpaceMember::getSpaceId));
+
+        return spaces.stream()
+                .map(space -> toResponse(space, membersBySpaceId.getOrDefault(space.getId(), List.of())))
                 .toList();
     }
 

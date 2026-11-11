@@ -31,6 +31,8 @@ public class PlaceResponse {
     private List<String> menu;
     private String confidence;
     private Long createdBy;
+    private boolean consentGiven;
+    private LocalDateTime consentAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

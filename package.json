@@ -11,6 +11,7 @@
     "dev": "turbo run dev --filter=!./apps/mobile",
     "lint": "turbo run lint --filter=!./apps/mobile",
     "type-check": "turbo run type-check --filter=!./apps/mobile",
+    "test": "turbo run test --filter=!./apps/mobile",
     "clean": "turbo run clean"
   },
   "devDependencies": {

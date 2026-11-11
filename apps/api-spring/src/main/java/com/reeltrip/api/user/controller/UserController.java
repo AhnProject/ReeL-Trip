@@ -52,4 +52,11 @@ public class UserController {
             @Valid @RequestBody UpdateAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userService.updateAvatar(principal.getName(), request)));
     }
+
+    @Operation(summary = "계정 탈퇴", description = "소프트 삭제 처리(is_deleted=true) 후 모든 refresh token을 무효화합니다.")
+    @DeleteMapping("/account")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(Principal principal) {
+        userService.deleteAccount(principal.getName());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+        working-directory: apps/web
+      - run: npm run type-check
+        working-directory: apps/web
+      - run: npm run test
+        working-directory: apps/web
+      - run: npm run build
+        working-directory: apps/web
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run type-check
+        working-directory: apps/mobile
+      - run: npm run test
+        working-directory: apps/mobile
+      # 모바일 lint(eslint)는 eslint.config.js 자체가 없어 사전부터 깨져있던
+      # 상태라 이번 CI 파일럿 범위에서는 게이트에 포함하지 않음(TASKS.md C4
+      # 범위 밖 — 별도 작업으로 다뤄야 함).
+
+  api-spring:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api-spring
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - run: mvn -B test

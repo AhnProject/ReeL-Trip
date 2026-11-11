@@ -19,6 +19,7 @@ public class CreateEventRequest {
     @Size(max = 255)
     private String title;
 
+    @Size(max = 2000)
     private String description;
 
     @NotNull

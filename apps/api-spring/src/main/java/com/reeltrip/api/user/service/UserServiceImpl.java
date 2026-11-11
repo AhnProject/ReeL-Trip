@@ -1,5 +1,6 @@
 package com.reeltrip.api.user.service;
 
+import com.reeltrip.api.auth.mapper.RefreshTokenMapper;
 import com.reeltrip.api.auth.mapper.UserMapper;
 import com.reeltrip.api.auth.model.User;
 import com.reeltrip.api.common.exception.AppException;
@@ -21,6 +22,7 @@ public class UserServiceImpl implements UserService {
     private static final int MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
     private final UserMapper userMapper;
+    private final RefreshTokenMapper refreshTokenMapper;
 
     @Override
     public UserProfileResponse getProfile(String username) {
@@ -75,6 +77,15 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateAvatar(user.getId(), avatar);
         return AvatarResponse.builder().avatar(avatar).build();
+    }
+
+    @Override
+    public void deleteAccount(String username) {
+        User user = userMapper.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        userMapper.markAsDeleted(user.getId());
+        refreshTokenMapper.deleteByUserId(user.getId());
     }
 
     /** JPEG/PNG/WebP 매직 바이트로 실제 이미지 파일인지 확인 (임의 바이너리 업로드 방지) */

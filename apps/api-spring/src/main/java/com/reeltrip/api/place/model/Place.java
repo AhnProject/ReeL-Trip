@@ -33,6 +33,11 @@ public class Place {
     private List<String> menu;
     private String confidence;
     private Long createdBy;
+
+    @Builder.Default
+    private boolean consentGiven = false;
+    private LocalDateTime consentAt;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

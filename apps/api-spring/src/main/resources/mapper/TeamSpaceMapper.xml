@@ -69,6 +69,17 @@
         ORDER BY tsm.joined_at ASC
     </select>
 
+    <select id="findMembersBySpaceIds" resultMap="memberResultMap">
+        SELECT tsm.id, tsm.space_id, tsm.user_id, u.username, tsm.role, tsm.joined_at
+        FROM team_space_members tsm
+        INNER JOIN users u ON tsm.user_id = u.id
+        WHERE tsm.space_id IN
+        <foreach item="spaceId" collection="spaceIds" open="(" separator="," close=")">
+            #{spaceId}
+        </foreach>
+        ORDER BY tsm.joined_at ASC
+    </select>
+
     <select id="findMember" resultMap="memberResultMap">
         SELECT tsm.id, tsm.space_id, tsm.user_id, u.username, tsm.role, tsm.joined_at
         FROM team_space_members tsm
