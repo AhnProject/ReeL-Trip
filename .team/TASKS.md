@@ -117,7 +117,7 @@ _(사용자 컨펌: 묶음 A + 묶음 C만 진행. 묶음 B/D는 백로그.)_
 - [x] [A5] M7-1 — `/v3/api-docs` 공개 설정 불일치. 대상: `application.yml`, `SecurityConfig.java`. 방향: `/v3/api-docs`, `/v3/api-docs/**`를 `permitAll()`에서 제외(또는 swagger-ui와 함께 완전 비활성화 — 워커 판단).
 - [x] [A6] M4-2 — DTO 길이 제한 공백 3곳. 대상: `CreateTodoRequest`/`UpdateTodoRequest`(`@Size(max=255)`), `CreateEventRequest.description`, `SendMessageRequest.content`. 방향: DB 컬럼 타입과 일치하는 `@Size` 애너테이션 추가.
 - [x] [A7] M2-3 — 헬스체크 표준화. 대상: `pom.xml`(`spring-boot-starter-actuator` 추가), `railway.toml`(`healthcheckPath` 지정). 방향: 표준 `/actuator/health`로 통일, 기존 `DocumentController`/`RecommendController`의 임시 health 엔드포인트는 유지(최소 변경 원칙).
-- [ ] [A8] M2-2 — 구조화 로깅. 대상: 신규 `OncePerRequestFilter`(요청ID를 MDC에 주입), `logback-spring.xml`(로그 패턴에 MDC 요청ID 포함). 방향: 기존 12곳의 `log.*` 호출 자체는 손대지 않고 공통 필터만 추가.
+- [x] [A8] M2-2 — 구조화 로깅. 대상: 신규 `OncePerRequestFilter`(요청ID를 MDC에 주입), `logback-spring.xml`(로그 패턴에 MDC 요청ID 포함). 방향: 기존 12곳의 `log.*` 호출 자체는 손대지 않고 공통 필터만 추가.
 
 #### 묶음 C — 테스트 + CI (설치/파일럿 수준)
 - [ ] [C1=11-a] M6-1 백엔드 — 핵심 경로(인증 로그인/리프레시, Place 멤버십 체크, Notification 생성/설정 억제 로직) 위주 단위/통합 테스트 작성. 대상: `apps/api-spring/src/test`(의존성은 이미 있음).

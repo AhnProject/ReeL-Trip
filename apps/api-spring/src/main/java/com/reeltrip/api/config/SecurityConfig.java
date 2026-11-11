@@ -1,6 +1,7 @@
 package com.reeltrip.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.reeltrip.api.common.logging.RequestIdFilter;
 import com.reeltrip.api.common.response.ApiResponse;
 import com.reeltrip.api.common.security.JwtAuthenticationFilter;
 import com.reeltrip.api.common.security.JwtUtil;
@@ -44,6 +45,11 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtUtil, objectMapper);
+    }
+
+    @Bean
+    public RequestIdFilter requestIdFilter() {
+        return new RequestIdFilter();
     }
 
     @Bean
@@ -106,7 +112,8 @@ public class SecurityConfig {
                     );
                 })
             )
-            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(requestIdFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }
