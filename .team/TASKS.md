@@ -130,11 +130,11 @@ _(사용자 컨펌: 묶음 A + 묶음 C만 진행. 묶음 B/D는 백로그.)_
 - **묶음 D — M3-2** (페이지네이션 누락): **백로그 — 데이터량 증가 시 재검토.** 현재 데이터량이 적어 체감 장애 없음이 조사에서 확인됨(RESEARCH.md M-3 참조).
 
 ### 5. 검토 (Review)
-- [ ] 각 묶음에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
-- [ ] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토
+- [x] 각 묶음에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록 — 묶음 A(8건)/묶음 C(4건) 전체 **APPROVED** (REVIEW.md "묶음 A — 상용화 기반 보안/성능/운영 8건", "묶음 C — 테스트 + CI" 섹션). 묶음 A는 계정 잠금의 정상 로그인 무영향/자동해제/카운트리셋, Actuator의 민감 엔드포인트 비노출 2중 방어를 코드로 직접 추적해 확인. 묶음 C는 `mvn -o test`/`npx vitest run`/`npx jest`를 실제로 실행해 커밋이 주장한 테스트 개수(21/7/4)와 통과 여부를 재현 확인, CI YAML도 실제 파서로 검증.
+- [x] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토 — 해당 없음(묶음 A/C 전부 1차 APPROVED)
 
 ### 6. 완료보고
-- [ ] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인
+- [x] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인 — 작성 승인받아 `03_WorkResults/2026-11-11-production-readiness-hardening.md` 생성 완료
 
 ---
 

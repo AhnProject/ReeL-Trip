@@ -611,3 +611,83 @@ public UserProfileResponse getProfile(String username) {
 **(3) `@SecurityRequirement` 문법 — APPROVED.** `RecommendController`에 추가된 `@SecurityRequirement(name = "bearerAuth")`를 `grep`으로 다른 9개 컨트롤러(Message/Document/Event/Notification/Place/TeamSpace/Todo/UrlParser/User)와 대조 — import 경로·어노테이션 형태·스킴 이름까지 전부 동일. 스킴 이름 `"bearerAuth"`는 `OpenApiConfig.java`의 `addSecuritySchemes("bearerAuth", ...)` 정의와 일치. `mvn -o compile` 클린.
 
 **종합: APPROVED.**
+
+---
+
+# 묶음 A — 상용화 기반 보안/성능/운영 8건 (1f934d4~cc04c99) (2026-11-11)
+
+검토 기준: `.team/RESEARCH.md` "## M." 섹션(M4-3/M3-3/M1-3/M3-1/M7-1/M4-2/M2-3/M2-2)과 `.team/TASKS.md` "묶음 A" 설명. `apps/api-spring`에서 `mvn -o compile` 재실행(8개 커밋 전체 반영 HEAD 기준) — 클린. `git diff --stat`로 전 범위에 `apps/web`/`apps/mobile` 변경 0건 확인(전부 백엔드 "코드만 추가" 항목이라는 전제와 일치).
+
+## [A1] M4-3 — API 키 노출 제거
+
+**APPROVED.** `InstagramReelsCollector`/`AiServiceImpl` 두 `catch` 블록 모두 클라이언트로 나가는 `AppException` 메시지에서만 `e.getMessage()` 접합을 제거(고정 문구로 치환)했고, `log.error(..., e)`는 그대로 유지해 서버 로그에는 원인 분석용 스택트레이스가 남음을 확인. `errorCode`(`APIFY_ERROR`/`AI_RESPONSE_PARSE_ERROR`)는 그대로 유지돼 `GlobalExceptionHandler`를 통해 클라이언트 응답에 계속 포함됨 — 프런트의 에러코드별 분기(J-3에서 확인된 기존 패턴)에 필요한 "에러 유형" 구분력은 그대로 유지한 채, 키가 섞여 나올 수 있는 원문 메시지만 제거됨.
+
+## [A2] M3-3 — 인덱스 5곳 추가
+
+**APPROVED.** `CREATE INDEX IF NOT EXISTS`(평범한 B-tree, 비유니크) 5개뿐 — 컬럼 타입/제약/기존 쿼리 결과에 영향 없는 순수 추가 연산. 인덱스명 중복 위험 없음(`IF NOT EXISTS`로 멱등), 테이블 데이터량이 적다는 RESEARCH.md M-3 기록과 맞물려 인덱스 빌드 중 짧은 쓰기 잠금도 문제 되지 않음.
+
+## [A3] M1-3 — 로그인 brute-force 방어(계정 잠금)
+
+**APPROVED.** `login()` 로직을 라인 단위로 추적: ① 정상 로그인(비밀번호 일치, `lockedUntil` null) — 잠금 체크(`lockedUntil != null && isAfter(now)`가 false)와 실패 카운트 증가 블록을 전부 건너뛰고 `resetFailedLoginCount` 호출 후 그대로 `buildAuthResponse` 반환 — **기존 정상 로그인 흐름 완전히 그대로 유지됨.** ② 잠금 해제: `locked_until`이 과거 시각이 되는 순간 `isAfter(now)` 조건이 자동으로 false가 되어 별도 배치/수동 해제 없이 다음 로그인 시도부터 정상 진행 — **시간 기반 자동 해제 확인.** ③ 실패 카운트 리셋: 비밀번호 일치 + 미삭제 계정 조건을 통과해야만 도달하는 `resetFailedLoginCount(user.getId())`가 성공 시마다 호출됨 — **성공 로그인 시 카운트/잠금 모두 초기화 확인.** 임계값 체크는 "조회 시점 카운트 + 1(이번 시도)"로 계산해 5번째 실패에서 정확히 잠기는 것도 확인(오프바이원 없음). 기본값(5회/15분)도 일반 사용자의 한두 번 오타를 잠그지 않는 합리적 수준.
+
+## [A4] M3-1 — N+1 → 배치 조회
+
+**APPROVED.** `MessageServiceImpl`: 신규 `usernameMap`은 "존재하는 유저만" 담기지만 조회는 `usernameMap.getOrDefault(..., "알 수 없음")`으로 기존과 동일한 폴백을 재현 — 메시지 순회도 원본 `messages` 리스트 순서 그대로, 각 메시지가 자기 `userId`로 맵을 "키 조회"하는 구조라 위치 기반 매핑 꼬임이 구조적으로 불가능. `TeamSpaceServiceImpl`: 신규 `findMembersBySpaceIds` SQL이 기존 단건 버전과 SELECT 컬럼·JOIN·ORDER BY까지 완전히 동일(IN 절만 다름)함을 직접 대조, `Collectors.groupingBy(spaceId)` 결과도 각 공간이 자기 `space.getId()`로 조회하는 구조라 동일하게 매핑 안전. 양쪽 다 빈 리스트일 때 빈 IN절 SQL이 생성되지 않도록 하는 가드(`isEmpty()`)도 확인.
+
+## [A5] M7-1 — `/v3/api-docs` 비활성화
+
+**APPROVED.** `grep`으로 레포 전체(웹/모바일/스크립트 포함)에 `/v3/api-docs` 참조가 `application.yml` 자신 외에는 0건임을 확인 — swagger-ui가 이미 꺼져있던 상태에서 원본 스펙 JSON만 따로 공개할 이유가 없었던 불일치를 해소한 것이고, 실제로 사용 중인 다른 기능을 막지 않음. `/doc`/`/docs`(별도 커스텀 문서 페이지)는 diff에 없어 그대로 유지됨.
+
+## [A6] M4-2 — DTO 길이 제한
+
+**APPROVED.** `Todo.title`의 `@Size(max=255)`는 DB `VARCHAR(255)`와 정확히 일치(기존에도 DB가 암묵적으로 걸던 상한을 명시화한 것뿐, 더 좁히지 않음). `Event.description`/`Message.content`의 `@Size(max=2000)`은 DB가 TEXT(무제한)라 DTO 레벨에서 새로 정한 상한인데, 2000자는 일반적인 설명/채팅 메시지 길이를 훨씬 넘는 여유값이라 정상 입력을 막을 가능성은 낮음. 4개 DTO 모두 해당 컨트롤러에서 `@Valid`로 실제 검증되는 것도 확인(죽은 애너테이션 아님).
+
+## [A7] M2-3 — Actuator 헬스체크
+
+**APPROVED(가장 중요한 지점 확인 완료).** `management.endpoints.web.exposure.include: health`로 **health 외의 모든 Actuator 엔드포인트(env/beans/configprops/heapdump/threaddump/metrics 등)는 웹에 노출되지 않음**(화이트리스트 방식) — `/actuator/env` 같은 민감정보 엔드포인트는 라우팅 자체가 생성되지 않아 인증 여부와 무관하게 접근 불가. 추가로 `management.endpoint.health.show-details: never`로 `/actuator/health` 응답 자체도 구성요소별 상세정보(DB 연결 상태 등) 없이 최상위 상태값만 반환하도록 제한 — Actuator의 "기본 설정이 공개적"이라는 위험을 두 겹으로 방어. `SecurityConfig`의 permitAll도 정확히 `/actuator/health`, `/actuator/health/**`로만 한정. 다른 profile별 `application-*.yml`에 이 설정을 재확장하는 override도 없음(grep 확인).
+
+## [A8] M2-2 — MDC 요청ID 구조화 로깅
+
+**APPROVED.** `RequestIdFilter`는 헤더 읽기/UUID 생성/`MDC.put`/응답헤더 설정만 수행하는 경량 `OncePerRequestFilter`로 I/O나 블로킹 호출이 없어 성능 영향 무시 가능, `filterChain.doFilter()`를 무조건 통과시키는 순수 패스스루라 기존 요청 처리 흐름(라우팅/바디/상태코드)에 영향 없음, `finally`의 `MDC.remove`로 스레드풀 재사용 시 다음 요청에 값이 새는 것도 방지. `addFilterBefore(..., JwtAuthenticationFilter.class)`로 인증 단계보다 먼저 배치돼 인증 실패 로그에도 requestId가 붙음. "모든 로그 라인에 실제로 붙는지"는 MDC가 스레드 로컬이라 같은 스레드에서 동기 처리되는 모든 로그에 해당되는데, 이 레포에 `@Async`/`@EnableAsync`가 0건(RESEARCH.md에서 기존에 이미 확인된 사실)이라 현재 모든 요청 처리가 단일 스레드 동기 흐름이므로 예외 없이 전부 적용됨. `logback-spring.xml`도 Spring Boot 공식 `defaults.xml`/`console-appender.xml`을 그대로 `include`하고 패턴 프로퍼티만 `[reqId=...]` 삽입 — 중복 appender나 로그레벨 변경 없음.
+
+## 종합
+
+8건 전부 **APPROVED**. 가장 신경 써서 확인한 지점은 (3) 계정 잠금의 정상 로그인 무영향/자동해제/카운트리셋 3가지와 (7) Actuator의 민감 엔드포인트 비노출 2중 방어(화이트리스트 + show-details:never)였고, 둘 다 코드로 직접 추적해 의도대로 동작함을 확인했습니다. CHANGES REQUESTED 없음.
+
+---
+
+# 묶음 C — 테스트 + CI (de88560, a974bc5, 4b3e2ef, 2e5f1e8) (2026-11-11)
+
+검토 기준: `.team/TASKS.md` "묶음 C — 테스트 + CI (설치/파일럿 수준)" 설명(C1=11-a 백엔드 핵심경로, C2=11-b 웹 설치+파일럿, C3=11-c 모바일 설치+파일럿, C4=12 CI). 4개 항목 모두 **직접 테스트/빌드를 실행해 결과를 확인**했습니다(claim을 그대로 믿지 않음).
+
+## (1) [C1] 백엔드 테스트 — APPROVED
+
+`mvn -o test`를 직접 실행 — `Tests run: 21, Failures: 0, Errors: 0, Skipped: 0` / `BUILD SUCCESS`, 커밋이 주장한 21개(9+6+6)와 정확히 일치. 콘솔에 보인 스택트레이스(`NotificationServiceImpl` 로그)는 `best-effort` 테스트가 의도적으로 `RuntimeException`을 던져 그걸 삼키는지 확인하는 테스트 자체의 정상 동작이고, 테스트는 통과함(한글 로그가 깨져 보이는 건 콘솔 인코딩 문제일 뿐 실패가 아님).
+
+파일 내용을 직접 읽어 대상 범위도 확인:
+- `AuthServiceImplTest`(9) — 로그인 성공/미존재/비밀번호불일치(카운트 증가, 임계값 미도달)/임계값 도달(잠금)/잠긴 계정 즉시 거부/탈퇴 계정 거부, refresh 성공/만료/**탈퇴 계정 거부(묶음 B의 TOCTOU 보강 ff2f1f6에 대한 회귀 테스트까지 포함)** — 지시된 "로그인/리프레시" 핵심 경로를 전부 다룸.
+- `PlaceServiceImplTest`(6) — add/findById/delete의 비멤버 거부(`PLACE_ACCESS_DENIED`), `findSimilar`의 공개동의 가드 거부/통과 — 지시된 "Place 멤버십 체크"를 정확히 다룸.
+- `NotificationServiceImplTest`(6) — 타입별 억제/비억제, 설정 없음 기본값, **`mapper.insert`가 예외를 던져도 `create()`가 전파하지 않는지(best-effort)** 직접 검증 — 지시된 "Notification 생성/설정 억제 로직"을 정확히 다룸.
+
+## (2) [C2]/[C3] 웹/모바일 테스트 — APPROVED
+
+**웹**: `npx vitest run`을 직접 실행 — `Test Files 2 passed (2)` / `Tests 7 passed (7)`. 대상은 `Button.test.tsx`(6)·`LoadingScreen.test.tsx`(1), hooks/fetch/router 의존이 없는 순수 프레젠테이션 컴포넌트 2개로 한정됨을 파일로 확인 — "1~2개" 지시를 정확히 지킴(3개 이상으로 안 늘어남).
+
+**모바일**: `npx jest`를 직접 실행 — `Test Suites: 2 passed, 2 total` / `Tests: 4 passed, 4 total`. 대상은 `EmptyState.test.tsx`(2)·`FormInput.test.tsx`(2), 동일한 "외부 의존성 없는 순수 컴포넌트" 기준으로 2개만 선정됨을 확인. `package.json`의 `moduleNameMapper: {"^react$": "<rootDir>/node_modules/react"}` 설정(모노레포 다중 React 인스턴스 문제 해결책)이 실제로 테스트를 통과시키는 데 유효함을 실행 결과로 직접 확인(이론이 아니라 실측).
+
+## (3) [C4] CI 워크플로 — APPROVED
+
+`.github/workflows/ci.yml`을 `js-yaml`로 실제 파싱해 문법 오류 없음을 확인(`YAML parsed OK`, `jobs: ["web","mobile","api-spring"]`). 각 잡이 C1~C3의 테스트를 실제로 실행하는 게이트인지 단계별로 대조:
+- `web` 잡의 `npm run test`(`working-directory: apps/web`) → `apps/web/package.json`의 `"test": "vitest run"` → C2 파일럿 실행.
+- `mobile` 잡의 `npm run test`(`working-directory: apps/mobile`) → `apps/mobile/package.json`의 `"test": "jest"` → C3 파일럿 실행.
+- `api-spring` 잡의 `mvn -B test` → C1의 21개 테스트 전체 실행.
+
+세 경로 모두 "빌드/린트만 하고 테스트는 건너뛰는" 가짜 게이트가 아니라 실제 테스트 실행 명령으로 연결됨을 확인. 모바일 lint 제외는 `eslint.config.js` 부재(ESLint v9 미마이그레이션)라는 **사전에 이미 깨져있던 상태**를 발견해 주석으로 이유를 남기고 범위 밖으로 제외한 것 — 이번 작업이 깨뜨린 게 아니라 기존 결함을 정직하게 기록하고 피해간 것으로 판단, 문제 없음.
+
+## (4) 범위 이탈 — APPROVED
+
+`git diff --stat`로 4개 커밋 전체 범위 확인: 테스트 파일 6개(백엔드 3/웹 2/모바일 2 — 코드가 아니라 전부 `*.test.*`), 설정 파일(`vitest.config.mts`/`vitest.setup.ts`/각 `package.json`/`turbo.json`/루트 `package.json`), `package-lock.json`(의존성 설치), `.github/workflows/ci.yml` — **프로덕션 소스 코드(비-테스트 `.ts`/`.tsx`/`.java`)는 단 한 줄도 수정되지 않음.** 테스트 개수도 백엔드 21개(3개 핵심 서비스), 웹 7개(2개 컴포넌트), 모바일 4개(2개 컴포넌트)로 TASKS.md가 명시한 "핵심 경로 위주"/"1~2개 파일럿" 범위를 정확히 지킴 — 전체 커버리지 확보로 확대된 흔적 없음.
+
+## 종합
+
+4건 전부 **APPROVED**. 커밋 메시지의 숫자 주장(21/7/4개 테스트, 전부 통과)을 실제로 `mvn test`/`npx vitest run`/`npx jest`를 직접 실행해 재현·확인했고, CI YAML도 실제 파서로 검증했습니다. 테스트 대상 선정(핵심 보안/로직 경로 vs 순수 컴포넌트 파일럿)과 범위(설치+파일럿 수준 유지)도 지시사항과 정확히 일치합니다. CHANGES REQUESTED 없음.
