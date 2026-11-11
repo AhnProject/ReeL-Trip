@@ -75,9 +75,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/signup", "/api/auth/login",
                                  "/api/auth/refresh", "/api/auth/logout").permitAll()
                 .requestMatchers("/api/documents/health").permitAll()
-                .requestMatchers("/api/recommend", "/api/recommend/**").permitAll()
                 // 인증 필요 엔드포인트
                 .requestMatchers("/api/user/**").authenticated()
+                .requestMatchers("/api/recommend", "/api/recommend/**").authenticated()
                 .requestMatchers("/api/teamspaces/**").authenticated()
                 .requestMatchers("/api/events/**").authenticated()
                 .requestMatchers("/api/places/**").authenticated()
