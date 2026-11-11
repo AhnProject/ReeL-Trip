@@ -2,7 +2,64 @@
 
 _(planner/orchestrator keep this list; worker ticks items off)_
 
-## 현재 작업: 정책/백로그 미결 항목 확정 구현 (2026-11-10 ~)
+## 현재 작업: 상용 서비스 수준 끌어올리기 — 운영/보안/성능 기반 조사 (2026-11-11 ~)
+
+### 1. 조사 (Research)
+_(관점 전환: 지금까지 A~L은 "버튼이 동작 안 함"을 다뤘다. 이번엔 "상용 서비스라면 당연히 있어야 하는데 없는 것"을 찾는다.)_
+
+- [x] **(1) 계정 복구/보안** → RESEARCH.md M-1 (M1-1 비밀번호 재설정 없음/M1-2 이메일 인증 없음/M1-3 brute-force 방어 없음, 전부 [코드만 추가])
+  - [x] 비밀번호 재설정(이메일 발송) 플로우 존재 여부 — 없음(AuthController 4개 엔드포인트뿐, SMTP 의존성/설정 0건)
+  - [x] 이메일 인증(가입 시 이메일 확인) 존재 여부 — 없음(signup 즉시 토큰 발급, emailVerified 컬럼도 없음)
+  - [x] 로그인 시도 제한(brute-force 방어) — 없음(AuthServiceImpl.login 실패 카운트/잠금 로직 전무)
+- [x] **(2) 운영/관찰성** → RESEARCH.md M-2 (M2-1 Sentry [신규 인프라 필요], M2-2 구조화 로깅 없음, M2-3 헬스체크 비표준 — 둘 다 [코드만 추가])
+  - [x] 에러 모니터링(Sentry 등) 연동 여부 — 없음, pom.xml에 관련 의존성 0건
+  - [x] 구조화된 로깅 — 평문 log.warn/error 12곳뿐, MDC/요청ID 체계 없음
+  - [x] 헬스체크 엔드포인트 — 표준 Actuator 없음, document/recommend에 임시 health 엔드포인트가 분산되어 있고 railway.toml도 참조 안 함
+- [x] **(3) 성능** → RESEARCH.md M-3 (전부 [코드만 추가])
+  - [x] N+1 쿼리 — 2건 확인(TeamSpaceServiceImpl.findAll, MessageServiceImpl.findBySpaceId)
+  - [x] 페이지네이션 누락 — 목록 엔드포인트 7개 전수 확인, 전부 Pageable 없음
+  - [x] 인덱스 누락 — 5곳 확인(team_space_members.user_id/notifications.user_id/places·events·todos.space_id)
+- [x] **(4) 안정성** → RESEARCH.md M-4 (M4-1/M4-3 보안 심각도 높음, 전부 [코드만 추가])
+  - [x] API 레이트리밋 — 없음. **추가 발견: `/api/recommend`가 인증(@SecurityRequirement/SecurityConfig)조차 없이 permitAll — 비용 발생 AI 엔드포인트가 무인증+무제한으로 열려있음(비용 공격 가능)**
+  - [x] 입력값 검증/sanitization 공백 — MyBatis `${}` 사용 0건(SQLi 경로 없음, 안전). DTO 검증 공백 3곳(Todo.title/Event.description/Message.content 길이제한 없음). **추가 발견: Apify/Gemini API 키가 URL 쿼리스트링으로 전송되고, 특정 예외 경로에서 그 키가 포함된 메시지가 로그+클라이언트 응답에 그대로 노출될 수 있는 경로 존재**
+  - [x] 아바타 외 입력 경로 크기/타입 제한 — todo/event/chat 3곳 공백 확인(위와 동일)
+- [x] **(5) 데이터 보호** → RESEARCH.md M-5 (M5-1, [코드만 추가])
+  - [x] 민감정보(비밀번호/토큰) 로깅 여부 — 직접적인 비밀번호/토큰 로깅은 없음(GlobalExceptionHandler/LoginRequest·SignupRequest/JwtAuthenticationFilter 확인). 단 (4)에서 발견한 API 키 노출 경로는 이 항목과 같은 근본 수정으로 해소됨
+  - [x] (제외) 백업 전략 — 지시대로 조사 대상에서 제외
+- [x] **(6) 테스트** → RESEARCH.md M-6 (M6-1, [코드만 추가])
+  - [x] 현재 테스트 커버리지 상태 재확인 — "테스트 프로젝트 없음" 여전히 사실. 백엔드는 test scope 의존성(JUnit5/MockMvc)은 이미 있으나 src/test 0파일, web/mobile은 테스트 프레임워크 의존성 자체도 0건
+- [x] **(7) 문서/운영** → RESEARCH.md M-7 (M7-1 [코드만 추가], M7-2 해당없음에 가까움)
+  - [x] API 문서(Swagger/OpenAPI) 존재 여부 — springdoc 의존성 있음. **추가 발견: swagger-ui는 명시적으로 꺼져있지만(enabled:false) 원본 스펙 JSON(/v3/api-docs)은 SecurityConfig에서 permitAll로 공개돼 있어 의도와 실제 설정이 어긋남**
+  - [x] CI/CD 파이프라인 존재 여부 — `.github/workflows/` 없음(obsidian 서브모듈 제외). railway.toml/vercel.json은 빌드·배포 설정일 뿐 테스트/린트 게이트 없음, healthcheckPath도 없음
+
+- [x] 외부 서비스(SMTP, Sentry, Redis 등) 연동이 필요한 항목은 "코드만 추가하면 되는지" vs "신규 인프라/계약이 필요한지" 구분해 표시 — M요약 표에 전부 표시(Sentry만 [신규 인프라/계약 필요], 나머지는 [코드만]. 레이트리밋/brute-force의 IP기반 확장만 Redis 의존 성격으로 별도 메모)
+- [x] 조사 결과를 RESEARCH.md에 새 섹션("## M. 상용화 기반 조사")으로 추가 — A~L 보존
+
+### 2. 목록 / 우선순위 확정 (Triage)
+- [ ] 발견 항목 전체를 목록화 (카테고리별)
+- [ ] 영향도(장애/보안사고 가능성) × 구현비용 × 의존관계(외부 서비스 필요 여부) 평가
+- [ ] "이번 사이클 후보" vs "외부 서비스 필요(백로그 성격)" vs "운영 정책 필요" 로 구분
+- [ ] 우선순위 표 작성, 큰 항목은 세부 작업으로 분해
+
+### 3. 사용자 컨펌 (오케스트레이터)
+- [ ] 우선순위 목록을 사용자에게 제시, 이번 사이클 개발 범위 확정
+- [ ] 외부 서비스 계약/키 발급이 필요한 항목은 "조사 완료, 실제 연동은 키 발급 후 별도 진행"으로 안내
+- [ ] 컨펌 완료 후에만 "4. 개발" 섹션을 채움
+
+### 4. 개발 (Development)
+_(사용자 컨펌 전까지 placeholder — 채우지 않음)_
+- [ ] (TBD — 우선순위 컨펌 대기)
+
+### 5. 검토 (Review)
+- [ ] 각 개발 항목에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
+- [ ] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토
+
+### 6. 완료보고
+- [ ] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인
+
+---
+
+## 과거 기록 — 정책/백로그 미결 항목 확정 구현 (2026-11-10, 완료)
 
 ### 1~2. 조사 / 목록·우선순위
 - [x] 해당 없음 — 이번 사이클은 지난 세 사이클(RESEARCH.md D/E/G/H)에서 이미 조사·분류를 마친 "정책 미결 5건 + 백로그 3건"을 오케스트레이터가 사용자 컨펌받아 확정한 결론을 그대로 구현하는 사이클. 조사·재분류 불필요.
