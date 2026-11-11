@@ -44,11 +44,11 @@ _(확정된 6개 항목을 묶음 A~D로 분해. 마이그레이션 파일 번�
 - [x] [D5] 모바일 연결 — 대상: `apps/mobile/src/features/travel/components/PlaceSimilarSection.tsx:10`(`similar={[]}` 하드코딩 제거). 방향: `GET /api/places/{id}/similar` 실연동, 로딩/빈 상태(유사 장소 없음) 처리.
 
 ### 5. 검토 (Review)
-- [ ] 각 묶음에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
-- [ ] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토
+- [x] 각 묶음에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록 — 묶음 A/B/C/D 전체 완료, 전부 APPROVED(묶음 B의 refresh() TOCTOU 1건만 CHANGES REQUESTED → 재작업 후 APPROVED)
+- [x] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토 — 묶음 B: AuthServiceImpl.refresh()에 isDeleted 가드 추가(커밋 ff2f1f6) 후 재검토 APPROVED
 
 ### 6. 완료보고
-- [ ] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인
+- [x] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인 — 작성 승인받아 `03_WorkResults/2026-11-10-policy-backlog-resolution.md` 생성 완료
 
 ---
 
