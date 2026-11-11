@@ -30,6 +30,12 @@ public class AuthServiceImpl implements AuthService {
     @Value("${jwt.refresh-expires-in:2592000000}")
     private long refreshExpiresInMs;
 
+    @Value("${login.max-failed-attempts:5}")
+    private int maxFailedAttempts;
+
+    @Value("${login.lockout-duration-minutes:15}")
+    private long lockoutDurationMinutes;
+
     // ── 공통 ──────────────────────────────────────────────────────────────
 
     private AuthResponse buildAuthResponse(User user) {
@@ -81,7 +87,15 @@ public class AuthServiceImpl implements AuthService {
         User user = userMapper.findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS));
 
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            userMapper.incrementFailedLoginCount(user.getId());
+            if (user.getFailedLoginCount() + 1 >= maxFailedAttempts) {
+                userMapper.lockAccount(user.getId(), LocalDateTime.now().plusMinutes(lockoutDurationMinutes));
+            }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
 
@@ -89,6 +103,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.ACCOUNT_DELETED);
         }
 
+        userMapper.resetFailedLoginCount(user.getId());
         return buildAuthResponse(user);
     }
 

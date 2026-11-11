@@ -4,6 +4,7 @@ import com.reeltrip.api.auth.model.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Mapper
@@ -26,4 +27,10 @@ public interface UserMapper {
     void updateAvatar(@Param("id") Long id, @Param("avatar") String avatar);
 
     void markAsDeleted(@Param("id") Long id);
+
+    void incrementFailedLoginCount(@Param("id") Long id);
+
+    void lockAccount(@Param("id") Long id, @Param("lockedUntil") LocalDateTime lockedUntil);
+
+    void resetFailedLoginCount(@Param("id") Long id);
 }

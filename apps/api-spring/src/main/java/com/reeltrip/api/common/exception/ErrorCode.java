@@ -20,6 +20,7 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "Access denied"),
     ACCOUNT_DELETED(HttpStatus.FORBIDDEN, "This account has been deleted"),
+    ACCOUNT_LOCKED(HttpStatus.FORBIDDEN, "Account is temporarily locked due to too many failed login attempts"),
 
     // User
     AVATAR_TOO_LARGE(HttpStatus.BAD_REQUEST, "Avatar image exceeds the maximum size"),

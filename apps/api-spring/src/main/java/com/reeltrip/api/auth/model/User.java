@@ -22,6 +22,10 @@ public class User {
     @Builder.Default
     private boolean isDeleted = false;
 
+    @Builder.Default
+    private int failedLoginCount = 0;
+    private LocalDateTime lockedUntil;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

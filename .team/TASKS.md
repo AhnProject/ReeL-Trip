@@ -112,7 +112,7 @@ _(사용자 컨펌: 묶음 A + 묶음 C만 진행. 묶음 B/D는 백로그.)_
 #### 묶음 A — 보안/성능/운영 "코드만" 소규모 항목 (8건)
 - [x] [A1] M4-3 — API 키(Apify/Gemini) 쿼리스트링 노출 수정. 대상: `InstagramReelsCollector.java:100-101`, `AiServiceImpl.java`(Gemini 호출 catch 블록). 방향: `catch (Exception e)`에서 `e.getMessage()`를 그대로 쓰지 않고 고정 안전 문구로 치환(M5-1도 이 수정으로 함께 해소, 별도 작업 불필요).
 - [x] [A2] M3-3 — 인덱스 누락 5곳. 대상: 신규 마이그레이션(착수 시점 `db/migration/` 디렉터리 재확인 후 다음 번호 배정). 방향: `team_space_members.user_id`, `notifications.user_id`, `places.space_id`, `events.space_id`, `todos.space_id`에 `CREATE INDEX` 추가.
-- [ ] [A3] M1-3 — 로그인 brute-force 방어(계정 잠금). 대상: `AuthServiceImpl.login()` + 신규 마이그레이션(`users.failed_login_count`, `locked_until` 등). 방향: 실패 횟수 증가, 임계값 초과 시 일정 시간 잠금. IP 기반 확장은 범위 제외.
+- [x] [A3] M1-3 — 로그인 brute-force 방어(계정 잠금). 대상: `AuthServiceImpl.login()` + 신규 마이그레이션(`users.failed_login_count`, `locked_until` 등). 방향: 실패 횟수 증가, 임계값 초과 시 일정 시간 잠금. IP 기반 확장은 범위 제외.
 - [ ] [A4] M3-1 — N+1 쿼리 2건. 대상: `TeamSpaceServiceImpl.findAll()`, `MessageServiceImpl.findBySpaceId()`. 방향: `TeamSpaceMapper`/`UserMapper`에 `IN` 절 기반 배치 조회 메서드 추가.
 - [ ] [A5] M7-1 — `/v3/api-docs` 공개 설정 불일치. 대상: `application.yml`, `SecurityConfig.java`. 방향: `/v3/api-docs`, `/v3/api-docs/**`를 `permitAll()`에서 제외(또는 swagger-ui와 함께 완전 비활성화 — 워커 판단).
 - [ ] [A6] M4-2 — DTO 길이 제한 공백 3곳. 대상: `CreateTodoRequest`/`UpdateTodoRequest`(`@Size(max=255)`), `CreateEventRequest.description`, `SendMessageRequest.content`. 방향: DB 컬럼 타입과 일치하는 `@Size` 애너테이션 추가.

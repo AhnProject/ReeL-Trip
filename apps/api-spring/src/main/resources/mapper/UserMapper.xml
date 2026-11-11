@@ -11,6 +11,8 @@
         <result property="email"     column="email"/>
         <result property="role"      column="role"/>
         <result property="isDeleted" column="is_deleted"/>
+        <result property="failedLoginCount" column="failed_login_count"/>
+        <result property="lockedUntil" column="locked_until"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -21,13 +23,15 @@
     </insert>
 
     <select id="findById" resultMap="userResultMap">
-        SELECT id, username, password, email, role, is_deleted, created_at, updated_at
+        SELECT id, username, password, email, role, is_deleted,
+               failed_login_count, locked_until, created_at, updated_at
         FROM users
         WHERE id = #{id}
     </select>
 
     <select id="findByUsername" resultMap="userResultMap">
-        SELECT id, username, password, email, role, is_deleted, created_at, updated_at
+        SELECT id, username, password, email, role, is_deleted,
+               failed_login_count, locked_until, created_at, updated_at
         FROM users
         WHERE username = #{username}
     </select>
@@ -63,6 +67,24 @@
     <update id="markAsDeleted">
         UPDATE users
         SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="incrementFailedLoginCount">
+        UPDATE users
+        SET failed_login_count = failed_login_count + 1, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="lockAccount">
+        UPDATE users
+        SET locked_until = #{lockedUntil}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="resetFailedLoginCount">
+        UPDATE users
+        SET failed_login_count = 0, locked_until = NULL, updated_at = NOW()
         WHERE id = #{id}
     </update>
 
