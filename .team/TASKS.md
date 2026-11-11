@@ -20,7 +20,7 @@ _(관점 전환: 지금까지 A~L은 "버튼이 동작 안 함"을 다뤘다. �
   - [x] 페이지네이션 누락 — 목록 엔드포인트 7개 전수 확인, 전부 Pageable 없음
   - [x] 인덱스 누락 — 5곳 확인(team_space_members.user_id/notifications.user_id/places·events·todos.space_id)
 - [x] **(4) 안정성** → RESEARCH.md M-4 (M4-1/M4-3 보안 심각도 높음, 전부 [코드만 추가])
-  - [x] API 레이트리밋 — 없음. **추가 발견: `/api/recommend`가 인증(@SecurityRequirement/SecurityConfig)조차 없이 permitAll — 비용 발생 AI 엔드포인트가 무인증+무제한으로 열려있음(비용 공격 가능)**
+  - [x] API 레이트리밋 — 없음. **추가 발견(M4-1): `/api/recommend`가 인증(@SecurityRequirement/SecurityConfig)조차 없이 permitAll — 비용 발생 AI 엔드포인트가 무인증+무제한으로 열려있음(비용 공격 가능). → 조사 완료 즉시 오케스트레이터가 트리아지를 기다리지 않고 긴급 수정+배포 완료(커밋 1850d43, REVIEW.md APPROVED). 이번 사이클 "4. 개발" 대상에서 제외(이미 완료됨).**
   - [x] 입력값 검증/sanitization 공백 — MyBatis `${}` 사용 0건(SQLi 경로 없음, 안전). DTO 검증 공백 3곳(Todo.title/Event.description/Message.content 길이제한 없음). **추가 발견: Apify/Gemini API 키가 URL 쿼리스트링으로 전송되고, 특정 예외 경로에서 그 키가 포함된 메시지가 로그+클라이언트 응답에 그대로 노출될 수 있는 경로 존재**
   - [x] 아바타 외 입력 경로 크기/타입 제한 — todo/event/chat 3곳 공백 확인(위와 동일)
 - [x] **(5) 데이터 보호** → RESEARCH.md M-5 (M5-1, [코드만 추가])
@@ -36,22 +36,101 @@ _(관점 전환: 지금까지 A~L은 "버튼이 동작 안 함"을 다뤘다. �
 - [x] 조사 결과를 RESEARCH.md에 새 섹션("## M. 상용화 기반 조사")으로 추가 — A~L 보존
 
 ### 2. 목록 / 우선순위 확정 (Triage)
-- [ ] 발견 항목 전체를 목록화 (카테고리별)
-- [ ] 영향도(장애/보안사고 가능성) × 구현비용 × 의존관계(외부 서비스 필요 여부) 평가
-- [ ] "이번 사이클 후보" vs "외부 서비스 필요(백로그 성격)" vs "운영 정책 필요" 로 구분
-- [ ] 우선순위 표 작성, 큰 항목은 세부 작업으로 분해
+- [x] 발견 항목 전체를 목록화 (카테고리별) — M4-1은 이미 별도 긴급수정 완료되어 아래 분류에서 제외, 나머지 13건 분류
+- [x] 영향도(장애/보안사고 가능성) × 구현비용 × 의존관계(외부 서비스 필요 여부) 평가
+- [x] "이번 사이클 후보" vs "외부 서비스 필요(백로그)" vs "운영 정책 필요" 로 구분
+- [x] 우선순위 표 작성, 큰 항목(M6-1, M3-1, M3-3)은 세부 작업으로 분해
+
+#### 이미 처리 완료 (트리아지 제외)
+- **M4-1** — `/api/recommend` 무인증+레이트리밋 없음(비용 공격 가능). 조사 완료 직후 오케스트레이터가 별도로 즉시 긴급 수정+배포(커밋 1850d43, REVIEW.md APPROVED). 아래 목록·"4. 개발"에는 포함하지 않음.
+
+#### 외부 서비스 필요 (백로그 — 계정 가입/키 발급 선행)
+
+| ID | 항목 | 비고 |
+|----|------|------|
+| M2-1 | 에러 모니터링(Sentry 등) | Sentry 등 SaaS 가입 + DSN 키 발급이 선행되어야 함. 코드(SDK 연동)는 간단하나 "계약" 단계가 있어 이번 사이클 범위 밖, 키 발급 후 별도 진행 |
+
+#### 운영 정책 필요
+- 해당 없음 — M 섹션 13건(M4-1 제외) 전부 [코드만 추가]로 분류되어 운영 정책 선결이 필요한 항목 없음. (참고: M1-3의 IP 기반 레이트리밋 확장은 Redis 의존 성격이라 "외부 서비스"에 가까우나, 계정 잠금만으로도 핵심 방어가 되므로 범위를 좁혀 아래 "이번 사이클 후보"에 포함)
+
+#### 이번 사이클 후보 (전부 [코드만 추가], 영향도 순)
+
+| 순위 | ID | 항목 | 영향도 | 구현비용 |
+|----|----|------|--------|----------|
+| 1 | M4-3 | API 키(Apify/Gemini) 쿼리스트링 노출 — 특정 실패 경로에서 로그/응답에 키 노출 | 중간~높음 (보안, 키 유출) | 낮음 |
+| 2 | M3-3 | 인덱스 누락 5곳 | 중간 (성장 시 급격히 체감) | 낮음 (마이그레이션 1개) |
+| 3 | M1-3 | 로그인 brute-force 방어 없음 (계정 잠금) | 중간 | 낮음~중간 |
+| 4 | M3-1 | N+1 쿼리 2건 | 중간 (홈화면/채팅 흔한 경로) | 낮음~중간 |
+| 5 | M7-1 | `/v3/api-docs` 공개 설정 불일치 (의도와 실제 설정 어긋남) | 중간 (정보노출) | 매우 낮음 |
+| 6 | M4-2 | DTO 길이 제한 공백 3곳 (Todo.title/Event.description/Message.content) | 낮음~중간 | 낮음 |
+| 7 | M1-1/M1-2 | 비밀번호 재설정 + 이메일 인증 없음 | 중간 (상용 필수 기능) | 중간 (SMTP 계정 발급 필요, 계약 아님) |
+| 8 | M3-2 | 페이지네이션 누락 (목록 엔드포인트 7개) | 낮음 (현재 데이터량 적음) | 중간 |
+| 9 | M2-3 | 헬스체크 표준화 안 됨 (Actuator 없음, 임시 엔드포인트 2개 분산) | 낮음~중간 | 낮음 |
+| 10 | M2-2 | 구조화 로깅 없음 (MDC/요청ID 없음) | 낮음 | 낮음~중간 |
+| 11 | M6-1 | 테스트 0건 | 낮음 (즉시 장애 아니나 회귀 위험 누적) | 중간~높음 (세분화 참조) |
+| 12 | M7-2 | CI/CD 없음 | 낮음~중간 | 낮음 (단, M6 진행 상황에 의존) |
+| 13 | M5-1 | 민감정보 로깅 — 직접 로깅은 없음, M4-3과 동일 근본 수정으로 해소 | - | M4-3에 포함 (중복 작업 아님) |
+
+각 항목 대상 파일/구현 방향 (큰 항목은 세부 작업으로 분해):
+
+- **[1] M4-3** — 대상: `InstagramReelsCollector.java:100-101`, `AiServiceImpl.java`(Gemini 호출 catch 블록). 방향: `catch (Exception e)`에서 `e.getMessage()`를 그대로 쓰지 않고 고정 안전 문구로 치환, `log.error`는 유지하되 로그에도 원본 메시지 대신 요약만 남기거나 별도 마스킹. (M5-1은 이 수정으로 함께 해소 — 별도 작업 불필요)
+- **[2] M3-3** — 대상: 신규 마이그레이션(`V17__add_missing_indexes.sql`, 착수 시점 디렉터리 재확인 필요). 방향: `team_space_members.user_id`, `notifications.user_id`, `places.space_id`, `events.space_id`, `todos.space_id`에 `CREATE INDEX` 추가.
+- **[3] M1-3** — 대상: `AuthServiceImpl.login()`. 방향: 실패 횟수 컬럼(`users.failed_login_count`, `locked_until` 등) 추가하는 신규 마이그레이션 + 로그인 실패 시 카운트 증가, 임계값 초과 시 일정 시간 잠금. IP 기반 확장은 범위 제외(Redis 의존 성격, 별도 검토).
+- **[4] M3-1** — 대상: `TeamSpaceServiceImpl.findAll()`, `MessageServiceImpl.findBySpaceId()`. 방향: `TeamSpaceMapper`/`UserMapper`에 `IN` 절 기반 배치 조회 메서드 추가해 N+1을 1+1로 축소.
+- **[5] M7-1** — 대상: `apps/api-spring/src/main/resources/application.yml`, `SecurityConfig.java`. 방향: `/v3/api-docs`, `/v3/api-docs/**`를 `permitAll()`에서 제외(또는 swagger-ui와 함께 완전히 비활성화 — 워커가 운영 의도에 맞게 판단).
+- **[6] M4-2** — 대상: `CreateTodoRequest`/`UpdateTodoRequest`(`@Size(max=255)` 추가), `CreateEventRequest.description`(길이 제한 추가), `SendMessageRequest.content`(길이 제한 추가). 방향: DB 컬럼 타입과 일치하는 `@Size` 애너테이션 추가.
+- **[7] M1-1/M1-2** — 범위가 커서 세부 분해:
+  - **7-a**: `pom.xml`에 `spring-boot-starter-mail` 추가, `application.yml`에 SMTP 설정 키 추가(값은 환경변수 플레이스홀더).
+  - **7-b**: 비밀번호 재설정 — 신규 마이그레이션(재설정 토큰 테이블 또는 `users`에 컬럼 추가) + `AuthController`에 "재설정 요청"/"재설정 확인" 엔드포인트 2개 + 이메일 발송 서비스.
+  - **7-c**: 이메일 인증 — `users.email_verified` 컬럼 추가(7-a와 같은 마이그레이션에 포함 가능) + 가입 시 인증 메일 발송 + 인증 확인 엔드포인트. 미인증 계정의 기능 제한 여부(로그인 자체를 막을지, 일부 기능만 제한할지)는 워커가 제품 상식선에서 기본값(로그인은 허용, 추후 필요시 제한) 정하고 플래너에게 보고.
+- **[8] M3-2** — 대상: `DocumentController`, `MessageController`, `EventController`, `NotificationController`, `PlaceController`, `TeamSpaceController`, `TodoController`의 목록 조회 엔드포인트 7개. 방향: `Pageable` 파라미터 추가 + 각 Mapper에 `LIMIT/OFFSET` 반영(프런트 호출부도 기본 페이지 크기로는 영향 없게 유지, 무한스크롤 등 UI 변경은 범위 밖).
+- **[9] M2-3** — 대상: `pom.xml`(`spring-boot-starter-actuator` 추가), `railway.toml`(`healthcheckPath` 지정). 방향: 표준 `/actuator/health`로 통일, 기존 `DocumentController`/`RecommendController`의 임시 health 엔드포인트는 유지하거나 제거는 워커 판단(최소 변경 원칙상 유지 추천).
+- **[10] M2-2** — 대상: 신규 `OncePerRequestFilter`(요청ID를 MDC에 주입), `logback-spring.xml`(로그 패턴에 MDC 요청ID 포함). 방향: 기존 12곳의 `log.*` 호출 자체는 손대지 않고(범위 밖), 공통 필터만 추가해 모든 로그 라인에 요청ID가 자동으로 붙게.
+- **[11] M6-1** — 범위가 커서 세부 분해:
+  - **11-a (백엔드, 의존성 이미 있음)**: 핵심 경로(인증 로그인/리프레시, Place 멤버십 체크, Notification 생성/설정 억제 로직) 위주로 `src/test`에 단위/통합 테스트 작성 시작. 전체 커버리지를 목표로 하지 않고 지난 사이클들에서 버그가 실제로 발생했던 지점(리프레시 토큰, 멤버십 체크, 알림 억제) 우선.
+  - **11-b (웹)**: 테스트 프레임워크(Vitest + React Testing Library 등) 설치·설정부터 시작, 핵심 컴포넌트 1~2개로 파일럿.
+  - **11-c (모바일)**: 동일하게 프레임워크 설치부터 시작, 파일럿 1~2개.
+  - (11-a~11-c 모두 "설치/설정 + 파일럿" 수준까지만 이번 사이클 범위로 제안 — 전체 커버리지 확보는 범위가 매우 커서 다음 사이클로 이어가는 것을 권장)
+- **[12] M7-2** — 대상: `.github/workflows/ci.yml` 신규. 방향: 이번 사이클에서 11-a~c로 테스트가 일부 생기면 그걸 실행하는 게이트 + 빌드/린트 체크만이라도 추가(M6 진행과 병행, 완전한 게이트는 다음 사이클).
+
+**플래너 종합 추천**: [1]~[6](보안/성능 "코드만" 소규모 항목)을 1차 묶음으로 가장 먼저 처리 추천. [7](비밀번호 재설정/이메일 인증)은 SMTP 계정 발급이 필요해 착수 전 사용자가 발신 이메일 계정을 준비할 시간이 필요— 범위 포함 여부와 별개로 "언제 착수할지"를 사용자와 맞출 것. [11]/[12](테스트/CI)는 설치+파일럿 수준으로 범위를 좁혀서 제안했으나, 그래도 다른 항목보다 비용이 커서 포함 여부를 한 번 더 확인 추천. [8](페이지네이션)은 지금 당장 체감 장애가 없는 항목이라 이번 사이클 제외하고 다음으로 미루는 것도 합리적 — 사용자 선택에 맡기는 것을 추천. M2-1(Sentry)은 외부 서비스 백로그로 분류되어 이번 범위에서 자동 제외.
 
 ### 3. 사용자 컨펌 (오케스트레이터)
-- [ ] 우선순위 목록을 사용자에게 제시, 이번 사이클 개발 범위 확정
-- [ ] 외부 서비스 계약/키 발급이 필요한 항목은 "조사 완료, 실제 연동은 키 발급 후 별도 진행"으로 안내
-- [ ] 컨펌 완료 후에만 "4. 개발" 섹션을 채움
+- [x] 우선순위 목록을 사용자에게 제시, 이번 사이클 개발 범위 확정
+- [x] 사용자 답변:
+  - **묶음 A**(M4-3/M3-3/M1-3/M3-1/M7-1/M4-2, 6건) — **진행**
+  - **묶음 C**(M6-1/M7-2, 테스트+CI 설치/파일럿 수준) — **진행**
+  - **묶음 B**(M1-1/M1-2, 비밀번호 재설정/이메일 인증) — **제외, 백로그 — SMTP 이메일 계정 준비 후 재개**
+  - **묶음 D**(M3-2, 페이지네이션) — **제외, 백로그 — 데이터량 증가 시 재검토**
+  - **(추가 확인)** M2-3(헬스체크 표준화)/M2-2(구조화 로깅)는 당초 네 묶음 어디에도 명시되지 않아 플래너가 재확인 — **묶음 A에 포함해서 이번 사이클에 함께 진행**하기로 확정
+- [x] 외부 서비스 계약/키 발급이 필요한 항목(M2-1 Sentry)은 이번 컨펌 대상에서도 별도 백로그로 유지(변경 없음)
+- [x] 컨펌 완료 — "4. 개발" 섹션 채움
 
 ### 4. 개발 (Development)
-_(사용자 컨펌 전까지 placeholder — 채우지 않음)_
-- [ ] (TBD — 우선순위 컨펌 대기)
+_(사용자 컨펌: 묶음 A + 묶음 C만 진행. 묶음 B/D는 백로그.)_
+
+#### 묶음 A — 보안/성능/운영 "코드만" 소규모 항목 (8건)
+- [x] [A1] M4-3 — API 키(Apify/Gemini) 쿼리스트링 노출 수정. 대상: `InstagramReelsCollector.java:100-101`, `AiServiceImpl.java`(Gemini 호출 catch 블록). 방향: `catch (Exception e)`에서 `e.getMessage()`를 그대로 쓰지 않고 고정 안전 문구로 치환(M5-1도 이 수정으로 함께 해소, 별도 작업 불필요).
+- [ ] [A2] M3-3 — 인덱스 누락 5곳. 대상: 신규 마이그레이션(착수 시점 `db/migration/` 디렉터리 재확인 후 다음 번호 배정). 방향: `team_space_members.user_id`, `notifications.user_id`, `places.space_id`, `events.space_id`, `todos.space_id`에 `CREATE INDEX` 추가.
+- [ ] [A3] M1-3 — 로그인 brute-force 방어(계정 잠금). 대상: `AuthServiceImpl.login()` + 신규 마이그레이션(`users.failed_login_count`, `locked_until` 등). 방향: 실패 횟수 증가, 임계값 초과 시 일정 시간 잠금. IP 기반 확장은 범위 제외.
+- [ ] [A4] M3-1 — N+1 쿼리 2건. 대상: `TeamSpaceServiceImpl.findAll()`, `MessageServiceImpl.findBySpaceId()`. 방향: `TeamSpaceMapper`/`UserMapper`에 `IN` 절 기반 배치 조회 메서드 추가.
+- [ ] [A5] M7-1 — `/v3/api-docs` 공개 설정 불일치. 대상: `application.yml`, `SecurityConfig.java`. 방향: `/v3/api-docs`, `/v3/api-docs/**`를 `permitAll()`에서 제외(또는 swagger-ui와 함께 완전 비활성화 — 워커 판단).
+- [ ] [A6] M4-2 — DTO 길이 제한 공백 3곳. 대상: `CreateTodoRequest`/`UpdateTodoRequest`(`@Size(max=255)`), `CreateEventRequest.description`, `SendMessageRequest.content`. 방향: DB 컬럼 타입과 일치하는 `@Size` 애너테이션 추가.
+- [ ] [A7] M2-3 — 헬스체크 표준화. 대상: `pom.xml`(`spring-boot-starter-actuator` 추가), `railway.toml`(`healthcheckPath` 지정). 방향: 표준 `/actuator/health`로 통일, 기존 `DocumentController`/`RecommendController`의 임시 health 엔드포인트는 유지(최소 변경 원칙).
+- [ ] [A8] M2-2 — 구조화 로깅. 대상: 신규 `OncePerRequestFilter`(요청ID를 MDC에 주입), `logback-spring.xml`(로그 패턴에 MDC 요청ID 포함). 방향: 기존 12곳의 `log.*` 호출 자체는 손대지 않고 공통 필터만 추가.
+
+#### 묶음 C — 테스트 + CI (설치/파일럿 수준)
+- [ ] [C1=11-a] M6-1 백엔드 — 핵심 경로(인증 로그인/리프레시, Place 멤버십 체크, Notification 생성/설정 억제 로직) 위주 단위/통합 테스트 작성. 대상: `apps/api-spring/src/test`(의존성은 이미 있음).
+- [ ] [C2=11-b] M6-1 웹 — 테스트 프레임워크(Vitest + React Testing Library 등) 설치·설정, 핵심 컴포넌트 1~2개 파일럿.
+- [ ] [C3=11-c] M6-1 모바일 — 동일 프레임워크 설치·설정, 파일럿 1~2개.
+- [ ] [C4=12] M7-2 — CI 파이프라인. 대상: `.github/workflows/ci.yml` 신규. 방향: C1~C3에서 생긴 테스트를 실행하는 게이트 + 빌드/린트 체크 추가.
+
+#### 백로그 (이번 사이클 제외)
+- **묶음 B — M1-1/M1-2** (비밀번호 재설정/이메일 인증): **백로그 — SMTP 이메일 계정 준비 후 재개.** 세부 분해(7-a SMTP 설정/7-b 비밀번호 재설정/7-c 이메일 인증)는 RESEARCH.md "M 요약" 및 지난 트리아지 기록 참조.
+- **묶음 D — M3-2** (페이지네이션 누락): **백로그 — 데이터량 증가 시 재검토.** 현재 데이터량이 적어 체감 장애 없음이 조사에서 확인됨(RESEARCH.md M-3 참조).
 
 ### 5. 검토 (Review)
-- [ ] 각 개발 항목에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
+- [ ] 각 묶음에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
 - [ ] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토
 
 ### 6. 완료보고

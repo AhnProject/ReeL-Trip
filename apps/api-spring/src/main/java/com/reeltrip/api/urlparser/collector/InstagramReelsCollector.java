@@ -98,7 +98,7 @@ public class InstagramReelsCollector implements ContentCollector {
         } catch (Exception e) {
             log.error("Instagram collector error for reelId={}", reelId, e);
             throw new AppException(ErrorCode.APIFY_ERROR,
-                    "Instagram 콘텐츠를 가져오는데 실패했습니다: " + e.getMessage());
+                    "Instagram 콘텐츠를 가져오는데 실패했습니다.");
         }
     }
 

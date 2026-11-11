@@ -204,7 +204,7 @@ public class AiServiceImpl implements AiService {
         } catch (Exception e) {
             log.error("Gemini extraction error", e);
             throw new AppException(ErrorCode.AI_RESPONSE_PARSE_ERROR,
-                    "Failed to extract travel info: " + e.getMessage());
+                    "Failed to extract travel info.");
         }
     }
 
