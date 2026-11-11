@@ -120,7 +120,7 @@ _(사용자 컨펌: 묶음 A + 묶음 C만 진행. 묶음 B/D는 백로그.)_
 - [x] [A8] M2-2 — 구조화 로깅. 대상: 신규 `OncePerRequestFilter`(요청ID를 MDC에 주입), `logback-spring.xml`(로그 패턴에 MDC 요청ID 포함). 방향: 기존 12곳의 `log.*` 호출 자체는 손대지 않고 공통 필터만 추가.
 
 #### 묶음 C — 테스트 + CI (설치/파일럿 수준)
-- [ ] [C1=11-a] M6-1 백엔드 — 핵심 경로(인증 로그인/리프레시, Place 멤버십 체크, Notification 생성/설정 억제 로직) 위주 단위/통합 테스트 작성. 대상: `apps/api-spring/src/test`(의존성은 이미 있음).
+- [x] [C1=11-a] M6-1 백엔드 — 핵심 경로(인증 로그인/리프레시, Place 멤버십 체크, Notification 생성/설정 억제 로직) 위주 단위/통합 테스트 작성. 대상: `apps/api-spring/src/test`(의존성은 이미 있음).
 - [ ] [C2=11-b] M6-1 웹 — 테스트 프레임워크(Vitest + React Testing Library 등) 설치·설정, 핵심 컴포넌트 1~2개 파일럿.
 - [ ] [C3=11-c] M6-1 모바일 — 동일 프레임워크 설치·설정, 파일럿 1~2개.
 - [ ] [C4=12] M7-2 — CI 파이프라인. 대상: `.github/workflows/ci.yml` 신규. 방향: C1~C3에서 생긴 테스트를 실행하는 게이트 + 빌드/린트 체크 추가.
