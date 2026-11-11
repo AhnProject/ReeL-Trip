@@ -26,6 +26,8 @@ public interface TeamSpaceMapper {
 
     List<TeamSpaceMember> findMembersBySpaceId(@Param("spaceId") Long spaceId);
 
+    List<TeamSpaceMember> findMembersBySpaceIds(@Param("spaceIds") List<Long> spaceIds);
+
     Optional<TeamSpaceMember> findMember(@Param("spaceId") Long spaceId, @Param("userId") Long userId);
 
     boolean existsMember(@Param("spaceId") Long spaceId, @Param("userId") Long userId);

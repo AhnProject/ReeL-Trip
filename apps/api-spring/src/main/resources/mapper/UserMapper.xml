@@ -29,6 +29,16 @@
         WHERE id = #{id}
     </select>
 
+    <select id="findByIds" resultMap="userResultMap">
+        SELECT id, username, password, email, role, is_deleted,
+               failed_login_count, locked_until, created_at, updated_at
+        FROM users
+        WHERE id IN
+        <foreach item="userId" collection="ids" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </select>
+
     <select id="findByUsername" resultMap="userResultMap">
         SELECT id, username, password, email, role, is_deleted,
                failed_login_count, locked_until, created_at, updated_at

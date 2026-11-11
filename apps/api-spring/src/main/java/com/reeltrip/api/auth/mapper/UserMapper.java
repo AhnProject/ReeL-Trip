@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Mapper
@@ -13,6 +14,8 @@ public interface UserMapper {
     void insert(User user);
 
     Optional<User> findById(@Param("id") Long id);
+
+    List<User> findByIds(@Param("ids") List<Long> ids);
 
     Optional<User> findByUsername(@Param("username") String username);
 
