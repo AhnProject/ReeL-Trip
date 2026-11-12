@@ -16,6 +16,8 @@ public interface PlaceMapper {
 
     Optional<Place> findById(@Param("id") Long id);
 
+    List<Place> findByIds(@Param("ids") List<Long> ids);
+
     List<Place> findBySpaceId(@Param("spaceId") Long spaceId);
 
     int update(Place place);

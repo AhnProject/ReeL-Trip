@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -23,6 +24,10 @@ public class UpdateEventRequest {
 
     @NotNull
     private LocalDate endDate;
+
+    private Long placeId;
+    private LocalTime startTime;
+    private LocalTime endTime;
 
     @Size(max = 255)
     private String location;

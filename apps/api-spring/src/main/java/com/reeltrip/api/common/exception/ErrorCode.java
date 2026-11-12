@@ -54,6 +54,7 @@ public enum ErrorCode {
     // Event
     EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Event not found"),
     EVENT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "No access to this event"),
+    INVALID_EVENT_TIME_RANGE(HttpStatus.BAD_REQUEST, "End time must be after start time"),
 
     // Place
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "Place not found"),

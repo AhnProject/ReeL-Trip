@@ -11,6 +11,9 @@
         <result property="description" column="description"/>
         <result property="startDate"   column="start_date"/>
         <result property="endDate"     column="end_date"/>
+        <result property="placeId"     column="place_id"/>
+        <result property="startTime"   column="start_time"/>
+        <result property="endTime"     column="end_time"/>
         <result property="location"    column="location"/>
         <result property="price"       column="price"/>
         <result property="color"       column="color"/>
@@ -21,18 +24,18 @@
     </resultMap>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        INSERT INTO events (space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at)
-        VALUES (#{spaceId}, #{title}, #{description}, #{startDate}, #{endDate}, #{location}, #{price}, #{color}, #{status}, #{createdBy}, NOW(), NOW())
+        INSERT INTO events (space_id, title, description, start_date, end_date, place_id, start_time, end_time, location, price, color, status, created_by, created_at, updated_at)
+        VALUES (#{spaceId}, #{title}, #{description}, #{startDate}, #{endDate}, #{placeId}, #{startTime}, #{endTime}, #{location}, #{price}, #{color}, #{status}, #{createdBy}, NOW(), NOW())
     </insert>
 
     <select id="findById" resultMap="eventResultMap">
-        SELECT id, space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at
+        SELECT id, space_id, title, description, start_date, end_date, place_id, start_time, end_time, location, price, color, status, created_by, created_at, updated_at
         FROM events
         WHERE id = #{id}
     </select>
 
     <select id="findBySpaceId" resultMap="eventResultMap">
-        SELECT id, space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at
+        SELECT id, space_id, title, description, start_date, end_date, place_id, start_time, end_time, location, price, color, status, created_by, created_at, updated_at
         FROM events
         WHERE space_id = #{spaceId}
         ORDER BY start_date ASC
@@ -40,7 +43,7 @@
 
     <select id="findBySpaceIdAndMonth" resultMap="eventResultMap">
         <![CDATA[
-        SELECT id, space_id, title, description, start_date, end_date, location, price, color, status, created_by, created_at, updated_at
+        SELECT id, space_id, title, description, start_date, end_date, place_id, start_time, end_time, location, price, color, status, created_by, created_at, updated_at
         FROM events
         WHERE space_id = #{spaceId}
           AND TO_CHAR(start_date, 'YYYY-MM') = #{month}
@@ -54,6 +57,9 @@
             description = #{description},
             start_date  = #{startDate},
             end_date    = #{endDate},
+            place_id    = #{placeId},
+            start_time  = #{startTime},
+            end_time    = #{endTime},
             location    = #{location},
             price       = #{price},
             color       = #{color},

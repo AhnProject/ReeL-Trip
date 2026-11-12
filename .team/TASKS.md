@@ -90,7 +90,7 @@ _(사용자 컨펌: 전부 포함. 순서는 지시받은 의존관계대로 —
 
 #### 순차 C — Event-Place 연관관계 + 시간 (B 선행 필요)
 - [x] [C1] DB 마이그레이션 — `events`에 `place_id`(FK, nullable) + `start_time`/`end_time` 컬럼 추가. 대상: 신규 마이그레이션(B1 이후 번호, 착수 시점 재확인)
-- [ ] [C2] 백엔드 — `CreateEventRequest`/`UpdateEventRequest`/`EventResponse`에 `placeId`/`startTime`/`endTime` 추가, 장소 선택 시 해당 Place의 `name`/`hours`/`hoursStructured` 응답 포함, 시간 검증(종료>시작)
+- [x] [C2] 백엔드 — `CreateEventRequest`/`UpdateEventRequest`/`EventResponse`에 `placeId`/`startTime`/`endTime` 추가, 장소 선택 시 해당 Place의 `name`/`hours`/`hoursStructured` 응답 포함, 시간 검증(종료>시작)
 - [ ] [C3] 프런트(웹) — `CreateEventModal.tsx`의 자유 텍스트 "장소" input을 저장된 Place 선택 드롭다운/검색으로 교체(또는 보강), 시간 입력 UI(`type="time"` 시작/종료) 추가
 - [ ] [C4] 프런트(모바일) — `CreateEventModal.tsx`(모바일판) 동일 작업
 - [ ] [C5] 운영시간 비활성화 로직 — 선택된 장소의 `hoursStructured`(B) 참조해 운영시간 밖 시간대 비활성화, `hoursStructured` 없는 장소는 no-op(전체 허용)

@@ -4,6 +4,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -17,6 +18,9 @@ public class Event {
     private String description;
     private LocalDate startDate;
     private LocalDate endDate;
+    private Long placeId;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private String location;
     private String price;
     private String color;
