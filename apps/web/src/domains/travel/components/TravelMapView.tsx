@@ -1,35 +1,48 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TravelMapMarkerPopup } from "./TravelMapMarkerPopup";
 import type { MapMarkerPlace } from "./TravelPlaceDetailModal";
+import type { PlaceResponse } from "@/domains/place/api";
 
-/* 서울 성수동 중심 좌표 */
+/* 서울 성수동 중심 좌표 (장소에 좌표가 하나도 없을 때의 기본 뷰) */
 const CENTER: [number, number] = [37.5446, 127.0569];
-
-const MARKERS: (MapMarkerPlace & { pos: [number, number]; color: string; size: number })[] = [
-  {
-    id: "jazz", pos: [37.5470, 127.0550], color: "#4A6CF7", size: 22,
-    name: "성수 재즈 페스티벌", tag: "번", address: "서울 성동구 연무장길", hours: "19:00 ~ 21:00",
-  },
-  {
-    id: "cafe", pos: [37.5430, 127.0590], color: "#7C3AED", size: 16,
-    name: "성수 카페거리", tag: "번", address: "서울 성동구 아차산로", hours: "10:00 ~ 22:00",
-  },
-];
+const DEFAULT_COLOR = "#4A6CF7";
+const DEFAULT_SIZE  = 18;
 
 interface Props {
+  places?: PlaceResponse[];
   onAddToSchedule?: () => void;
   onViewDetail?: (place: MapMarkerPlace) => void;
 }
 
-export function TravelMapView({ onAddToSchedule, onViewDetail }: Props) {
-  const mapRef   = useRef<HTMLDivElement>(null);
-  const mapInst  = useRef<import("leaflet").Map | null>(null);
+export function TravelMapView({ places = [], onAddToSchedule, onViewDetail }: Props) {
+  // 좌표가 없는 장소는 지도에 찍을 수 없어 조용히 제외(에러 아님) — A5에서 정식으로 다룸
+  const markers = useMemo<(MapMarkerPlace & { pos: [number, number]; color: string; size: number })[]>(
+    () => places
+      .filter((p) => p.latitude != null && p.longitude != null)
+      .map((p) => ({
+        id:      String(p.id),
+        pos:     [p.latitude as number, p.longitude as number],
+        color:   DEFAULT_COLOR,
+        size:    DEFAULT_SIZE,
+        name:    p.name,
+        tag:     p.category ?? "장소",
+        address: p.address ?? "",
+        hours:   p.hours ?? "",
+      })),
+    [places],
+  );
+  const mapRef        = useRef<HTMLDivElement>(null);
+  const mapInst       = useRef<import("leaflet").Map | null>(null);
+  const markerLayers  = useRef<import("leaflet").Marker[]>([]);
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
   /* marker DOM 위치 → popup 절대 위치용 */
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
+  /* 지도 인스턴스 생성 완료 여부 — 마커 동기화 effect가 레이스 없이 뒤따라 실행되게 함 */
+  const [mapReady, setMapReady] = useState(false);
 
+  /* 지도 인스턴스는 마운트 시 한 번만 생성 */
   useEffect(() => {
     if (typeof window === "undefined" || !mapRef.current || mapInst.current) return;
 
@@ -57,7 +70,31 @@ export function TravelMapView({ onAddToSchedule, onViewDetail }: Props) {
       /* 줌 컨트롤 우하단 배치 */
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      MARKERS.forEach((m) => {
+      map.on("click", () => setActiveMarker(null));
+
+      mapInst.current = map;
+      setMapReady(true);
+    });
+
+    return () => {
+      mapInst.current?.remove();
+      mapInst.current = null;
+    };
+  }, []);
+
+  /* places(실데이터)가 바뀔 때마다 마커만 다시 그림 — 지도 인스턴스는 재사용.
+     mapReady를 의존성에 넣어 지도 생성(비동기)이 끝난 직후 레이스 없이 뒤따라 실행되게 함 */
+  useEffect(() => {
+    if (typeof window === "undefined" || !mapReady || !mapInst.current) return;
+
+    import("leaflet").then((L) => {
+      const map = mapInst.current;
+      if (!map) return;
+
+      markerLayers.current.forEach((layer) => layer.remove());
+      markerLayers.current = [];
+
+      markers.forEach((m) => {
         const icon = L.divIcon({
           className: "",
           html: `<div style="
@@ -79,18 +116,11 @@ export function TravelMapView({ onAddToSchedule, onViewDetail }: Props) {
           setPopupPos({ x: point.x, y: point.y });
           setActiveMarker(m.id);
         });
+
+        markerLayers.current.push(marker);
       });
-
-      map.on("click", () => setActiveMarker(null));
-
-      mapInst.current = map;
     });
-
-    return () => {
-      mapInst.current?.remove();
-      mapInst.current = null;
-    };
-  }, []);
+  }, [markers, mapReady]);
 
   return (
     <div className="relative h-full w-full">
@@ -99,7 +129,7 @@ export function TravelMapView({ onAddToSchedule, onViewDetail }: Props) {
 
       {/* 마커 팝업 말풍선 */}
       {activeMarker && popupPos && (() => {
-        const marker = MARKERS.find((m) => m.id === activeMarker);
+        const marker = markers.find((m) => m.id === activeMarker);
         if (!marker) return null;
         return (
           <div

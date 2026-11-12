@@ -216,6 +216,7 @@ export function TravelMapScreen() {
         {/* ── 중앙 지도 ── */}
         <main className="relative flex-1 overflow-hidden">
           <TravelMapView
+            places={places}
             onAddToSchedule={() => setShowCreateModal(true)}
             onViewDetail={(place) => setDetailPlace(place)}
           />

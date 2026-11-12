@@ -76,7 +76,7 @@ _(지시대로 순서: **(b) → (c) → (d)** 의존관계 있음, **(a)는 독
 _(사용자 컨펌: 전부 포함. 순서는 지시받은 의존관계대로 — 병행 A는 아무 때나, 순차 B→C→D는 순서대로)_
 
 #### 병행 A — 웹 지도 마커 실연동 (b/c/d와 독립, 바로 착수 가능)
-- [ ] [A1] `TravelMapView.tsx`에 `places` prop 추가, `MARKERS` 하드코딩 제거 — `TravelMapScreen.tsx`가 이미 보유한 `listPlaces()` 실데이터 전달
+- [x] [A1] `TravelMapView.tsx`에 `places` prop 추가, `MARKERS` 하드코딩 제거 — `TravelMapScreen.tsx`가 이미 보유한 `listPlaces()` 실데이터 전달
 - [ ] [A2] `MapMarkerPlace`(`TravelPlaceDetailModal.tsx`) 타입을 실제 `PlaceResponse`와 호환되게 재설계(또는 변환 매퍼), id 타입 불일치(string vs number) 정리
 - [ ] [A3] 좌표 확보 — `PlaceServiceImpl.add/update`에서 주소를 OSM Nominatim으로 지오코딩해 `latitude`/`longitude` 저장(best-effort, 실패해도 장소 저장은 성공). Nominatim 사용정책(분당 1회 제한, `User-Agent` 헤더 필수) 준수
 - [ ] [A4] 기존 저장된 장소(좌표 없음) 전체에 대한 일회성 소급 지오코딩 배치 — Nominatim 요청 제한(분당 1회) 고려해 순차 처리, 실패 항목은 로그만 남기고 계속 진행
