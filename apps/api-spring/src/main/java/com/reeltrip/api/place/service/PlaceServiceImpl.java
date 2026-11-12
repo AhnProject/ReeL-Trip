@@ -5,6 +5,8 @@ import com.reeltrip.api.auth.mapper.UserMapper;
 import com.reeltrip.api.auth.model.User;
 import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
+import com.reeltrip.api.geocoding.dto.GeocodeResult;
+import com.reeltrip.api.geocoding.service.GeocodingService;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.PlaceResponse;
 import com.reeltrip.api.place.dto.SimilarPlaceResponse;
@@ -35,6 +37,7 @@ public class PlaceServiceImpl implements PlaceService {
     private final UserMapper userMapper;
     private final NotificationService notificationService;
     private final AiService aiService;
+    private final GeocodingService geocodingService;
 
     @Override
     public PlaceResponse add(AddPlaceRequest request, String username) {
@@ -65,6 +68,7 @@ public class PlaceServiceImpl implements PlaceService {
                 .createdBy(user.getId())
                 .build();
 
+        geocodeBestEffort(place);
         placeMapper.insert(place);
         generateEmbeddingBestEffort(place);
 
@@ -120,6 +124,12 @@ public class PlaceServiceImpl implements PlaceService {
             place.setConsentAt(request.getConsentGiven() ? LocalDateTime.now() : null);
         }
 
+        // 주소가 이번 요청으로 바뀐 경우에만 재지오코딩 — 그 외(예: 확정 토글만 하는 빈 패치 호출)는
+        // 매번 Nominatim을 두드리지 않게 함
+        if (request.getAddress() != null) {
+            geocodeBestEffort(place);
+        }
+
         placeMapper.update(place);
         generateEmbeddingBestEffort(place);
 
@@ -171,6 +181,31 @@ public class PlaceServiceImpl implements PlaceService {
         if (!teamSpaceMapper.existsMember(spaceId, userId)) {
             throw new AppException(ErrorCode.PLACE_ACCESS_DENIED);
         }
+    }
+
+    /**
+     * 주소를 OSM Nominatim으로 지오코딩해 위경도를 채움 — 실패해도 장소 저장 자체는
+     * 영향받지 않는 best-effort 처리. 이미 좌표가 있으면(사용자 직접 입력 또는 이전
+     * 지오코딩 결과) 덮어쓰지 않음.
+     */
+    private void geocodeBestEffort(Place place) {
+        if (place.getLatitude() != null && place.getLongitude() != null) return;
+
+        String query = buildAddressQuery(place);
+        if (query.isBlank()) return;
+
+        geocodingService.geocode(query).ifPresent(result -> {
+            place.setLatitude(result.getLatitude());
+            place.setLongitude(result.getLongitude());
+        });
+    }
+
+    private String buildAddressQuery(Place place) {
+        StringBuilder sb = new StringBuilder();
+        if (place.getAddress() != null) sb.append(place.getAddress()).append(" ");
+        if (place.getRegion() != null) sb.append(place.getRegion()).append(" ");
+        if (place.getCountry() != null) sb.append(place.getCountry());
+        return sb.toString().trim();
     }
 
     /** "비슷한 장소" 추천용 임베딩 생성 — 실패해도 장소 저장 자체는 영향받지 않는 best-effort 처리 */

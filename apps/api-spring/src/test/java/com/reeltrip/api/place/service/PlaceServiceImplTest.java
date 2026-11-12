@@ -5,6 +5,8 @@ import com.reeltrip.api.auth.mapper.UserMapper;
 import com.reeltrip.api.auth.model.User;
 import com.reeltrip.api.common.exception.AppException;
 import com.reeltrip.api.common.exception.ErrorCode;
+import com.reeltrip.api.geocoding.dto.GeocodeResult;
+import com.reeltrip.api.geocoding.service.GeocodingService;
 import com.reeltrip.api.notification.service.NotificationService;
 import com.reeltrip.api.place.dto.AddPlaceRequest;
 import com.reeltrip.api.place.dto.SimilarPlaceResponse;
@@ -14,9 +16,11 @@ import com.reeltrip.api.teamspace.mapper.TeamSpaceMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +38,7 @@ class PlaceServiceImplTest {
     @Mock private UserMapper userMapper;
     @Mock private NotificationService notificationService;
     @Mock private AiService aiService;
+    @Mock private GeocodingService geocodingService;
 
     private PlaceServiceImpl placeService;
 
@@ -42,7 +47,7 @@ class PlaceServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        placeService = new PlaceServiceImpl(placeMapper, teamSpaceMapper, userMapper, notificationService, aiService);
+        placeService = new PlaceServiceImpl(placeMapper, teamSpaceMapper, userMapper, notificationService, aiService, geocodingService);
     }
 
     private User member() {
@@ -72,6 +77,67 @@ class PlaceServiceImplTest {
 
         assertThat(response.getId()).isEqualTo(99L);
         verify(placeMapper).insert(any(Place.class));
+    }
+
+    @Test
+    void add_withAddress_geocodesAndFillsCoordinates() {
+        when(userMapper.findByUsername("alice")).thenReturn(Optional.of(member()));
+        when(teamSpaceMapper.existsMember(SPACE_ID, USER_ID)).thenReturn(true);
+        when(teamSpaceMapper.findMembersBySpaceId(SPACE_ID)).thenReturn(List.of());
+        when(aiService.createEmbedding(any())).thenReturn(List.of(0.1, 0.2));
+        when(geocodingService.geocode(any())).thenReturn(
+                Optional.of(new GeocodeResult(new BigDecimal("37.5"), new BigDecimal("127.0"))));
+
+        doAnswer(invocation -> {
+            Place p = invocation.getArgument(0);
+            p.setId(99L);
+            return null;
+        }).when(placeMapper).insert(any(Place.class));
+        when(placeMapper.findById(99L)).thenAnswer(invocation ->
+                Optional.of(Place.builder().id(99L).spaceId(SPACE_ID).name("스시야")
+                        .latitude(new BigDecimal("37.5")).longitude(new BigDecimal("127.0"))
+                        .createdBy(USER_ID).build()));
+
+        AddPlaceRequest request = new AddPlaceRequest();
+        request.setSpaceId(SPACE_ID);
+        request.setName("스시야");
+        request.setAddress("서울 성동구 연무장길");
+
+        var response = placeService.add(request, "alice");
+
+        assertThat(response.getLatitude()).isEqualTo(new BigDecimal("37.5"));
+        assertThat(response.getLongitude()).isEqualTo(new BigDecimal("127.0"));
+
+        ArgumentCaptor<Place> captor = ArgumentCaptor.forClass(Place.class);
+        verify(placeMapper).insert(captor.capture());
+        assertThat(captor.getValue().getLatitude()).isEqualTo(new BigDecimal("37.5"));
+    }
+
+    @Test
+    void add_whenGeocodingFails_stillSavesPlace() {
+        when(userMapper.findByUsername("alice")).thenReturn(Optional.of(member()));
+        when(teamSpaceMapper.existsMember(SPACE_ID, USER_ID)).thenReturn(true);
+        when(teamSpaceMapper.findMembersBySpaceId(SPACE_ID)).thenReturn(List.of());
+        when(aiService.createEmbedding(any())).thenReturn(List.of(0.1, 0.2));
+        when(geocodingService.geocode(any())).thenReturn(Optional.empty());
+
+        doAnswer(invocation -> {
+            Place p = invocation.getArgument(0);
+            p.setId(99L);
+            return null;
+        }).when(placeMapper).insert(any(Place.class));
+        when(placeMapper.findById(99L)).thenAnswer(invocation ->
+                Optional.of(Place.builder().id(99L).spaceId(SPACE_ID).name("스시야").createdBy(USER_ID).build()));
+
+        AddPlaceRequest request = new AddPlaceRequest();
+        request.setSpaceId(SPACE_ID);
+        request.setName("스시야");
+        request.setAddress("알 수 없는 주소");
+
+        var response = placeService.add(request, "alice");
+
+        assertThat(response.getId()).isEqualTo(99L);
+        assertThat(response.getLatitude()).isNull();
     }
 
     @Test
