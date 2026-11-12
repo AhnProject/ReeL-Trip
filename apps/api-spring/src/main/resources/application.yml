@@ -57,6 +57,13 @@ cors:
 api:
   base-url: ${API_BASE_URL:http://localhost:4000}
 
+app:
+  # 좌표 없는 기존 장소 일회성 소급 지오코딩 배치(GeocodingBackfillRunner) — 기본 꺼짐.
+  # 배포 시 BACKFILL_GEOCODING_ON_STARTUP=true로 한 번 켜고 재배포 → 완료 후 다시 false로.
+  backfill-geocoding-on-startup: ${BACKFILL_GEOCODING_ON_STARTUP:false}
+  # 배치 호출 간 간격(ms) — Nominatim 정책의 대량 호출 권장 간격(분당 4회=15초)이 기본값
+  backfill-geocoding-interval-ms: ${BACKFILL_GEOCODING_INTERVAL_MS:15000}
+
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.reeltrip.api

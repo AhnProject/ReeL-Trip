@@ -151,4 +151,20 @@
         ]]>
     </select>
 
+    <select id="findWithoutCoordinates" resultMap="placeResultMap">
+        SELECT id, space_id, name, category, address, region, country,
+               latitude, longitude, price_desc, price_min, price_max, currency,
+               hours, hours_structured, thumbnail_url, source_url, source_platform,
+               tags, menu, confidence, created_by, consent_given, consent_at, created_at, updated_at
+        FROM places
+        WHERE (latitude IS NULL OR longitude IS NULL)
+          AND address IS NOT NULL
+    </select>
+
+    <update id="updateCoordinates">
+        UPDATE places
+        SET latitude = #{latitude}, longitude = #{longitude}, updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
 </mapper>

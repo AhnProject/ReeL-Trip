@@ -41,4 +41,13 @@ public class Place {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /** 지오코딩(Nominatim) 조회용 주소 문자열 — PlaceServiceImpl/배치 양쪽에서 재사용 */
+    public String toAddressQuery() {
+        StringBuilder sb = new StringBuilder();
+        if (address != null) sb.append(address).append(" ");
+        if (region != null) sb.append(region).append(" ");
+        if (country != null) sb.append(country);
+        return sb.toString().trim();
+    }
 }

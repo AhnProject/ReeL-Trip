@@ -191,21 +191,13 @@ public class PlaceServiceImpl implements PlaceService {
     private void geocodeBestEffort(Place place) {
         if (place.getLatitude() != null && place.getLongitude() != null) return;
 
-        String query = buildAddressQuery(place);
+        String query = place.toAddressQuery();
         if (query.isBlank()) return;
 
         geocodingService.geocode(query).ifPresent(result -> {
             place.setLatitude(result.getLatitude());
             place.setLongitude(result.getLongitude());
         });
-    }
-
-    private String buildAddressQuery(Place place) {
-        StringBuilder sb = new StringBuilder();
-        if (place.getAddress() != null) sb.append(place.getAddress()).append(" ");
-        if (place.getRegion() != null) sb.append(place.getRegion()).append(" ");
-        if (place.getCountry() != null) sb.append(place.getCountry());
-        return sb.toString().trim();
     }
 
     /** "비슷한 장소" 추천용 임베딩 생성 — 실패해도 장소 저장 자체는 영향받지 않는 best-effort 처리 */
