@@ -22,21 +22,21 @@ export function TravelMapView({ places = [], onAddToSchedule, onViewDetail }: Pr
     () => places
       .filter((p) => p.latitude != null && p.longitude != null)
       .map((p) => ({
-        id:      String(p.id),
-        pos:     [p.latitude as number, p.longitude as number],
-        color:   DEFAULT_COLOR,
-        size:    DEFAULT_SIZE,
-        name:    p.name,
-        tag:     p.category ?? "장소",
-        address: p.address ?? "",
-        hours:   p.hours ?? "",
+        id:       p.id,
+        pos:      [p.latitude as number, p.longitude as number],
+        color:    DEFAULT_COLOR,
+        size:     DEFAULT_SIZE,
+        name:     p.name,
+        category: p.category,
+        address:  p.address,
+        hours:    p.hours,
       })),
     [places],
   );
   const mapRef        = useRef<HTMLDivElement>(null);
   const mapInst       = useRef<import("leaflet").Map | null>(null);
   const markerLayers  = useRef<import("leaflet").Marker[]>([]);
-  const [activeMarker, setActiveMarker] = useState<string | null>(null);
+  const [activeMarker, setActiveMarker] = useState<number | null>(null);
   /* marker DOM 위치 → popup 절대 위치용 */
   const [popupPos, setPopupPos] = useState<{ x: number; y: number } | null>(null);
   /* 지도 인스턴스 생성 완료 여부 — 마커 동기화 effect가 레이스 없이 뒤따라 실행되게 함 */

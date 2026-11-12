@@ -53,12 +53,14 @@ export function TravelMapMarkerPopup({ place, onClose, onAddToSchedule, onViewDe
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="text-[13px] font-bold text-slate-900">{place.name}</span>
-          <span
-            className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
-            style={{ background: "#F1F3F6" }}
-          >
-            {place.tag}
-          </span>
+          {place.category && (
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+              style={{ background: "#F1F3F6" }}
+            >
+              {place.category}
+            </span>
+          )}
         </div>
         <button
           onClick={onClose}

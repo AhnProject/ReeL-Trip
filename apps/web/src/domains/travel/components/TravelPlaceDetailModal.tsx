@@ -1,11 +1,12 @@
 "use client";
 
+/** PlaceResponse 중 지도 마커/상세에 필요한 부분집합 — id는 실제 Place.id(number)와 동일 */
 export interface MapMarkerPlace {
-  id: string;
+  id: number;
   name: string;
-  tag: string;
-  address: string;
-  hours: string;
+  category: string | null;
+  address: string | null;
+  hours: string | null;
 }
 
 interface Props {
@@ -23,9 +24,11 @@ export function TravelPlaceDetailModal({ place, onClose }: Props) {
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-slate-800">장소 상세</span>
-            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
-              {place.tag}
-            </span>
+            {place.category && (
+              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                {place.category}
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
