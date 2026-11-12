@@ -2,7 +2,113 @@
 
 _(planner/orchestrator keep this list; worker ticks items off)_
 
-## 현재 작업: 상용 서비스 수준 끌어올리기 — 운영/보안/성능 기반 조사 (2026-11-11 ~)
+## 현재 작업: 지도/일정/장소 핵심 기능 완성 (2026-11-12 ~)
+
+### 1. 조사 (Research)
+_(사용자 원문 요청 3축: (1)지도 실연동 (2)일정×장소 블록 배치 (3)운영시간 반영. PLAN.md 참조)_
+
+- [x] **(a) 웹 지도 마커 데이터 소스** → RESEARCH.md N-(a). `TravelMapView.tsx`는 `MARKERS` 상수 하드코딩 2건이고 `places` prop 자체를 받지 않음. `TravelMapScreen.tsx`는 실제 `listPlaces()`를 이미 호출해 사이드바에는 실데이터를 쓰지만 지도로는 전달 안 함. **더 근본적 발견: `latitude`/`longitude`를 채워주는 코드가 전체 저장소에 0건**(AI 추출 프롬프트에 좌표 필드 자체가 없고, 좌표 입력 UI도 없음) — 지도를 실제 Place에 연결해도 현재는 찍을 좌표가 없음. 웹 지도(Leaflet/OSM)는 API 키 불필요함도 확인(지난 "API 키 없어 제외"는 모바일 react-native-maps 얘기였음).
+- [x] **(b) Place 운영시간 필드 존재 여부·저장 형식** → RESEARCH.md N-(b). `hours`는 DB(TEXT)/DTO/모델 전 레이어에서 완전 자유 문자열, 요일별 구조화 데이터 없음(마이그레이션 V1~V18 전수 확인). AI 프롬프트도 포맷 강제 없이 자유 텍스트 요청. "비활성화" 로직을 신뢰성 있게 구현하려면 구조화 마이그레이션+AI 프롬프트 변경이 선행되어야 함(또는 범위를 "구조화된 값 있을 때만 적용"으로 축소).
+- [x] **(c) Event 생성/수정 UI 구조** → RESEARCH.md N-(c). Event-Place 연관관계 없음(place_id류 컬럼 0건, "장소" 필드는 자유 텍스트 input). 시간(time-of-day) 자체가 없음(LocalDate만, `CalendarEvent.time`은 타입만 있고 항상 undefined로 고정되는 죽은 필드). 캘린더는 웹/모바일 둘 다 월간 그리드+날짜별 리스트형(타임라인/블록 뷰 없음).
+- [x] **(d) "블록형식 배치" 구현 범위 가늠** → RESEARCH.md N-(d). 캘린더/DnD 라이브러리 0건(web+mobile package.json 재확인) — 현재 구조에 타임라인 UI 자체가 없어 신규 구축 필요. 선행 작업 4단계(DB 마이그레이션 2종, 백엔드 연관조회, 프런트 장소선택+시간입력+신규뷰) 분해 완료. "정적 표시"면 중간 규모, "드래그앤드롭 재배치"면 라이브러리 도입급 대형 작업으로 공수가 몇 배 차이 — 코드로는 어느 쪽인지 판단 불가, 사용자 재확인 필요 사안으로 보고.
+- [x] (추가 확인) "토큰" 의미 → RESEARCH.md N-추가확인. 문장 구조("각 위치 정보에 맞게 토큰이 출력")상 지도 API 키보다 "마커(위치 표시 아이콘)"로 읽는 게 더 타당하다고 리서처 판단(웹 지도는 키 자체가 불필요한 구조라 "키가 없어서" 전제가 안 맞음). 단, 지오코딩까지 포함한다면 유료 키가 필요한 서비스가 다시 범위에 들어올 수 있어 완전히 배제는 안 함 — 임의로 확정하지 않고 오케스트레이터가 사용자에게 재확인하도록 보고.
+- [x] 조사 결과를 RESEARCH.md에 새 섹션("## N. 지도/일정/장소 통합 조사")으로 추가 — A~M 보존
+
+### 2. 목록 / 우선순위 확정 (Triage)
+- [x] 발견 항목 전체를 목록화 (지도/일정/운영시간 3축)
+- [x] 영향도 × 구현비용 × 의존관계(마이그레이션 선행 필요 여부) 평가
+- [x] "이번 사이클 후보" vs "제외" 로 구분
+- [x] 우선순위 표 작성, 큰 항목(b/c/d)은 세부 작업으로 분해
+
+#### 확정된 해석 (오케스트레이터가 사용자 컨펌 받음, 재확인 불필요)
+- **"토큰"** = 지도 마커(위치 표시 아이콘) — 리서처 제안대로 확정. 좌표 확보는 **무료 OSM Nominatim 지오코딩**으로 결정(저장된 주소 → 좌표 변환, API 키/계약 불필요).
+- **"블록형식"** = 정적 표시로 확정(장소 선택 + 시간 입력 → 캘린더에 타임라인 블록으로 "보여주기"만). **드래그앤드롭 재배치는 범위 제외.**
+
+#### 제외
+- N-(d) 드래그앤드롭 재배치 해석 — 사용자 컨펌으로 제외 확정(위 참조)
+- 모바일 네이티브 지도(react-native-maps) 연동 — 지난 4번째 사이클에서 "Google Maps API 키 없어 제외"로 이미 확정된 사항, 이번 N-(a)는 **웹 지도**로 범위 한정(웹은 Leaflet/OSM이라 키 불필요, 모바일 네이티브 지도와는 무관)
+
+#### 이번 사이클 후보 (전부 [코드만 추가, Nominatim은 무료 공개 API], 의존관계 순서로 묶음 구성)
+_(지시대로 순서: **(b) → (c) → (d)** 의존관계 있음, **(a)는 독립적이라 병행 가능**)_
+
+| 묶음 | 축 | 항목 | 구현비용 | 의존관계 |
+|------|----|------|----------|----------|
+| 병행 A | (a) 지도 | 웹 지도 마커 실연동 (prop 연결 + Nominatim 좌표 확보 + 타입 재설계) | 중간~높음 | 없음 (b/c/d와 독립) |
+| 순차 B | (b) 운영시간 | 운영시간 구조화 (마이그레이션 + AI 프롬프트 변경) | 중간 | 없음(최우선 선행) |
+| 순차 C | (c) 일정×장소 | Event-Place 연관관계 + 시간(time-of-day) | 중간 | **B 선행 필요**(운영시간 비활성화 로직이 B의 구조화 데이터를 참조) |
+| 순차 D | (d) 캘린더 | 블록형(정적 타임라인) 캘린더 뷰 | 중간 | **C 선행 필요**(C의 startTime/endTime/placeId 데이터가 있어야 블록을 그릴 수 있음) |
+
+각 묶음 세부 작업:
+
+- **병행 A — 지도 마커 실연동** (b/c/d와 병행 가능, 독립적으로 바로 착수)
+  - **A1**: `TravelMapView.tsx`에 `places` prop 추가, `MARKERS` 하드코딩 제거 — `TravelMapScreen.tsx`가 이미 `listPlaces()`로 들고 있는 실데이터를 전달.
+  - **A2**: `MapMarkerPlace`(`TravelPlaceDetailModal.tsx`) 타입을 실제 `PlaceResponse` 모양과 호환되게 재설계(또는 변환 매퍼 추가) — id 타입 불일치(string vs number) 등 정리.
+  - **A3**: 좌표 확보 — 장소 추가/수정(`PlaceServiceImpl.add/update`) 시 주소를 OSM Nominatim(`https://nominatim.openstreetmap.org/search`)으로 지오코딩해 `latitude`/`longitude` 저장. 임베딩 생성([D2], 지난 사이클)과 동일한 best-effort 패턴(실패해도 장소 저장 자체는 성공) — **Nominatim 사용정책 준수 필요**: 분당 요청 1회 제한, `User-Agent` 헤더 필수(워커가 공식 Usage Policy 확인 후 구현).
+  - **A4**: 기존에 이미 저장된 장소(좌표 없음)에 대한 소급 처리 — 일회성 배치(기존 장소 전체를 순회해 지오코딩)로 처리할지, "신규 생성분부터만 적용하고 기존은 좌표 없는 채로 남겨 지도에 안 보이는 것을 허용"할지 워커가 비용 가늠 후 플래너에게 보고(권장: 데이터량이 적다면 일회성 배치도 간단 — Nominatim 요청 제한 때문에 장소 수가 많으면 시간이 걸릴 수 있음 고려).
+  - **A5**: 지도에는 좌표가 있는 장소만 필터링해서 표시(좌표 없는 장소는 조용히 제외, 에러 아님).
+
+- **순차 B — 운영시간 구조화** (최우선 선행, b→c→d 순서의 시작)
+  - **B1**: DB 마이그레이션 — `places`에 구조화 운영시간 컬럼 추가(예: `hours_structured JSONB`, 요일별 `{day, open, close}[]` 또는 동급 구조, nullable). 기존 `hours`(자유 텍스트)는 하위호환을 위해 유지. 대상: 신규 `V19__add_place_structured_hours.sql`(착수 시점 디렉터리 재확인).
+  - **B2**: AI 프롬프트 변경 — `AiServiceImpl.extractTravelInfo()`의 Gemini 프롬프트에 구조화 운영시간 추출 필드 추가(best-effort, 파싱 실패/모호하면 null). 기존 자유 텍스트 `hours`는 그대로 병행 저장(사람이 읽는 표시용으로 유지).
+  - **B3**: 기존 데이터 소급 — 이미 저장된 장소의 자유 텍스트 `hours`를 구조화 데이터로 재파싱하는 것은 **이번 사이클 범위 밖**(신뢰도 낮음, 연구에서도 지적된 위험). 기존 장소는 `hours_structured = null`로 남아 "비활성화 로직 no-op(전체 허용)"으로 자연스럽게 처리됨 — 별도 작업 불필요.
+  - **B4 (선택)**: `PlaceCorrectSection.tsx`(모바일 보완 UI)에 구조화 운영시간 수동 입력 UI 추가 — AI 추출 실패 시에도 사용자가 직접 보정 가능하게. 범위/비용이 작지 않으면 워커 판단으로 다음 사이클로 미뤄도 됨(필수는 아님, B1~B3만으로도 신규 장소 일부는 커버됨).
+
+- **순차 C — Event-Place 연관관계 + 시간** (B 선행 필요)
+  - **C1**: DB 마이그레이션 — `events`에 `place_id`(FK, nullable) + `start_time`/`end_time`(또는 `start_at`/`end_at`) 컬럼 추가. 대상: 신규 `V20__add_event_place_and_time.sql`(B1 이후 번호, 착수 시점 재확인).
+  - **C2**: 백엔드 — `CreateEventRequest`/`UpdateEventRequest`/`EventResponse`에 `placeId`/`startTime`/`endTime` 필드 추가, 장소 선택 시 해당 Place의 `name`/`hours`/`hoursStructured`(B에서 추가된 구조화 데이터)를 함께 응답에 포함, 시간 검증(종료>시작) 추가.
+  - **C3**: 프런트(웹) — `CreateEventModal.tsx`의 자유 텍스트 "장소" input을 저장된 Place 선택 드롭다운/검색으로 교체(또는 보강 — 자유 텍스트는 "기타 장소" 옵션으로 남길지 워커 판단), 시간 입력 UI(`type="time"` 시작/종료 2개) 추가.
+  - **C4**: 프런트(모바일) — 동일 작업(`CreateEventModal.tsx` 모바일판).
+  - **C5**: 운영시간 비활성화 로직 — 선택된 장소의 `hoursStructured`(B)를 참조해 시간 입력 UI에서 운영시간 밖 시간대를 비활성화. `hoursStructured`가 없는 장소(B3 사유로 다수 존재 가능)는 no-op(전체 시간 허용)으로 처리. 웹/모바일 공유 가능한 유틸로 구현할지는 워커 판단.
+
+- **순차 D — 블록형(정적) 캘린더 뷰** (C 선행 필요)
+  - **D1**: 웹 `CalendarScreen.tsx`에 타임라인/블록형 뷰 추가(기존 월간 그리드+리스트형은 유지, 날짜 클릭 시 보이는 리스트를 블록형으로 교체 또는 뷰 토글 — 워커 판단). C에서 받은 `startTime`/`endTime`/`placeId`로 블록 위치·길이를 정적으로 계산해 렌더링(재배치 인터랙션 없음). 신규 라이브러리 불필요(커스텀 컴포넌트로 충분, 조사에서 확인됨).
+  - **D2**: 모바일 `CalendarGrid.tsx`에 동일한 타임라인 블록 뷰 추가.
+
+**플래너 종합 추천**: 순서는 지시대로 B→C→D, 병행 A는 아무 때나 착수 가능. B4(모바일 보완 UI)와 A4(기존 데이터 소급)는 필수 경로가 아니라 "포함하면 좋지만 비용 대비 효과가 낮을 수 있는" 항목이라 사용자 컨펌 시 포함/제외를 한 번 더 확인하는 것을 권장. 전체 범위(B+C+D)가 마이그레이션 2개 + AI 프롬프트 변경 + 프런트 신규 UI 다수를 포함하는 중형~대형 작업이라, "이번 사이클에 B~D 전부" vs "B+C만 먼저, D는 다음 사이클" 같은 단계적 진행도 선택지로 함께 제시 추천.
+
+### 3. 사용자 컨펌 (오케스트레이터)
+- [x] 우선순위 목록을 사용자에게 제시, 이번 사이클 개발 범위 확정
+- [x] "블록형식 배치"의 실제 의미 — 지난 재확인에서 이미 정적 표시로 확정됨(변경 없음)
+- [x] 사용자 답변: **"그냥 다 해" — 전부 포함.** 병행 A(A1~A5) + 순차 B(B1~B4) + 순차 C(C1~C5) + 순차 D(D1~D2) 전체 진행. 선택 항목으로 남겨뒀던 **A4(기존 장소 소급 지오코딩)와 B4(모바일 운영시간 수동 보정 UI)도 포함**해서 진행.
+- [x] 컨펌 완료 — "4. 개발" 섹션 채움
+
+### 4. 개발 (Development)
+_(사용자 컨펌: 전부 포함. 순서는 지시받은 의존관계대로 — 병행 A는 아무 때나, 순차 B→C→D는 순서대로)_
+
+#### 병행 A — 웹 지도 마커 실연동 (b/c/d와 독립, 바로 착수 가능)
+- [ ] [A1] `TravelMapView.tsx`에 `places` prop 추가, `MARKERS` 하드코딩 제거 — `TravelMapScreen.tsx`가 이미 보유한 `listPlaces()` 실데이터 전달
+- [ ] [A2] `MapMarkerPlace`(`TravelPlaceDetailModal.tsx`) 타입을 실제 `PlaceResponse`와 호환되게 재설계(또는 변환 매퍼), id 타입 불일치(string vs number) 정리
+- [ ] [A3] 좌표 확보 — `PlaceServiceImpl.add/update`에서 주소를 OSM Nominatim으로 지오코딩해 `latitude`/`longitude` 저장(best-effort, 실패해도 장소 저장은 성공). Nominatim 사용정책(분당 1회 제한, `User-Agent` 헤더 필수) 준수
+- [ ] [A4] 기존 저장된 장소(좌표 없음) 전체에 대한 일회성 소급 지오코딩 배치 — Nominatim 요청 제한(분당 1회) 고려해 순차 처리, 실패 항목은 로그만 남기고 계속 진행
+- [ ] [A5] 지도에는 좌표가 있는 장소만 필터링해서 표시(좌표 없는 장소는 조용히 제외)
+
+#### 순차 B — 운영시간 구조화 (최우선 선행)
+- [x] [B1] DB 마이그레이션 — `places`에 `hours_structured`(JSONB, 요일별 open/close, nullable) 추가. 대상: 신규 마이그레이션(착수 시점 `db/migration/` 디렉터리 재확인 후 다음 번호 배정, 기존 자유 텍스트 `hours`는 유지)
+- [ ] [B2] AI 프롬프트 변경 — `AiServiceImpl.extractTravelInfo()`의 Gemini 프롬프트에 구조화 운영시간 추출 필드 추가(best-effort, 모호하면 null, 기존 자유 텍스트 `hours`도 병행 저장)
+- [ ] [B3] 기존 데이터 소급 — **범위 밖으로 확정 유지**(신뢰도 낮아 재파싱 안 함). 기존 장소는 `hours_structured = null`로 남아 C5의 비활성화 로직에서 자동으로 no-op(전체 허용) 처리됨
+- [ ] [B4] `PlaceCorrectSection.tsx`(모바일 보완 UI)에 구조화 운영시간 수동 입력 UI 추가 — 요일별 open/close 입력, AI 추출 실패/누락 시 사용자가 직접 보정 가능하게
+
+#### 순차 C — Event-Place 연관관계 + 시간 (B 선행 필요)
+- [ ] [C1] DB 마이그레이션 — `events`에 `place_id`(FK, nullable) + `start_time`/`end_time` 컬럼 추가. 대상: 신규 마이그레이션(B1 이후 번호, 착수 시점 재확인)
+- [ ] [C2] 백엔드 — `CreateEventRequest`/`UpdateEventRequest`/`EventResponse`에 `placeId`/`startTime`/`endTime` 추가, 장소 선택 시 해당 Place의 `name`/`hours`/`hoursStructured` 응답 포함, 시간 검증(종료>시작)
+- [ ] [C3] 프런트(웹) — `CreateEventModal.tsx`의 자유 텍스트 "장소" input을 저장된 Place 선택 드롭다운/검색으로 교체(또는 보강), 시간 입력 UI(`type="time"` 시작/종료) 추가
+- [ ] [C4] 프런트(모바일) — `CreateEventModal.tsx`(모바일판) 동일 작업
+- [ ] [C5] 운영시간 비활성화 로직 — 선택된 장소의 `hoursStructured`(B) 참조해 운영시간 밖 시간대 비활성화, `hoursStructured` 없는 장소는 no-op(전체 허용)
+
+#### 순차 D — 블록형(정적) 캘린더 뷰 (C 선행 필요)
+- [ ] [D1] 웹 `CalendarScreen.tsx`에 타임라인/블록형 뷰 추가(기존 월간 그리드+리스트형 유지, 날짜 클릭 시 뷰 전환 또는 추가 — 워커 판단). C의 `startTime`/`endTime`/`placeId`로 블록 위치·길이 정적 렌더링(재배치 없음, 신규 라이브러리 불필요)
+- [ ] [D2] 모바일 `CalendarGrid.tsx`에 동일한 타임라인 블록 뷰 추가
+
+### 5. 검토 (Review)
+- [ ] 각 개발 항목에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
+- [ ] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토
+
+### 6. 완료보고
+- [ ] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인
+
+---
+
+## 과거 기록 — 상용 서비스 수준 끌어올리기 — 운영/보안/성능 기반 조사 (2026-11-11, 완료)
 
 ### 1. 조사 (Research)
 _(관점 전환: 지금까지 A~L은 "버튼이 동작 안 함"을 다뤘다. 이번엔 "상용 서비스라면 당연히 있어야 하는데 없는 것"을 찾는다.)_
