@@ -80,7 +80,7 @@ _(사용자 컨펌: 전부 포함. 순서는 지시받은 의존관계대로 —
 - [x] [A2] `MapMarkerPlace`(`TravelPlaceDetailModal.tsx`) 타입을 실제 `PlaceResponse`와 호환되게 재설계(또는 변환 매퍼), id 타입 불일치(string vs number) 정리
 - [x] [A3] 좌표 확보 — `PlaceServiceImpl.add/update`에서 주소를 OSM Nominatim으로 지오코딩해 `latitude`/`longitude` 저장(best-effort, 실패해도 장소 저장은 성공). Nominatim 사용정책(분당 1회 제한, `User-Agent` 헤더 필수) 준수
 - [x] [A4] 기존 저장된 장소(좌표 없음) 전체에 대한 일회성 소급 지오코딩 배치 — Nominatim 요청 제한(분당 1회) 고려해 순차 처리, 실패 항목은 로그만 남기고 계속 진행
-- [ ] [A5] 지도에는 좌표가 있는 장소만 필터링해서 표시(좌표 없는 장소는 조용히 제외)
+- [x] [A5] 지도에는 좌표가 있는 장소만 필터링해서 표시(좌표 없는 장소는 조용히 제외)
 
 #### 순차 B — 운영시간 구조화 (최우선 선행)
 - [x] [B1] DB 마이그레이션 — `places`에 `hours_structured`(JSONB, 요일별 open/close, nullable) 추가. 대상: 신규 마이그레이션(착수 시점 `db/migration/` 디렉터리 재확인 후 다음 번호 배정, 기존 자유 텍스트 `hours`는 유지)

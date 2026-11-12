@@ -16,11 +16,14 @@ interface Props {
   onViewDetail?: (place: MapMarkerPlace) => void;
 }
 
+/** 좌표가 있는 장소만 남김 — 좌표 없는 장소는 지도에 찍을 수 없어 조용히 제외(에러 아님) */
+export function filterPlacesWithCoordinates(places: PlaceResponse[]): PlaceResponse[] {
+  return places.filter((p) => p.latitude != null && p.longitude != null);
+}
+
 export function TravelMapView({ places = [], onAddToSchedule, onViewDetail }: Props) {
-  // 좌표가 없는 장소는 지도에 찍을 수 없어 조용히 제외(에러 아님) — A5에서 정식으로 다룸
   const markers = useMemo<(MapMarkerPlace & { pos: [number, number]; color: string; size: number })[]>(
-    () => places
-      .filter((p) => p.latitude != null && p.longitude != null)
+    () => filterPlacesWithCoordinates(places)
       .map((p) => ({
         id:       p.id,
         pos:      [p.latitude as number, p.longitude as number],
