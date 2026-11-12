@@ -84,7 +84,7 @@ _(사용자 컨펌: 전부 포함. 순서는 지시받은 의존관계대로 —
 
 #### 순차 B — 운영시간 구조화 (최우선 선행)
 - [x] [B1] DB 마이그레이션 — `places`에 `hours_structured`(JSONB, 요일별 open/close, nullable) 추가. 대상: 신규 마이그레이션(착수 시점 `db/migration/` 디렉터리 재확인 후 다음 번호 배정, 기존 자유 텍스트 `hours`는 유지)
-- [ ] [B2] AI 프롬프트 변경 — `AiServiceImpl.extractTravelInfo()`의 Gemini 프롬프트에 구조화 운영시간 추출 필드 추가(best-effort, 모호하면 null, 기존 자유 텍스트 `hours`도 병행 저장)
+- [x] [B2] AI 프롬프트 변경 — `AiServiceImpl.extractTravelInfo()`의 Gemini 프롬프트에 구조화 운영시간 추출 필드 추가(best-effort, 모호하면 null, 기존 자유 텍스트 `hours`도 병행 저장)
 - [ ] [B3] 기존 데이터 소급 — **범위 밖으로 확정 유지**(신뢰도 낮아 재파싱 안 함). 기존 장소는 `hours_structured = null`로 남아 C5의 비활성화 로직에서 자동으로 no-op(전체 허용) 처리됨
 - [ ] [B4] `PlaceCorrectSection.tsx`(모바일 보완 UI)에 구조화 운영시간 수동 입력 UI 추가 — 요일별 open/close 입력, AI 추출 실패/누락 시 사용자가 직접 보정 가능하게
 

@@ -1,5 +1,11 @@
 import { apiRequest } from "@/lib/api-client";
 
+export interface PlaceHours {
+  day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  open: string;
+  close: string;
+}
+
 export interface PlaceResponse {
   id: number;
   spaceId: number;
@@ -15,6 +21,7 @@ export interface PlaceResponse {
   priceMax: number | null;
   currency: string | null;
   hours: string | null;
+  hoursStructured: PlaceHours[] | null;
   thumbnailUrl: string | null;
   sourceUrl: string | null;
   sourcePlatform: string | null;
@@ -42,6 +49,7 @@ export interface AddPlacePayload {
   priceMax?: number;
   currency?: string;
   hours?: string;
+  hoursStructured?: PlaceHours[];
   thumbnailUrl?: string;
   sourceUrl?: string;
   sourcePlatform?: string;

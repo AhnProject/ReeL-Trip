@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api-client";
+import type { PlaceHours } from "@/domains/place/api";
 
 export interface ParsedResult {
   name: string | null;
@@ -6,6 +7,7 @@ export interface ParsedResult {
   location: { address: string | null; region: string | null; country: string | null };
   price: { description: string | null; min: number | null; max: number | null; currency: string | null };
   hours: string | null;
+  hoursStructured: PlaceHours[] | null;
   menu: string[];
   tags: string[];
   description: string | null;

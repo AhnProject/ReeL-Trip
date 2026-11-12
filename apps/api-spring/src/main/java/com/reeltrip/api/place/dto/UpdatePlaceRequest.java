@@ -1,5 +1,6 @@
 package com.reeltrip.api.place.dto;
 
+import com.reeltrip.api.place.model.PlaceHours;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,6 +31,7 @@ public class UpdatePlaceRequest {
     private String currency;
 
     private String hours;
+    private List<PlaceHours> hoursStructured;
     private String thumbnailUrl;
     private String sourceUrl;
     private String sourcePlatform;

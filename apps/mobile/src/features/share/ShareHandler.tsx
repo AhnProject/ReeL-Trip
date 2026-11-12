@@ -65,6 +65,7 @@ export function ShareHandler() {
         priceMax:       parsed.price.max ?? undefined,
         currency:       parsed.price.currency ?? undefined,
         hours:          parsed.hours ?? undefined,
+        hoursStructured: parsed.hoursStructured ?? undefined,
         thumbnailUrl:   parsed.thumbnailUrl ?? undefined,
         sourceUrl:      parsed.sourceUrl,
         sourcePlatform: parsed.sourcePlatform,

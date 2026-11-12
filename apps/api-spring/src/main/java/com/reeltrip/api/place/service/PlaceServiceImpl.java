@@ -55,6 +55,7 @@ public class PlaceServiceImpl implements PlaceService {
                 .priceMax(request.getPriceMax())
                 .currency(request.getCurrency())
                 .hours(request.getHours())
+                .hoursStructured(request.getHoursStructured())
                 .thumbnailUrl(request.getThumbnailUrl())
                 .sourceUrl(request.getSourceUrl())
                 .sourcePlatform(request.getSourcePlatform())
@@ -107,6 +108,7 @@ public class PlaceServiceImpl implements PlaceService {
         if (request.getPriceMax() != null) place.setPriceMax(request.getPriceMax());
         if (request.getCurrency() != null) place.setCurrency(request.getCurrency());
         if (request.getHours() != null) place.setHours(request.getHours());
+        if (request.getHoursStructured() != null) place.setHoursStructured(request.getHoursStructured());
         if (request.getThumbnailUrl() != null) place.setThumbnailUrl(request.getThumbnailUrl());
         if (request.getSourceUrl() != null) place.setSourceUrl(request.getSourceUrl());
         if (request.getSourcePlatform() != null) place.setSourcePlatform(request.getSourcePlatform());
@@ -220,6 +222,7 @@ public class PlaceServiceImpl implements PlaceService {
                 .priceMax(p.getPriceMax())
                 .currency(p.getCurrency())
                 .hours(p.getHours())
+                .hoursStructured(p.getHoursStructured())
                 .thumbnailUrl(p.getThumbnailUrl())
                 .sourceUrl(p.getSourceUrl())
                 .sourcePlatform(p.getSourcePlatform())

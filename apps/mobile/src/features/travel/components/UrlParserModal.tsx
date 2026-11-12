@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { apiRequest } from "@/lib/api-client";
 import { addPlace } from "@/domains/place/api";
+import type { PlaceHours } from "@/domains/place/api";
 import { useAuthStore } from "@/store/auth";
 import { useInvalidatePlaces } from "@/hooks/usePlaces";
 import { toast } from "@/store/toast";
@@ -16,6 +17,7 @@ interface ParsedResult {
   location:       { address: string | null; region: string | null; country: string | null };
   price:          { description: string | null; min: number | null; max: number | null; currency: string | null };
   hours:          string | null;
+  hoursStructured: PlaceHours[] | null;
   menu:           string[];
   tags:           string[];
   description:    string | null;
@@ -74,7 +76,8 @@ export function UrlParserModal({ visible, spaceId, onClose }: UrlParserModalProp
         region: result.location.region ?? undefined, country: result.location.country ?? undefined,
         priceDesc: result.price.description ?? undefined, priceMin: result.price.min ?? undefined,
         priceMax: result.price.max ?? undefined, currency: result.price.currency ?? undefined,
-        hours: result.hours ?? undefined, thumbnailUrl: result.thumbnailUrl ?? undefined,
+        hours: result.hours ?? undefined, hoursStructured: result.hoursStructured ?? undefined,
+        thumbnailUrl: result.thumbnailUrl ?? undefined,
         sourceUrl: result.sourceUrl, sourcePlatform: result.sourcePlatform,
         tags: result.tags, menu: result.menu, confidence: result.confidence,
       }, token);

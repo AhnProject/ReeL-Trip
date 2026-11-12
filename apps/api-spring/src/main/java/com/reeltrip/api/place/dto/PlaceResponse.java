@@ -1,5 +1,6 @@
 package com.reeltrip.api.place.dto;
 
+import com.reeltrip.api.place.model.PlaceHours;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -24,6 +25,7 @@ public class PlaceResponse {
     private BigDecimal priceMax;
     private String currency;
     private String hours;
+    private List<PlaceHours> hoursStructured;
     private String thumbnailUrl;
     private String sourceUrl;
     private String sourcePlatform;

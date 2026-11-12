@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -44,6 +45,12 @@ public class AiServiceImpl implements AiService {
     // places.currency 컬럼이 VARCHAR(3)이라, 프롬프트 지시를 어긴 AI 응답이 그대로
     // 들어오면 저장 단계에서 @Size(max=3) 검증에 막혀 버림 — 허용값이 아니면 null로 치환
     private static final Set<String> ALLOWED_CURRENCIES = Set.of("KRW", "USD", "JPY", "EUR");
+
+    // places.hours_structured(JSONB)에 그대로 저장될 값이라, 요일/시간 형식을
+    // 벗어나는 원소는 통째로 버림(개별 원소 단위 best-effort — 하나가 이상해도
+    // 나머지 요일은 살림)
+    private static final Set<String> ALLOWED_DAYS = Set.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN");
+    private static final Pattern TIME_PATTERN = Pattern.compile("^([01]\\d|2[0-3]):[0-5]\\d$");
 
     // -------------------------------------------------------------------------
     // OpenAI Embeddings
@@ -163,6 +170,7 @@ public class AiServiceImpl implements AiService {
                     "currency": "KRW|USD|JPY|EUR|null"
                   },
                   "hours": "영업시간 (없으면 null)",
+                  "hoursStructured": [{"day": "MON|TUE|WED|THU|FRI|SAT|SUN", "open": "HH:MM(24시간)", "close": "HH:MM(24시간)"}] 형식의 배열로, 영업하는 요일만 포함(모호하거나 알 수 없으면 null),
                   "menu": [],
                   "tags": [],
                   "description": "한 줄 요약 (없으면 null)",
@@ -198,6 +206,7 @@ public class AiServiceImpl implements AiService {
             String jsonStr = extractJson(text);
             Map<String, Object> result = objectMapper.readValue(jsonStr, Map.class);
             normalizeCurrency(result);
+            normalizeHoursStructured(result);
             return result;
         } catch (AppException e) {
             throw e;
@@ -246,6 +255,35 @@ public class AiServiceImpl implements AiService {
                 price.put("currency", null);
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void normalizeHoursStructured(Map<String, Object> result) {
+        Object raw = result.get("hoursStructured");
+        if (!(raw instanceof List<?> rawList)) {
+            result.put("hoursStructured", null);
+            return;
+        }
+
+        List<Map<String, Object>> valid = new ArrayList<>();
+        for (Object item : rawList) {
+            if (!(item instanceof Map<?, ?> entry)) continue;
+            Object day = entry.get("day");
+            Object open = entry.get("open");
+            Object close = entry.get("close");
+            if (day == null || open == null || close == null) continue;
+            if (!ALLOWED_DAYS.contains(day.toString())) continue;
+            if (!TIME_PATTERN.matcher(open.toString()).matches()) continue;
+            if (!TIME_PATTERN.matcher(close.toString()).matches()) continue;
+
+            Map<String, Object> clean = new LinkedHashMap<>();
+            clean.put("day", day.toString());
+            clean.put("open", open.toString());
+            clean.put("close", close.toString());
+            valid.add(clean);
+        }
+
+        result.put("hoursStructured", valid.isEmpty() ? null : valid);
     }
 
     private String extractJson(String text) {

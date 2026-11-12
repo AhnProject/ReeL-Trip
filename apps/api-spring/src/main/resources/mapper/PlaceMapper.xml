@@ -19,6 +19,8 @@
         <result property="priceMax"       column="price_max"/>
         <result property="currency"       column="currency"/>
         <result property="hours"          column="hours"/>
+        <result property="hoursStructured" column="hours_structured"
+                typeHandler="com.reeltrip.api.common.typehandler.PlaceHoursListTypeHandler"/>
         <result property="thumbnailUrl"   column="thumbnail_url"/>
         <result property="sourceUrl"      column="source_url"/>
         <result property="sourcePlatform" column="source_platform"/>
@@ -38,12 +40,14 @@
         INSERT INTO places (
             space_id, name, category, address, region, country,
             latitude, longitude, price_desc, price_min, price_max, currency,
-            hours, thumbnail_url, source_url, source_platform,
+            hours, hours_structured, thumbnail_url, source_url, source_platform,
             tags, menu, confidence, created_by, created_at, updated_at
         ) VALUES (
             #{spaceId}, #{name}, #{category}, #{address}, #{region}, #{country},
             #{latitude}, #{longitude}, #{priceDesc}, #{priceMin}, #{priceMax}, #{currency},
-            #{hours}, #{thumbnailUrl}, #{sourceUrl}, #{sourcePlatform},
+            #{hours},
+            #{hoursStructured, typeHandler=com.reeltrip.api.common.typehandler.PlaceHoursListTypeHandler},
+            #{thumbnailUrl}, #{sourceUrl}, #{sourcePlatform},
             #{tags, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
             #{menu, typeHandler=com.reeltrip.api.common.typehandler.StringListTypeHandler},
             #{confidence}, #{createdBy}, NOW(), NOW()
@@ -53,7 +57,7 @@
     <select id="findById" resultMap="placeResultMap">
         SELECT id, space_id, name, category, address, region, country,
                latitude, longitude, price_desc, price_min, price_max, currency,
-               hours, thumbnail_url, source_url, source_platform,
+               hours, hours_structured, thumbnail_url, source_url, source_platform,
                tags, menu, confidence, created_by, consent_given, consent_at, created_at, updated_at
         FROM places
         WHERE id = #{id}
@@ -62,7 +66,7 @@
     <select id="findBySpaceId" resultMap="placeResultMap">
         SELECT id, space_id, name, category, address, region, country,
                latitude, longitude, price_desc, price_min, price_max, currency,
-               hours, thumbnail_url, source_url, source_platform,
+               hours, hours_structured, thumbnail_url, source_url, source_platform,
                tags, menu, confidence, created_by, consent_given, consent_at, created_at, updated_at
         FROM places
         WHERE space_id = #{spaceId}
@@ -84,6 +88,7 @@
             price_max = #{priceMax},
             currency = #{currency},
             hours = #{hours},
+            hours_structured = #{hoursStructured, typeHandler=com.reeltrip.api.common.typehandler.PlaceHoursListTypeHandler},
             thumbnail_url = #{thumbnailUrl},
             source_url = #{sourceUrl},
             source_platform = #{sourcePlatform},
