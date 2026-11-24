@@ -691,3 +691,86 @@ public UserProfileResponse getProfile(String username) {
 ## 종합
 
 4건 전부 **APPROVED**. 커밋 메시지의 숫자 주장(21/7/4개 테스트, 전부 통과)을 실제로 `mvn test`/`npx vitest run`/`npx jest`를 직접 실행해 재현·확인했고, CI YAML도 실제 파서로 검증했습니다. 테스트 대상 선정(핵심 보안/로직 경로 vs 순수 컴포넌트 파일럿)과 범위(설치+파일럿 수준 유지)도 지시사항과 정확히 일치합니다. CHANGES REQUESTED 없음.
+
+---
+
+# 순차 B — 운영시간 구조화 (ba1f96d, 4a79a6e, b59a7b6, b2d65c7) (2026-11-12)
+
+검토 기준: `.team/RESEARCH.md` N-(b)와 `.team/TASKS.md` "순차 B — 운영시간 구조화" 설명(B1~B4). `apps/api-spring`에서 `mvn -o test`(21개), `apps/web`에서 `npx tsc --noEmit`+`npx vitest run`(7개), `apps/mobile`에서 `npx tsc --noEmit`+`npx jest`(4개)를 전부 직접 재실행 — 전부 통과/클린(모바일 사전 존재 오류 2건만, 신규 없음).
+
+## (1) [B1] 마이그레이션 — 기존 컬럼/데이터 영향 — APPROVED
+
+`V19__add_place_structured_hours.sql`은 `ALTER TABLE places ADD COLUMN IF NOT EXISTS hours_structured JSONB`(nullable, `DEFAULT` 없음) 한 줄뿐 — 기존 자유 텍스트 `hours` 컬럼은 diff에 전혀 등장하지 않아 손대지 않았음을 확인. `DEFAULT` 없는 nullable 컬럼 추가는 Postgres 표준 동작상 기존 행을 재작성하지 않고 전부 NULL로 채워지므로 기존 저장된 장소 데이터에 영향 없음. (참고로 B3에서 이 가정을 `grep`(backfill/reparse/@Scheduled 0건)으로 재검증한 것도 확인 — 소급 재파싱 로직이 없다는 전제가 실제 코드와 일치함.)
+
+## (2) [B2] AI 프롬프트 — best-effort 및 스키마 일치 — APPROVED
+
+- **best-effort**: `normalizeHoursStructured()`를 라인 단위로 추적 — `instanceof` 가드(비-List/비-Map 즉시 스킵)와 null 체크(`day`/`open`/`close` null이면 skip)로 어떤 입력에도 예외를 던지지 않음, 호출부도 `normalizeCurrency()`와 동일하게 `extractTravelInfo()`의 try 블록 안에서 단순 맵 변형만 수행 — 구조화 추출이 전부 걸러져 `null`이 되어도 AI 추출 자체(JSON 파싱, 나머지 필드)는 그대로 성공. 저장 단계(`PlaceServiceImpl.add/update`)도 `hoursStructured`를 다른 필드와 동일한 null-skip 패턴으로 다뤄 구조화 실패가 장소 저장 실패로 이어지는 경로가 없음.
+- **기존 자유텍스트 hours 병행**: 프롬프트에서 `"hours"` 필드는 그대로 두고 `"hoursStructured"`를 별도 줄로 추가했을 뿐(diff 확인), `normalizeHoursStructured()`는 `result`맵의 `"hoursStructured"` 키만 건드리고 `"hours"` 키는 전혀 참조하지 않음 — 자유 텍스트 추출/저장 경로가 완전히 그대로 유지됨.
+- **프롬프트 스키마 ↔ 파싱 코드 일치**: 프롬프트가 요구하는 `{day: MON~SUN, open/close: HH:MM(24시간)}` 배열 구조와 `normalizeHoursStructured()`가 검사하는 `ALLOWED_DAYS`(요일 7종 완전 일치) / `TIME_PATTERN`(`^([01]\d|2[0-3]):[0-5]\d$`, 24시간 HH:mm 형식) 키 이름(`day`/`open`/`close`)까지 전부 1:1로 대응됨을 직접 대조. `PlaceHours` 모델 필드명도 동일.
+- **저장 플로우 전체 연결**: TASKS.md는 "AI 프롬프트 변경"만 명시했지만, 워커가 "추출만 하고 아무도 저장 경로에 연결 안 하면 무의미"하다고 판단해 모델/타입핸들러/DTO/매퍼/서비스/프런트 매핑까지 범위를 넓힌 것을 직접 확인 — `UrlParserServiceImpl.parse()`가 타입드 DTO가 아니라 `Map<String,Object>`를 그대로 반환하는 구조라 백엔드 쪽은 추가 매핑 없이 자동으로 흘러가지만, 모바일의 `ShareHandler.tsx`/`UrlParserModal.tsx`는 파싱 결과를 필드별로 수동 매핑하는 구조라 `hoursStructured` 복사가 빠지면 값이 조용히 버려지는 지점이었음을 코드로 직접 확인 — 두 곳 다 정확히 추가됐음을 확인(지난 L조사에서 지적된 것과 동일한 패턴의 재발을 막은 것으로 판단, 범위 이탈이 아니라 "AI 프롬프트 변경"이 실질적 효과를 가지려면 필수적인 확장).
+
+## (3) [B4] 모바일 UI — 형식/충돌 — APPROVED
+
+`hoursEntries` 빌드 로직(`DAYS.map(...).filter(enabled && TIME_RE.test(open/close)).map(...)`)이 백엔드 `TIME_PATTERN`과 글자 단위로 동일한 정규식을 사용하고, 최종 전송 객체가 `{day, open, close}`로 `PlaceHours` 타입과 정확히 일치 — "요일별 open/close 올바른 형식" 확인. 저장은 체크된 요일 중 유효한 시간만 모아 `updatePlace({hoursStructured: hoursEntries})`로 단일 필드만 보내 백엔드의 null-skip 패턴과 맞물려 다른 필드를 건드리지 않음.
+
+기존 자유텍스트 `hours`와의 충돌 여부: `FIELDS` 배열에 `"hours"`(자유 텍스트)와 `"hoursStructured"`(구조화)가 **독립된 두 항목**으로 각자 `isMissing()` 분기를 가지고 있고(하나는 `place.hours == null`, 하나는 `place.hoursStructured` 배열이 비었는지로 별도 판정), 저장 시에도 `payload`에 둘 중 하나의 키만 담겨 전송됨(`field.key`로 분기) — 한쪽을 저장해도 다른 쪽 값이 지워지거나 영향받는 공유 상태가 없음. `value`(텍스트 필드용)와 `hoursDraft`(구조화 필드용)도 완전히 분리된 state라 교차 오염 없음, `handleOpen`/`handleCancel`에서 매번 `hoursDraft`를 초기화해 이전 입력이 새어 들어가는 것도 방지됨.
+
+## 종합
+
+B1~B4 전부 **APPROVED**. 가장 신경 써서 확인한 지점은 (2)의 "그냥 프롬프트만 바꾸면 무의미"하다는 워커의 판단이 실제로 맞는지(백엔드는 맵 기반이라 자동 연결되지만 모바일 프런트는 수동 매핑이라 실제로 빠질 뻔한 지점이었음을 코드로 확인) — TASKS.md 문구보다 넓어진 범위가 자의적 확장이 아니라 기능이 실제로 동작하기 위한 필수 보완이었음을 확인했습니다. 백엔드 테스트 21개/웹 7개/모바일 4개 전부 재실행해 회귀 없음도 확인. CHANGES REQUESTED 없음.
+
+---
+
+# 병행 A — 웹 지도 마커 실연동 (4558e37, 54cb169, a724920, 8f0ee87, 87a80ff) (2026-11-12)
+
+검토 기준: `.team/RESEARCH.md` N-(a)와 `.team/TASKS.md` "병행 A — 웹 지도 마커 실연동" 설명(A1~A5). `apps/api-spring`에서 `mvn -o test`(26개), `apps/web`에서 `npx tsc --noEmit`+`npx vitest run`(10개)을 직접 재실행 — 전부 통과/클린. `git diff --stat`로 5개 커밋 전체 범위 확인 — 17개 파일 전부 geocoding/places/지도 도메인 + 테스트뿐, 모바일 파일은 0건(지난 사이클에 "모바일 네이티브 지도는 API 키 문제로 제외, 이번은 웹 지도로 범위 한정"이 이미 확정된 것과 일치).
+
+## (1) [A3] Nominatim 지오코딩 — Usage Policy 준수 실체 확인 — APPROVED
+
+`GeocodingServiceImpl`을 라인 단위로 확인:
+- **User-Agent**: `.defaultHeader(HttpHeaders.USER_AGENT, "ReeL-Trip/1.0 (+" + apiBaseUrl + ")")`가 실제 `RestClient` 빌더에 설정되어 있음 — 주석상의 선언이 아니라 매 요청에 실제로 실리는 헤더. 앱 식별 문자열 + 연락용 URL(`api.base-url`)을 포함해 Nominatim 정책이 요구하는 "기본 라이브러리 UA 불충분" 조항을 충족.
+- **요청 간 지연**: `waitForRateLimit()`이 매 `geocode()` 호출의 맨 앞에서 실행되고, `static` 필드(`RATE_LIMIT_LOCK`/`lastRequestAtMs`)를 쓰는 `synchronized` 블록 안에서 "마지막 요청으로부터 1000ms 미만이면 그 차이만큼 `Thread.sleep`" 하는 실제 블로킹 코드임을 확인 — 문서화된 정책이 아니라 모든 호출자(싱글턴 빈 전역)에 실제로 적용되는 코드 레벨 강제. (TASKS.md가 "분당 1회"로 잘못 적어뒀던 것을, 워커가 공식 정책 원문(초당 1회가 표준 사용 기준)을 직접 확인해 더 엄격한 쪽으로 구현한 것도 확인 — TASKS.md보다 느슨하게 구현한 게 아니라 더 안전한 방향의 불일치라 문제 없음.)
+- **best-effort**: `geocode()`는 `catch (Exception e)`로 모든 실패(네트워크/파싱/빈 결과)를 흡수해 `Optional.empty()`만 반환, 절대 예외를 던지지 않음. 호출부 `geocodeBestEffort()`도 `Optional.ifPresent(...)`로만 좌표를 채워 실패 시 아무 일도 안 일어남. `PlaceServiceImpl.add()`에서 `geocodeBestEffort(place)` 다음에 `placeMapper.insert(place)`가 무조건 실행되는 코드 순서, `update()`도 동일 — 지오코딩 성공/실패와 무관하게 저장은 항상 진행됨. `PlaceServiceImplTest`의 신규 테스트 2건(성공 시 좌표 반영/실패해도 `response.getId()` 정상 반환)을 직접 실행해 통과 확인.
+
+## (2) [A4] 소급 배치 — 레이트리밋/장애격리/운영 안전성 — APPROVED(운영 시 참고할 캐베엇 1건 기록)
+
+- **배치 중 레이트리밋**: `for` 루프에서 `if (i > 0) sleep(bulkIntervalMs)`(기본 15000ms)가 **매 항목 처리 전**에 실행됨을 확인 — N건이면 (N-1)번의 15초 대기가 강제되는 순차 처리이지 한꺼번에 쏘는 구조가 아님. `GeocodingServiceImpl` 자체의 1초 제한과 이 배치의 15초 간격이 겹쳐도 더 큰 쪽(15초)이 실질적 간격을 결정하므로 상충 없음. Nominatim 정책의 "지속적 대량 호출 시 분당 4회(=15초)" 권장과 정확히 일치.
+- **장애 격리**: `try/catch`가 루프 **내부**, 개별 장소 처리 단위로 스코프됨(루프 전체를 감싸는 게 아님) — 한 항목에서 예외가 나도 `failed++`, `log.warn`만 하고 `for`가 다음 인덱스로 계속 진행. `GeocodingBackfillRunnerTest`의 "성공/실패 혼재" 테스트(2건 중 1건만 성공 응답, 나머지는 `updateCoordinates` 미호출로 실패 확인)를 직접 실행해 통과 확인 — 실패한 장소가 있어도 나머지 처리가 중단되지 않음이 테스트로 보장됨.
+- **실행 방식/운영 안전성**: `CommandLineRunner`로 구현되어 **앱이 시작될 때마다** 실행 자체는 시도되지만, `app.backfill-geocoding-on-startup`(기본 `false`)으로 게이트되어 평소엔 즉시 `return`하는 no-op임을 확인(`GeocodingBackfillRunnerTest`의 "기본 비활성 시 no-op" 테스트로도 보장). REST 엔드포인트로 노출하지 않아 인증된 일반 사용자가 트리거할 방법이 없음 — 운영자가 배포 시 환경변수를 켜고 끄는 수동 트리거 방식. Spring Boot 라이프사이클상 `CommandLineRunner`는 내장 서버(및 `/actuator/health`)가 이미 뜬 뒤 실행되므로, 배치가 돌고 있는 동안에도 일반 API 요청은 별도 Tomcat 워커 스레드로 정상 처리됨(메인 스레드만 배치로 블로킹) — 앱 기동 자체를 막거나 헬스체크를 실패시키는 구조는 아님.
+  - **참고(비차단 운영 캐베엇)**: ① 운영자가 완료 후 플래그를 `false`로 되돌리는 걸 잊으면 다음 재시작마다 재실행되지만, 쿼리 자체가 "아직 좌표 없는 장소"만 대상으로 하므로 매번 범위가 줄어들 뿐 데이터 훼손이나 중복 피해는 없음(자기 제한적). ② 복제본이 여러 개인 배포라면 인스턴스마다 독립적으로 동시에 돌아 Nominatim 호출이 중복될 수 있음(각 인스턴스는 자기 자신의 레이트리밋만 지킴, 인스턴스 간 분산락 없음) — 다만 이 레포의 현재 `railway.toml`에 복제본 확장 설정이 없어 현시점 실제 위험은 낮다고 판단, 향후 멀티 인스턴스로 확장할 경우 재검토 필요.
+
+## (3) [A2] 타입 재설계 — 다른 소비자 영향 — APPROVED
+
+`grep`으로 `MapMarkerPlace`/`TravelPlaceDetailModal`/`TravelMapMarkerPopup`을 참조하는 파일 전체를 확인한 결과 4개(`TravelMapMarkerPopup.tsx`/`TravelMapScreen.tsx`/`TravelMapView.tsx`/`TravelPlaceDetailModal.tsx`)뿐이고, 타입이 바뀐 3개 파일이 전부 같은 커밋에서 함께 수정됨 — 레포 전체에 이 타입을 쓰는 "다른 곳"이 존재하지 않아 깨질 대상 자체가 없음. `npx tsc --noEmit` 클린으로 타입 불일치 재확인.
+
+## (4) [A1]/[A5] 지도 마커 연동 — APPROVED
+
+`TravelMapScreen.tsx`의 `<TravelMapView places={places} .../>` → `TravelMapView`의 `markers` useMemo가 `filterPlacesWithCoordinates(places)`(A5에서 분리된 순수 함수)로 좌표 있는 장소만 남기고 `PlaceResponse`의 실제 필드(`id`/`name`/`category`/`address`/`hours`)를 그대로 매핑 — 하드코딩 `MARKERS` 상수는 diff에서 완전히 제거됨. 좌표 없는 장소는 `.filter()`가 조용히 걸러낼 뿐 예외나 에러 처리 분기 자체가 없어 "에러 없이 필터링"됨을 코드 구조로 확인, `TravelMapView.test.ts`의 "전부 없으면 빈 배열(에러 아님)" 테스트를 직접 실행해 재확인.
+
+## 종합
+
+A1~A5 전부 **APPROVED**. 가장 꼼꼼히 본 지점은 (1)(2) Nominatim 정책 준수 — User-Agent/레이트리밋이 문서나 주석이 아니라 실제로 실행되는 코드(헤더 빌더, `synchronized`+`sleep` 블로킹, 배치의 사전 `sleep`)로 구현돼 있음을 라인 단위로 추적했고, 테스트(26개 백엔드 전부 재실행)로도 성공/실패/혼재 케이스가 보장됨을 확인했습니다. 운영 캐베엇 2건(플래그 미복구 시 반복 실행, 멀티 인스턴스 중복 호출)은 현재 배포 규모에서 실질적 위험이 낮아 블로킹 사유로 보지 않았습니다. CHANGES REQUESTED 없음.
+
+---
+
+# 순차 C — Event-Place 연관관계 [C1][C2]만 (워커 작업 중단, 사용자 지시) (f178501, b42704f) (2026-11-12)
+
+검토 범위: 사용자 지시로 워커 작업이 C2 이후 중단되어 **C1/C2만** 리뷰(C3~C5, D는 미착수). 검토 기준: `.team/TASKS.md` "순차 C — Event-Place 연관관계 + 시간" 설명. `apps/api-spring`에서 `mvn -o test`(30개) 직접 재실행 — 통과. `git diff --stat`로 두 커밋 전체 범위 확인 — 13개 파일 전부 event/place 도메인 + 마이그레이션 + 테스트뿐, 웹/모바일 프런트는 0건(C3/C4가 아직 TASKS.md에 미체크 상태인 것과 일치 — 프런트 작업에 조급하게 손대지 않았음).
+
+## (1) [C1] 마이그레이션 — 기존 이벤트/쿼리 영향 — APPROVED
+
+`V20__add_event_place_and_time.sql`: `place_id BIGINT REFERENCES places(id) ON DELETE SET NULL`(nullable, FK), `start_time`/`end_time TIME`(둘 다 nullable) — 전부 `DEFAULT` 없이 추가되어 기존 행은 Postgres 표준 동작상 전부 NULL로 남음. FK는 NULL 값에 대해서는 제약 검사 자체가 적용되지 않으므로(FK 제약은 non-null 참조값에만 걸림), 기존 이벤트가 전부 `place_id = NULL`인 상태로 이 FK가 추가돼도 제약 위반이 날 수 없음을 확인. `places.id`가 `BIGSERIAL`(내부적으로 BIGINT)이라 `events.place_id BIGINT`와 타입도 정확히 호환됨을 마이그레이션 원본(V4)과 대조 확인. 기존 `start_date`/`end_date`(DATE) 컬럼은 diff에 전혀 등장하지 않아 손대지 않았음 — 날짜와 시각(time-of-day)이 완전히 별도 컬럼으로 분리되어 기존 날짜 기반 로직과 충돌 없음. `idx_events_place_id` 인덱스도 순수 추가라 안전.
+
+## (2) [C2] 백엔드 — 기존 흐름 보존 / 시간 검증 / placeId null 허용 — APPROVED
+
+- **시간 검증**: `validateTimeRange()`가 `startTime != null && endTime != null && !endTime.isAfter(startTime)`일 때만 `INVALID_EVENT_TIME_RANGE`(400)를 던짐 — **둘 중 하나라도 없으면 검사 자체를 건너뜀**(하루 종일 일정처럼 시각이 없는 이벤트 허용). `endTime.isAfter(startTime)`(엄격히 더 늦어야 함, 동일 시각도 거부)이 "종료>시작" 요구사항과 정확히 일치 — `EventServiceImplTest`의 `update_withInvalidTimeRange_isRejected` 테스트가 **동일 시각(10:00~10:00)** 케이스로 이 엄격함을 직접 검증하고 있음을 확인(단순 역순이 아니라 "같아도 거부"까지 커버).
+- **다른 스페이스 장소 방지**: `resolvePlace()`가 `place.getSpaceId().equals(spaceId)`를 확인해 다른 스페이스 소속 장소를 연결하려 하면 `PLACE_ACCESS_DENIED`로 거부 — `create_withPlaceFromDifferentSpace_isRejected` 테스트로 직접 확인.
+- **placeId가 null인 기존 방식(자유텍스트 location) 호환성**: `resolvePlace(placeId, spaceId)`는 `placeId == null`이면 즉시 `null` 반환(DB 조회조차 안 함), `create()`/`update()` 양쪽 다 이 결과를 그대로 `Event.placeId`에 대입하고 `toResponse(event, place)`에서 `place == null`이면 `EventPlaceSummary`도 `null`로 응답 — 기존 `location`(자유 텍스트) 필드는 이 경로와 완전히 독립적으로 그대로 `request.getLocation()` → `event.setLocation(...)`으로 이어짐(diff에서 전혀 변경되지 않음). 즉 placeId를 아예 안 보내는 기존 방식의 이벤트 생성/수정은 새 필드들이 전부 null로 채워질 뿐 기존 동작과 동일.
+- **참고(이 커밋 자체의 결함은 아님, 후속 C3/C4에서 주의할 점으로 기록)**: `EventServiceImpl.update()`는 `placeId`/`startTime`/`endTime`을 다른 필드(`title`/`description`/`startDate`/`endDate`/`location`/`price`)와 동일하게 **무조건 덮어쓰는 방식**(null-skip 아님)으로 설정함 — 이는 `UpdatePlaceRequest`식 부분 패치가 아니라 `UpdateEventRequest`가 이미 `title`/`startDate`/`endDate`를 `@NotBlank`/`@NotNull`로 강제해온 기존의 "폼 전체를 매번 다시 보내는" 방식과 일치하는 것으로 확인(diff 적용 전부터 이미 그런 패턴이었음, C2가 새로 도입한 리스크 아님). 다만 이는 C3/C4(프런트 수정 폼)가 기존 `placeId`/`startTime`/`endTime` 값을 폼에 채워 넣지 않고 제출하면 의도치 않게 지워질 수 있다는 뜻이라, 해당 프런트 작업 시 "수정 폼이 기존 값을 프리필하는지"를 반드시 확인해야 함 — 이번 C1/C2 범위의 결함은 아니므로 APPROVED 판정에는 영향 없음.
+- **N+1 회피**: `findBySpace()`가 이벤트 목록에서 distinct placeId를 모아 신규 `PlaceMapper.findByIds()`(IN절)로 한 번에 조회 후 `Map<Long,Place>`로 그룹핑, 각 이벤트가 `placesById.get(e.getPlaceId())`로 키 조회 — `placeId`가 null인 이벤트는 `Map.get(null)`이 안전하게 `null`을 반환해 예외 없음. 빈 리스트 가드(`placeIds.isEmpty() ? Map.of() : ...`)도 확인되어 빈 IN절 SQL 생성 위험 없음.
+- **응답 스키마**: `EventPlaceSummary(id/name/hours/hoursStructured)`가 TASKS.md가 명시한 필드와 정확히 일치. `create_withValidPlace_includesPlaceSummaryInResponse` 테스트로 실제 응답에 포함됨을 확인.
+- `mvn -o test` 직접 실행 결과 `Tests run: 30, Failures: 0` `BUILD SUCCESS` — 기존 26개(A/B 묶음)에 신규 4개(시간 역순 거부/다른 스페이스 거부/정상 생성 시 요약 포함/수정 시 시간 검증)가 더해진 것을 확인, 전부 통과.
+
+## 종합
+
+C1/C2 **APPROVED**. 가장 신경 써서 확인한 지점은 (2)의 "placeId가 null인 기존 이벤트도 정상 동작하는지"였는데, `resolvePlace`의 조기 null 반환과 `location` 필드의 완전한 독립성을 코드로 확인했습니다. 한 가지 비차단 참고사항을 남겼습니다 — `update()`가 새 필드들도 기존 필드와 동일하게 무조건 덮어쓰는 방식이라, 아직 시작하지 않은 C3/C4(프런트 수정 폼)에서 기존 값을 프리필하지 않으면 데이터가 날아갈 수 있다는 점을 다음 작업자가 유의해야 합니다(이번 커밋 자체의 결함 아님). CHANGES REQUESTED 없음 — C3~C5/D는 미착수 상태로 TASKS.md와 일치하므로 추가로 볼 것 없음.

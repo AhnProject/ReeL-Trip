@@ -91,20 +91,22 @@ _(사용자 컨펌: 전부 포함. 순서는 지시받은 의존관계대로 —
 #### 순차 C — Event-Place 연관관계 + 시간 (B 선행 필요)
 - [x] [C1] DB 마이그레이션 — `events`에 `place_id`(FK, nullable) + `start_time`/`end_time` 컬럼 추가. 대상: 신규 마이그레이션(B1 이후 번호, 착수 시점 재확인)
 - [x] [C2] 백엔드 — `CreateEventRequest`/`UpdateEventRequest`/`EventResponse`에 `placeId`/`startTime`/`endTime` 추가, 장소 선택 시 해당 Place의 `name`/`hours`/`hoursStructured` 응답 포함, 시간 검증(종료>시작)
-- [ ] [C3] 프런트(웹) — `CreateEventModal.tsx`의 자유 텍스트 "장소" input을 저장된 Place 선택 드롭다운/검색으로 교체(또는 보강), 시간 입력 UI(`type="time"` 시작/종료) 추가
-- [ ] [C4] 프런트(모바일) — `CreateEventModal.tsx`(모바일판) 동일 작업
-- [ ] [C5] 운영시간 비활성화 로직 — 선택된 장소의 `hoursStructured`(B) 참조해 운영시간 밖 시간대 비활성화, `hoursStructured` 없는 장소는 no-op(전체 허용)
+- [ ] **(중단 — 사용자 지시 "현재작업까지만하고 마무리해") [C3]** 프런트(웹) — `CreateEventModal.tsx`의 자유 텍스트 "장소" input을 저장된 Place 선택 드롭다운/검색으로 교체(또는 보강), 시간 입력 UI(`type="time"` 시작/종료) 추가. **다음 작업자 주의**: 리뷰에서 지적된 대로 `EventServiceImpl.update()`가 새 필드도 기존 필드처럼 무조건 덮어쓰므로, 수정 폼에서 기존 placeId/시간 값을 프리필하지 않으면 데이터 유실 위험 있음(REVIEW.md C1/C2 섹션 참조)
+- [ ] **(중단) [C4]** 프런트(모바일) — `CreateEventModal.tsx`(모바일판) 동일 작업 (C3과 동일 주의사항)
+- [ ] **(중단) [C5]** 운영시간 비활성화 로직 — 선택된 장소의 `hoursStructured`(B) 참조해 운영시간 밖 시간대 비활성화, `hoursStructured` 없는 장소는 no-op(전체 허용)
 
-#### 순차 D — 블록형(정적) 캘린더 뷰 (C 선행 필요)
+#### 순차 D — 블록형(정적) 캘린더 뷰 (C 선행 필요) — **미착수, 백로그로 보류**
 - [ ] [D1] 웹 `CalendarScreen.tsx`에 타임라인/블록형 뷰 추가(기존 월간 그리드+리스트형 유지, 날짜 클릭 시 뷰 전환 또는 추가 — 워커 판단). C의 `startTime`/`endTime`/`placeId`로 블록 위치·길이 정적 렌더링(재배치 없음, 신규 라이브러리 불필요)
 - [ ] [D2] 모바일 `CalendarGrid.tsx`에 동일한 타임라인 블록 뷰 추가
 
+_(사용자 지시로 병행 A(지도 마커 실연동)와 순차 B(운영시간 구조화) 전체, 순차 C의 C1/C2(백엔드)까지 완료 후 이번 사이클 종료. C3~C5/D는 다음 사이클에서 재개.)_
+
 ### 5. 검토 (Review)
-- [ ] 각 개발 항목에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록
-- [ ] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토
+- [x] 각 개발 항목에 대해 REVIEWER가 REVIEW.md에 APPROVED / CHANGES REQUESTED 기록 — 병행 A(5건)/순차 B(4건)/순차 C1~C2(2건) 전체 **APPROVED**. C1/C2 리뷰에서 비차단 참고사항 1건(위 C3/C4 주의사항 참조)
+- [x] CHANGES REQUESTED 항목은 WORKER가 재작업 후 재검토 — 해당 없음(전부 1차 APPROVED)
 
 ### 6. 완료보고
-- [ ] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인
+- [x] 전체 개발 완료 후, 옵시디언 완료보고서 작성 여부를 사용자에게 확인 — 작성 승인받아 `03_WorkResults/2026-11-12-map-schedule-place-integration.md` 생성 완료(사이클 중단 상태로 기록, status: 진행중)
 
 ---
 
